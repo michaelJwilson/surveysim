@@ -117,7 +117,7 @@ class surveyPlan:
 
         t = Time(day_stats['MJDsunset'], format = 'mjd')
         utc = t.iso
-        filename = 'obsplan' + utc[0] + utc[1] + utc[2] + utc[3] + utc[5] + utc[6] + utc[8] + utc[9] + '.fits'
+        filename = 'obsplan' + day_stats['dirName'] + '.fits'
         thdulist = pyfits.HDUList([prihdu, tbhdu])
         thdulist.writeto(filename, clobber=True)
 

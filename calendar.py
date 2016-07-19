@@ -138,6 +138,16 @@ def obsCalendar(calfile):
                     moonDEC = -1.0 * (float(entries[31]) + float(entries[32])/100.0)
                 else:
                     moonDec = float(entries[30]) + float(entries[31])/100.0
+            # Get the night's directory name right away.
+            if month >= 10:
+                monthStr = str(month)
+            else:
+                monthStr = '0' + str(month)
+            if day >= 10:
+                dayStr = str(day)
+            else:
+                dayStr = '0' + str(day)
+            dirName = str(year) + monthStr + dayStr
             cal.append( {'MJDmidnight': MJDmidnight,
                          'MJDsunset': Tsunset.mjd,
                          'MJDsunrise': Tsunrise.mjd,
@@ -147,5 +157,6 @@ def obsCalendar(calfile):
                          'MJDmoonset': MJDmoonset,
                          'MoonFrac': moonIllum,
                          'MoonRA': moonRA,
-                         'MoonDEC': moonDEC} )
+                         'MoonDEC': moonDEC,
+                         'dirName': dirName} )
     return cal
