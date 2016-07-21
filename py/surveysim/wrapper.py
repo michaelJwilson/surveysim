@@ -1,5 +1,6 @@
 #! /usr/bin/python
 
+import numpy as np
 from astropy.time import Time
 from datetime import datetime
 from weather import weatherModule
@@ -38,14 +39,18 @@ class obsCount:
             partFileName = '0000000' + str(obsNumber)
         return partFileName
 
-def nightOps(day_stats, obsplan, w, ocnt):
+def nightOps(day_stats, obsplan, w, ocnt, tableOutput=True):
 
     nightOver = False
     mjd = day_stats['MJDsunset']
     tilesObserved = []
     tileIDdone = []
 
-    os.mkdir(day_stats['dirName'])
+
+    if tableOutput:
+        obsList = []
+    else:
+        os.mkdir(day_stats['dirName'])
     
     conditions = w.getValues(mjd)
     print conditions
@@ -72,27 +77,34 @@ def nightOps(day_stats, obsplan, w, ocnt):
                     mjd += real_exposure/86400.0
                     tilesObserved.append(target)
                     tileIDdone.append(target['tileID']) # This is for an easy check in the nextFieldSelector.
-                    # Output headers, but no data.
-                    # In the future: GFAs (i, x, y + metadata for i=id, time, postagestampid) and fiber positions.
-                    prihdr = pyfits.Header()
-                    prihdr['TILEID  '] = target['tileID']
-                    prihdr['RA      '] = target['RA']
-                    prihdr['DEC     '] = target['DEC']
-                    prihdr['PROGRAM '] = target['Program']
-                    prihdr['EBMV    '] = target['Ebmv']
-                    prihdr['MAXLEN  '] = target['maxLen']
-                    prihdr['MOONFRAC'] = target['MoonFrac']
-                    prihdr['DESSN2  '] = target['DESsn2']
-                    prihdr['STATUS  '] = target['Status']
-                    prihdr['EXPTIME '] = target['Exposure']
-                    prihdr['OBSSN2  '] = target['obsSN2']
-                    t = Time(mjd, format = 'mjd')
-                    tbase = str(t.isot)
-                    nt = len(tbase)
-                    prihdr['DATE-OBS'] = tbase[:nt-5]
-                    filename = day_stats['dirName'] + '/desi-exp-' + ocnt.update() + '.fits'
-                    prihdu = pyfits.PrimaryHDU(header=prihdr)
-                    prihdu.writeto(filename, clobber=True)
+                    if tableOutput:
+                        t = Time(mjd, format = 'mjd')
+                        tbase = str(t.isot)
+                        obsList.append((target['tileID'],  target['RA'], target['DEC'], target['Program'], target['Ebmv'],
+                                       target['maxLen'], target['MoonFrac'], target['DESsn2'], target['Status'],
+                                       target['Exposure'], target['obsSN2'], tbase))
+                    else:
+                        # Output headers, but no data.
+                        # In the future: GFAs (i, x, y + metadata for i=id, time, postagestampid) and fiber positions.
+                        prihdr = pyfits.Header()
+                        prihdr['TILEID  '] = target['tileID']
+                        prihdr['RA      '] = target['RA']
+                        prihdr['DEC     '] = target['DEC']
+                        prihdr['PROGRAM '] = target['Program']
+                        prihdr['EBMV    '] = target['Ebmv']
+                        prihdr['MAXLEN  '] = target['maxLen']
+                        prihdr['MOONFRAC'] = target['MoonFrac']
+                        prihdr['DESSN2  '] = target['DESsn2']
+                        prihdr['STATUS  '] = target['Status']
+                        prihdr['EXPTIME '] = target['Exposure']
+                        prihdr['OBSSN2  '] = target['obsSN2']
+                        t = Time(mjd, format = 'mjd')
+                        tbase = str(t.isot)
+                        nt = len(tbase)
+                        prihdr['DATE-OBS'] = tbase
+                        filename = day_stats['dirName'] + '/desi-exp-' + ocnt.update() + '.fits'
+                        prihdu = pyfits.PrimaryHDU(header=prihdr)
+                        prihdu.writeto(filename, clobber=True)
                 else:
                     # Choose another target?
                     # Observe longer split into modulo(max_len)
@@ -102,7 +114,26 @@ def nightOps(day_stats, obsplan, w, ocnt):
             # Check time
             if mjd > day_stats['MJDsunrise']:
                 nightOver = True
-        
+
+    if tableOutput and len(obsList) > 0:
+        filename = 'obslist' + day_stats['dirName'] + '.fits'
+        cols = np.rec.array(obsList,
+                           names = ('TILEID  ',
+                                    'RA      ',
+                                    'DEC     ',
+                                    'PROGRAM ',
+                                    'EBMV    ',
+                                    'MAXLEN  ',
+                                    'MOONFRAC',
+                                    'DESSN2  ',
+                                    'STATUS  ',
+                                    'EXPTIME ',
+                                    'OBSSN2  ',
+                                    'DATE-OBS'),
+                            formats = ['i4', 'f8', 'f8', 'a8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24'])
+        tbhdu = pyfits.BinTableHDU.from_columns(cols)
+        tbhdu.writeto(filename, clobber=True)
+    
     return tilesObserved
 
 def surveySim(startday, startmonth, startyear):
