@@ -3,6 +3,7 @@ from datetime import datetime
 from datetime import date
 import astropy.units as u
 import numpy as np
+from pkg_resources import resource_filename
 
 """
 Line format
@@ -66,7 +67,7 @@ def obsCalendar(day1, month1, year1, day2, month2, year2):
             daymonth = daymonthLeap
         else:
             daymonth = daymonth0
-        with open(calfile,'r') as f:
+        with open(resource_filename('surveysim', calfile),'r') as f:
             while True:
                 line = f.readline()
                 if not line: break

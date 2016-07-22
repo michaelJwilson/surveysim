@@ -1,6 +1,7 @@
 import numpy as np
 import astropy.io.fits as pyfits
 from astropy.time import Time
+from pkg_resources import resource_filename
 
 Lat_KPNO_deg = 31.0 + (57.0 + 50.3/60.0)/60.0
 
@@ -27,7 +28,7 @@ class surveyPlan:
     #     ['', '', '', '', '', '', '', '', '']
     # dim:
     #     ['', '', '', '', '', '', '', '', '']
-        hdulist0 = pyfits.open('data/desi-tiles.fits')
+        hdulist0 = pyfits.open(resource_filename('surveysim', 'data/desi-tiles.fits'))
         tiledata = hdulist0[1].data
         tileID = tiledata.field('TILEID')
         RA = tiledata.field('RA')
