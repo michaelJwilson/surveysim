@@ -136,23 +136,22 @@ def nightOps(day_stats, obsplan, w, ocnt, tableOutput=True):
     
     return tilesObserved
 
-def surveySim(startday, startmonth, startyear):
+def surveySim(startday, startmonth, startyear, endday, endmonth, endyear):
 
     sp = surveyPlan()
-    startday = Time(datetime(startyear, startmonth, startday, 12, 0, 0))
-    mjd_start = startday.mjd
-    w = weatherModule(startday)
+    day0 = Time(datetime(startyear, startmonth, startday, 12, 0, 0))
+    mjd_start = day0.mjd
+    w = weatherModule(day0)
     ocnt = obsCount()
 
-    cal = obsCalendar(startyear)
-    iday = 0
+    firstDay = True
+    cal = obsCalendar(startday, startmonth, startyear, endday, endmonth, endyear)
     for day in cal:
         t = Time(day['MJDsunset'], format = 'mjd')
         w.resetDome(t)
-        if day['MJDsunset'] < mjd_start:
-            continue
-        if iday == 0:
+        if firstDay:
             tiles_todo, obsplan = sp.afternoonPlan(day)
+            firstDay = False
         else:
             tiles_todo, obsplan = sp.afternoonPlan(day, tiles_observed)
         tiles_observed = nightOps(day, obsplan, w, ocnt)
@@ -160,5 +159,3 @@ def surveySim(startday, startmonth, startyear):
         print 'On the night starting ', t.iso, ', we observed ', len(tiles_observed), ' tiles.'
         if tiles_todo == 0:
             break
-        iday = iday+1
-
