@@ -23,7 +23,8 @@ Line format
 30: -
 32, 33: Moon DEC degrees, minutes                  31, 32: Moon DEC degrees, minutes         31, 32: Moon DEC degrees, minutes
 """
-daymonth = np.array([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) # This is only valid for leap years like 2016.
+daymonth0 = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+daymonthLeap = np.array([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
 
 def monthNum(monthname):
     month = 0
@@ -41,10 +42,14 @@ def monthNum(monthname):
     elif monthname == 'Dec': month = 12
     return month
 
-def obsCalendar(calfile):
+def obsCalendar(year):
     utc_minus7 = TimezoneInfo(utc_offset=-7*u.hour)
-    year = 2016 # Testing calendar with only one year
+    calfile = 'data/calendar.' + str(year)
     cal = []
+    if np.mod(year,4) == 0 and np.mod(year,400) != 0:
+        daymonth = daymonthLeap
+    else:
+        daymonth = daymonth0
     with open(calfile,'r') as f:
         while True:
             line = f.readline()
@@ -53,7 +58,12 @@ def obsCalendar(calfile):
             entries = line.split()
             month = monthNum(entries[1])
             day = int(entries[2])
-            MJDmidnight = float(entries[7])
+            JDtruncated = float(entries[7])
+            # These conditions work only for year 2016-2025
+            if year <= 2022 or (year == 2023 and month < 3):
+                MJDmidnight = JDtruncated + 2450000.0 - 2400000.5
+            if (year == 2023 and month >= 3) or year > 2024:
+                MJDmidnight = JDtruncated + 2460000.0 - 2400000.5
             sunset_h = int(entries[11])
             sunset_m = int(entries[12])
             Tsunset = Time(datetime(year, month, day, sunset_h, sunset_m, 0, tzinfo=utc_minus7))

@@ -27,7 +27,7 @@ class surveyPlan:
     #     ['', '', '', '', '', '', '', '', '']
     # dim:
     #     ['', '', '', '', '', '', '', '', '']
-        hdulist0 = pyfits.open('desi-tiles.fits')
+        hdulist0 = pyfits.open('data/desi-tiles.fits')
         tiledata = hdulist0[1].data
         tileID = tiledata.field('TILEID')
         RA = tiledata.field('RA')

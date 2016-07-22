@@ -144,7 +144,7 @@ def surveySim(startday, startmonth, startyear):
     w = weatherModule(startday)
     ocnt = obsCount()
 
-    cal = obsCalendar("calendar.2016")
+    cal = obsCalendar(startyear)
     iday = 0
     for day in cal:
         t = Time(day['MJDsunset'], format = 'mjd')
