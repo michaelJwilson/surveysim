@@ -18,12 +18,26 @@ Line format
 17, 18: Sun rise hours, minutes
 19, 20: evening twilight LST hours, minutes
 21, 22: morning twilight LST hours, minutes
-23, 24: Moon rise hours, minutes                   23: ....                                  23, 24: Moon rise hours, minutes
-25, 26: Moon set hours, minutes                    24, 25: Moon set hours, minutes           25: ....
-27: Moon illumination fraction                     26: Moon illumination fraction            26: Moon illumination fraction
-28, 29: Moon RA hours, minutes                     27, 28: Moon RA hours, minutes            27, 28: Moon RA hours, minutes
-30: -
-32, 33: Moon DEC degrees, minutes                  31, 32: Moon DEC degrees, minutes         31, 32: Moon DEC degrees, minutes
+
+Case 1 (Moon rise and set times are both given)
+ 23, 24: Moon rise hours, minutes
+ 25, 26: Moon set hours, minutes
+ 27: Moon illumination fraction
+ 28, 29: Moon RA hours, minutes
+ Case 1a:
+  30, 31: Moon DEC degrees, minutes
+ Case 1b
+  30, 31, 32: - Moon DEC degrees, minutes
+
+Case 2 (Moon rise or Moon set not given)
+ 23: .....                         OR  23, 24: Moon rise hours, minutes
+ 24, 25: Moon set hours, minutes   OR  25: .....
+ 26: Moon illumination fraction
+ 27, 28: Moon RA hours, minutes
+ Case 2a:
+  29, 30: Moon DEC degrees, minutes
+ Case 1b
+  29, 30, 31: - Moon DEC degrees, minutes
 """
 daymonth0 = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
 daymonthLeap = np.array([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
@@ -104,23 +118,47 @@ def obsCalendar(day1, month1, year1, day2, month2, year2):
                     sunrise_h = int(entries[17])
                     sunrise_m = int(entries[18])
                     Tsunrise = Time(datetime(yearnew, monthnew, daynew, sunrise_h, sunrise_m, 0, tzinfo=utc_minus7))
-                    if entries[23] == ".....":
-                        MJDmoonrise = -1.0
-                        moonset_h = int(entries[24])
-                        moonset_m = int(entries[25])
-                        yearnew = year
-                        monthnew = month
-                        daynew = day
-                        if moonset_h < 12:
-                            daynew = day + 1
-                            if daynew > daymonth[month-1]:
-                                daynew = 1
-                                monthnew = month + 1
-                                if monthnew > 12:
-                                    monthnew = 1
-                                    yearnew = year +1
-                        MJDmoonset = (Time(datetime(yearnew, monthnew, daynew, moonset_h, moonset_m, 0, tzinfo=utc_minus7))).mjd
-                    else:
+                    if entries[23] == "....." or entries[25] == ".....": # Either Moon rise or set time not given
+                        if entries[23] == ".....":
+                            MJDmoonrise = -1.0
+                            moonset_h = int(entries[24])
+                            moonset_m = int(entries[25])
+                            yearnew = year
+                            monthnew = month
+                            daynew = day
+                            if moonset_h < 12:
+                                daynew = day + 1
+                                if daynew > daymonth[month-1]:
+                                    daynew = 1
+                                    monthnew = month + 1
+                                    if monthnew > 12:
+                                        monthnew = 1
+                                        yearnew = year +1
+                            MJDmoonset = (Time(datetime(yearnew, monthnew, daynew, moonset_h, moonset_m, 0, tzinfo=utc_minus7))).mjd
+                        else:
+                            MJDmoonset = -1.0
+                            moonrise_h = int(entries[23])
+                            moonrise_m = int(entries[24])
+                            yearnew = year
+                            monthnew = month
+                            daynew = day
+                            if moonrise_h < 12:
+                                daynew = day + 1
+                                if daynew > daymonth[month-1]:
+                                    daynew = 1
+                                    monthnew = month + 1
+                                    if monthnew > 12:
+                                        monthnew = 1
+                                        yearnew = year +1
+                            MJDmoonrise = (Time(datetime(yearnew, monthnew, daynew, moonrise_h, moonrise_m, 0, tzinfo=utc_minus7))).mjd
+                        moonIllum = float(entries[26])
+                        moonRA = float(entries[27]) + float(entries[28])/60.0
+                        moonRA = moonRA * 15.0
+                        if entries[29] == "-":
+                            moonDEC = -1.0 * (float(entries[30]) + float(entries[31])/100.0)
+                        else:
+                            moonDEC = float(entries[29]) + float(entries[30])/100.0
+                    else: # Both Moon rise and set times are given
                         moonrise_h = int(entries[23])
                         moonrise_m = int(entries[24])
                         yearnew = year
@@ -135,9 +173,6 @@ def obsCalendar(day1, month1, year1, day2, month2, year2):
                                     monthnew = 1
                                     yearnew = year +1
                         MJDmoonrise = (Time(datetime(yearnew, monthnew, daynew, moonrise_h, moonrise_m, 0, tzinfo=utc_minus7))).mjd
-                    if entries[25] == ".....":
-                        MJDmoonset = -1.0
-                    else:
                         moonset_h = int(entries[25])
                         moonset_m = int(entries[26])
                         yearnew = year
@@ -152,21 +187,12 @@ def obsCalendar(day1, month1, year1, day2, month2, year2):
                                     monthnew = 1
                                     yearnew = year +1
                         MJDmoonset = (Time(datetime(yearnew, monthnew, daynew, moonset_h, moonset_m, 0, tzinfo=utc_minus7))).mjd
-                    if entries[23] == "....." or entries[25] == ".....":
-                        moonIllum = float(entries[26])
-                        moonRA = float(entries[27]) + float(entries[28])/60.0
-                        moonRA = moonRA * 15.0
-                        if entries[29] == "-":
-                            moonDEC = -1.0 * (float(entries[30]) + float(entries[31])/100.0)
-                        else:
-                            moonDec = float(entries[29]) + float(entries[30])/100.0
-                    else:
                         moonIllum = float(entries[27])
                         moonRA = float(entries[28]) + float(entries[29])/60.0
                         if entries[30] == "-":
                             moonDEC = -1.0 * (float(entries[31]) + float(entries[32])/100.0)
                         else:
-                            moonDec = float(entries[30]) + float(entries[31])/100.0
+                            moonDEC = float(entries[30]) + float(entries[31])/100.0
                     # Get the night's directory name right away.
                     if month >= 10:
                         monthStr = str(month)
