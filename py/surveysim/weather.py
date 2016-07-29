@@ -27,8 +27,9 @@ class weatherModule:
 
     def simSeeing(self, datetime):
         # Returns current seeing in arcseconds
-        # Dummy for now
         seeing = 1.1 + np.random.normal(0.0, 0.1)
+        if seeing < 0.65:
+            seeing = 0.65
         return seeing
 
     def simTransparency(self, datetime):
@@ -44,13 +45,32 @@ class weatherModule:
         if cloudCover > 1.0 : cloudCover = 1.0
         return cloudCover
 
-
+    # Should be used at the begining of the night.
     def getValues(self, time=None):
         if time == None:
             time = self.datetime.mjd
         seeing = self.simSeeing(time)
         transparency = self.simTransparency(time)
         clouds = self.simClouds(time)
+        weatherNow = {'Seeing': seeing, 'Transparency': transparency,
+                      'OpenDome': self.openDome, 'Clouds':clouds}
+        return weatherNow
+
+    # Small variations around current values.
+    def updateValues(self, conditions, time):
+        seeing = conditions['Seeing'] + np.random.normal(0.0, 0.0167)
+        if seeing < 0.65:
+            seeing = 0.65
+        transparency = conditions['Transparency'] + np.random.normal(0.0, 0.02)
+        if transparency < 0.0:
+            transparency = 0.0
+        if transparency > 1.0:
+            transparency = 1.0
+        clouds = conditions['Clouds'] + np.random.normal(0.0, 0.05)
+        if clouds < 0.0:
+            clouds = 0.0
+        if clouds > 1.0:
+            clouds = 1.0
         weatherNow = {'Seeing': seeing, 'Transparency': transparency,
                       'OpenDome': self.openDome, 'Clouds':clouds}
         return weatherNow

@@ -1,6 +1,6 @@
 import numpy as np
 from astropy.time import Time
-from weather import weatherModule
+from surveysim.weather import weatherModule
 
 # Location of Kitt Peak National Observatory Mayall 4m Telescope
 # Taken from SlaLib obs.c, which cites the 1981 Almanac
@@ -14,23 +14,36 @@ def expTimeEstimator(weatherNow, airmass, program, ebmv, sn2, moonFrac):
     seeing_ref = 1.1 # Seeing value to which actual seeing is normalised
     exp_ref_dark = 1000.0   # Reference exposure time in seconds
     exp_ref_bright = 300.0  # Idem but for bright time programme
-    f_ref = 0.85
     sn2_nom = 100.0 # Nominal sign-to-noise
 
-    if program == "Dark":
+    if program == "DARK":
         exp_ref = exp_ref_dark
-    elif program == "Bright":
+    elif program == "BRIGHT":
         exp_ref = exp_ref_bright
     else:
         exp_ref = 0.0 # Replace with throwing an exception
-    f_seeing = weatherNow['Seeing'] / seeing_ref
-    f_transparency = weatherNow['Transparency']
-    f_airmass = 1.0/airmass
+    seeing = weatherNow['Seeing']
+    a = 4.6
+    b = -1.55
+    c = 1.15
+    f_seeing = (a-0.25*b*b/c) / (a+b*seeing+c*seeing*seeing)
+    #print (weatherNow['Transparency'])
+    if weatherNow['Transparency'] > 0.0:
+        f_transparency = 1.0 / weatherNow['Transparency']
+    else:
+        f_transparency = 1.0e9
+    f_airmass = np.sqrt(airmass)
     f_ebmv = np.exp(-ebmv) # What's the correct factor?
-    f_moon = 1.0 - moonFrac/100.0 # What is the correct attenuation due to the increased sky brightness?
+    """
+    if moonFrac < 1.0:
+        f_moon = 1.0 / (1.0 - moonFrac/100.0)
+    else:
+        f_moon = 30.0
+    """
+    f_moon = 1.0 # Temporary until real values are in the code
     f = f_seeing * f_transparency * f_airmass * f_ebmv * f_moon
-    if f > 0.0:
-        value = exp_ref / (f/f_ref) * (sn2 / sn2_nom)
+    if f >= 0.0:
+        value = exp_ref * f * (sn2 / sn2_nom)
     else:
         value = exp_ref
     return value
@@ -47,6 +60,6 @@ def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
 
     amass = 1.0/sina
     if amass <= 0.0:
-        print 'ERROR: negative airmass (', amass, ') !!!'
+        print ('ERROR: negative airmass (', amass, ') !!!')
     return amass
 

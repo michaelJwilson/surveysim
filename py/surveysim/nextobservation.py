@@ -5,7 +5,7 @@ import astropy.io.fits as pyfits
 # The only thing it does is return the first target on the list
 # that is after the current time.
 
-MIN_MOON_SEP = 5.0   # In degrees
+MIN_MOON_SEP = 45.0   # In degrees
 
 def nextFieldSelector(obsplan, lst, conditions, tilesObserved):
 
@@ -25,21 +25,21 @@ def nextFieldSelector(obsplan, lst, conditions, tilesObserved):
     for t1 in np.nditer(tmin):
         t2 = tmax[i] - explen[i]
         if (lst > t1 and lst < t2
-            and abs(ra[i] - moonRA) > MIN_MOON_SEP and abs(dec[i] - moonDEC) > MIN_MOON_SEP
-            and tileID[i] not in tilesObserved):
-            found = True
-            break
+            and abs(ra[i] - moonRA) > MIN_MOON_SEP and abs(dec[i] - moonDEC) > MIN_MOON_SEP):
+            if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved[0]) or len(tilesObserved) == 0 ):
+                found = True
+                break
         i = i+1
 
     if found == True:
         tileID = tiledata['TILEID'][i]
-        RA = tiledata['RA'][i]
-        DEC = tiledata['DEC'][i]
-        program = 'Dark' # Needs to be in the list
+        RA = ra[i]
+        DEC = dec[i]
+        program = tiledata['PROGRAM'][i]
         Ebmv = tiledata['EBV_MED'][i]
         maxLen = tiledata['MAXEXPLEN'][i]
         moonFrac = hdulist[0].header['MOONFRAC']
-        DESsn2 = 100.0 # Some made-up number
+        DESsn2 = 100.0 # Some made-up number -> has to be the same as the reference in exposurecalc.py
         status = tiledata['STATUS'][i]
         exposure = -1.0 # Updated after observation
         obsSN2 = -1.0   # Idem

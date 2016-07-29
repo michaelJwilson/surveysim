@@ -60,14 +60,14 @@ def monthNum(monthname):
 
 def obsCalendar(day1, month1, year1, day2, month2, year2):
     if year1 < 2016:
-        print "Warning: calendar available only from 2016;"
-        print "resetting start date to 1 January 2016."
+        print ("Warning: calendar available only from 2016;")
+        print ("resetting start date to 1 January 2016.")
         day1 = 1
         month1 = 1
         year1 = 2016
     if year2 > 2025:
-        print "Warning: calendar available only up to 2025;"
-        print "resetting end date to 31 December 2025."
+        print ("Warning: calendar available only up to 2025;")
+        print ("resetting end date to 31 December 2025.")
         day2 = 31
         month2 = 12
         year2 = 2025
