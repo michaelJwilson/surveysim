@@ -26,7 +26,7 @@ def nextFieldSelector(obsplan, lst, conditions, tilesObserved):
         t2 = tmax[i] - explen[i]
         if (lst > t1 and lst < t2
             and abs(ra[i] - moonRA) > MIN_MOON_SEP and abs(dec[i] - moonDEC) > MIN_MOON_SEP):
-            if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved[0]) or len(tilesObserved) == 0 ):
+            if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
                 found = True
                 break
         i = i+1

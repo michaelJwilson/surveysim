@@ -88,7 +88,7 @@ class surveyPlan:
         nto = len(tiles_observed)
         for i in range(nto):
             j = np.where(self.tileID == tiles_observed['TILEID'][i])
-            self.status[j] = 1
+            self.status[j] = tiles_observed['STATUS'][i]
         
         # table: ra, dec, tileid, priority, design HA, estimated exp time, LST begin/end and or min/max, templates, programme name, S/N2
         # FOR NOW RETURN ALL UNOBSERVED TILES
