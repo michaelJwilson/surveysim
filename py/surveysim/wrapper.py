@@ -59,7 +59,12 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
             conditions = w.updateValues(conditions, mjd)
 
             t = Time(mjd, format = 'mjd', location=('-111.6d', '32.0d'))
-            lst_str = str(t.sidereal_time('apparent'))
+            lst_tmp = t.copy()
+            try:
+                lst_str = str(lst_tmp.sidereal_time('apparent'))
+            except IndexError:
+                lst_tmp.delta_ut1_utc = -0.1225
+                lst_str = str(lst_tmp.sidereal_time('apparent'))
             # 23h09m35.9586s
             # 01234567890123
             if lst_str[2] == 'h':

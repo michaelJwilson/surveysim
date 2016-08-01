@@ -52,6 +52,8 @@ def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
     # RA and LST are in decimal hours, DEC in decimal degrees
     # Note that these are *observed* RA and DEC, not mean, not apparent.
     h = np.radians(lst - ra)
+    if h < 0.0:
+        h += 360.0
     d = np.radians(dec)
     phi = np.radians(Lat_KPNO_deg)
 
@@ -60,6 +62,6 @@ def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
 
     amass = 1.0/sina
     if amass <= 0.0:
-        print ('ERROR: negative airmass (', amass, ') !!!')
+        print ('ERROR: negative airmass (', amass, '); LST, RA, DEC = ', lst, ra, dec,'!')
     return amass
 

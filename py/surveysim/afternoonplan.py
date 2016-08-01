@@ -41,6 +41,8 @@ class surveyPlan:
         starDensity = tiledata.field('STAR_DENSITY')
         program = tiledata.field('PROGRAM')
         obsconds = tiledata.field('OBSCONDITIONS')
+        obstime = tiledata.field('OBSTIME')
+        HA = tiledata.field('HA')
         hdulist0.close()
 
         self.tileID = tileID.compress((InDESI==1).flat) #Assuming 0=out, 1=in
@@ -48,31 +50,22 @@ class surveyPlan:
         self.DEC = DEC.compress((InDESI==1).flat)
         self.Pass = Pass.compress((InDESI==1).flat)
         self.Ebmv = Ebmv.compress((InDESI==1).flat)
-        self.maxExpLen = 1000.0 * expFac.compress((InDESI==1).flat) # This assumes bright time program
+        self.maxExpLen = 2.0 * obstime.compress((InDESI==1).flat) # This assumes bright time program
         self.starDensity = starDensity.compress((InDESI==1).flat)
         self.program = program.compress((InDESI==1).flat)
         self.obsconds = obsconds.compress((InDESI==1).flat)
-
-        # Next versions of the file should have this instead of airmass
-        phi = np.pi*Lat_KPNO_deg/180.0
-        AM0 = AM.compress((InDESI==1).flat)
-        cosHA = (1.0/AM0 - np.sin(phi)*np.sin(self.DEC)) / (np.cos(phi)*np.cos(self.DEC))
-        iplus = np.where(cosHA > 1.0)
-        cosHA[iplus] = 1.0
-        iminus = np.where(cosHA < -1.0)
-        cosHA[iminus] = -1.0
-        LST = self.RA + np.arccos(cosHA)*180.0/np.pi
+        LST = self.RA + HA.compress((InDESI==1).flat)
         self.LSTmin = LST - 15.0
         for i in range(len(self.LSTmin)):
             if self.LSTmin[i] < 0.0:
                 self.LSTmin[i] += 360.0
-            elif self.LSTmin[i] < 0.0:
+            elif self.LSTmin[i] >360.0:
                 self.LSTmin[i] -= 360.0
         self.LSTmax = LST + 15.0
-        for i in range(len(self.LSTmin)):
+        for i in range(len(self.LSTmax)):
             if self.LSTmax[i] < 0.0:
                 self.LSTmax[i] += 360.0
-            elif self.LSTmax[i] < 0.0:
+            elif self.LSTmax[i] > 360.0:
                 self.LSTmax[i] -= 360.0
 
         self.status = np.zeros(len(self.tileID))
