@@ -152,11 +152,11 @@ def surveySim(startday, startmonth, startyear, endday, endmonth, endyear):
     w = weatherModule(day0)
     ocnt = obsCount()
 
-    try:
-        tilesObserved = Table.read('tiles_observed.fits', format='fits')
-    except OSError as err:
-        print("OS error: {0}".format(err))
-        print("The survey will start from the scratch.")
+    tile_file = 'tiles_observed.fits'
+    if os.path.exists(tile_file):
+        tilesObserved = Table.read(tile_file, format='fits')
+    else:
+        print("The survey will start from scratch.")
         tilesObserved = Table(names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
 
     cal = obsCalendar(startday, startmonth, startyear, endday, endmonth, endyear)
@@ -171,4 +171,4 @@ def surveySim(startday, startmonth, startyear, endday, endmonth, endyear):
         if tiles_todo == 0:
             break
 
-    tilesObserved.write('tiles_observed.fits', format='fits', overwrite=True)
+    tilesObserved.write(tile_file, format='fits', overwrite=True)
