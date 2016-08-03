@@ -1,5 +1,6 @@
 import numpy as np
 import astropy.io.fits as pyfits
+from surveysim.utils import angsep
 
 # This is a VERY simplfied version of the next field seclector.
 # The only thing it does is return the first target on the list
@@ -24,11 +25,18 @@ def nextFieldSelector(obsplan, lst, conditions, tilesObserved):
     i = 0
     for t1 in np.nditer(tmin):
         t2 = tmax[i] - explen[i]
-        if (lst > t1 and lst < t2
-            and abs(ra[i] - moonRA) > MIN_MOON_SEP and abs(dec[i] - moonDEC) > MIN_MOON_SEP):
-            if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
-                found = True
-                break
+        if t1 < t2:
+            if (lst > t1 and lst < t2
+                and angsep(moonRA, moonDEC, ra[i], dec[i]) > MIN_MOON_SEP):
+                if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
+                    found = True
+                    break
+        else:
+            if ( ((lst > t1 and t1 <=360.0) or (lst >= 0.0 and lst < t2))
+                 and angsep(moonRA, moonDEC, ra[i], dec[i]) > MIN_MOON_SEP):
+                if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
+                    found = True
+                    break
         i = i+1
 
     if found == True:

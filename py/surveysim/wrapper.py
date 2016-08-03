@@ -13,6 +13,7 @@ from surveysim.nextobservation import nextFieldSelector
 from surveysim.observefield import observeField
 from astropy.table import Table
 import os
+from surveysim.utils import mjd2lst
 
 class obsCount:
 
@@ -58,31 +59,13 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
         while nightOver == False:
             conditions = w.updateValues(conditions, mjd)
 
-            t = Time(mjd, format = 'mjd', location=('-111.6d', '32.0d'))
-            lst_tmp = t.copy()
-            try:
-                lst_str = str(lst_tmp.sidereal_time('apparent'))
-            except IndexError:
-                lst_tmp.delta_ut1_utc = -0.1225
-                lst_str = str(lst_tmp.sidereal_time('apparent'))
-            # 23h09m35.9586s
-            # 01234567890123
-            if lst_str[2] == 'h':
-                lst_hr = float(lst_str[0:2])
-                lst_mn = float(lst_str[3:5])
-                lst_sc = float(lst_str[6:-1])
-            else:
-                lst_hr = float(lst_str[0:1])
-                lst_mn = float(lst_str[2:4])
-                lst_sc = float(lst_str[5:-1])
-            lst = lst_hr + lst_mn/60.0 + lst_sc/3600.0
-            lst *= 15.0 # Convert from hours to degrees
+            lst = mjd2lst(mjd)
             target = nextFieldSelector(obsplan, lst, conditions, tilesObserved)
             if target != None:
                 # Compute mean to apparent to observed ra and dec???
                 airmass = airMassCalculator(target['RA'], target['DEC'], lst)
                 exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'])
-                print ('Estimated exposure = ', exposure, 'Maximum allowed exposure for tileID', target['tileID'], ' = ', target['maxLen'])
+                #print ('Estimated exposure = ', exposure, 'Maximum allowed exposure for tileID', target['tileID'], ' = ', target['maxLen'])
                 if exposure < target['maxLen']:
                     status, real_exposure, real_sn2 = observeField(target, exposure)
                     target['Status'] = status
