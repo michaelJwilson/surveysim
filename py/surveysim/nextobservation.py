@@ -1,12 +1,14 @@
 import numpy as np
 import astropy.io.fits as pyfits
 from surveysim.utils import angsep
+from surveysim.exposurecalc import airMassCalculator
 
 # This is a VERY simplfied version of the next field seclector.
 # The only thing it does is return the first target on the list
 # that is after the current time.
 
 MIN_MOON_SEP = 45.0   # In degrees
+MAX_AIRMASS = 1.5
 
 def nextFieldSelector(obsplan, lst, conditions, tilesObserved):
 
@@ -22,22 +24,24 @@ def nextFieldSelector(obsplan, lst, conditions, tilesObserved):
     dec = tiledata['DEC']
 
     found = False
-    i = 0
-    for t1 in np.nditer(tmin):
+    for i in range(len(tileID)):
+        t1 = tmin[i]
         t2 = tmax[i] - explen[i]
+
         if t1 < t2:
             if (lst > t1 and lst < t2
-                and angsep(moonRA, moonDEC, ra[i], dec[i]) > MIN_MOON_SEP):
+                and angsep(moonRA, moonDEC, ra[i], dec[i]) > MIN_MOON_SEP
+                and airMassCalculator(ra[i], dec[i], lst) > MAX_AIRMASS):
                 if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
                     found = True
                     break
         else:
             if ( ((lst > t1 and t1 <=360.0) or (lst >= 0.0 and lst < t2))
-                 and angsep(moonRA, moonDEC, ra[i], dec[i]) > MIN_MOON_SEP):
+                 and angsep(moonRA, moonDEC, ra[i], dec[i]) > MIN_MOON_SEP
+                 and airMassCalculator(ra[i], dec[i], lst) > MAX_AIRMASS):
                 if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
                     found = True
                     break
-        i = i+1
 
     if found == True:
         tileID = tiledata['TILEID'][i]

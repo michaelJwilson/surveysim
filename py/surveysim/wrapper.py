@@ -72,6 +72,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                     target['Exposure'] = real_exposure
                     target['obsSN2'] = real_sn2
                     mjd += real_exposure/86400.0
+                    exposureAttempted = True
                     tilesObserved.add_row([target['tileID'], status])
                     if tableOutput:
                         t = Time(mjd, format = 'mjd')
@@ -102,11 +103,11 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                         prihdu = pyfits.PrimaryHDU(header=prihdr)
                         prihdu.writeto(filename, clobber=True)
                 else:
-                    # Choose another target?
+                    # Try another target?
                     # Observe longer split into modulo(max_len)
-                    mjd += 0.5/24.0
+                    mjd += 0.25/24.0
             else:
-                mjd += 0.5/24.0
+                mjd += 0.25/24.0
             # Check time
             if mjd > day_stats['MJDsunrise']:
                 nightOver = True
