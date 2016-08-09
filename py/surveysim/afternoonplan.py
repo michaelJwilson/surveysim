@@ -1,6 +1,8 @@
 import numpy as np
 import astropy.io.fits as pyfits
 from astropy.time import Time
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 from pkg_resources import resource_filename
 from surveysim.utils import radec2altaz, mjd2lst
 from operator import itemgetter
@@ -69,10 +71,32 @@ class surveyPlan:
                 self.LSTmax[i] += 360.0
             elif self.LSTmax[i] > 360.0:
                 self.LSTmax[i] -= 360.0
-
+        self.cap = np.chararray(len(self.tileID))
+        # These computations take a long time...
+        for i in range(len(self.tileID)):
+            radec = SkyCoord(ra = self.RA[i]*u.degree, dec = self.DEC[i]*u.degree)
+            bstr = str(radec.galactic.b)
+            if bstr[1] == 'd':
+                bdeg = float(bstr[0:1])
+                bmin = float(bstr[2:4])
+                bsec = float(bstr[5:-1])
+            elif bstr[2] == 'd':
+                bdeg = float(bstr[0:2])
+                bmin = float(bstr[3:5])
+                bsec = float(bstr[6:-1])
+            else:
+                bdeg = float(bstr[0:3])
+                bmin = float(bstr[4:6])
+                bsec = float(bstr[7:-1])
+            b = bdeg + bmin/60.0 + bsec/3600.0
+            if b >= 0.0:
+                self.cap[i] = 'N'
+            else:
+                self.cap[i] = 'S'
         self.status = np.zeros(len(self.tileID))
         self.priority = np.zeros(len(self.tileID))
-        # Assign priority only as a function of DEC
+        # Assign priority as a function of DEC; this will
+        # be adjested in the afternoon planning stage.
         for i in range(len(self.priority)):
             dec = self.DEC[i]
             if dec <= -15.0:
@@ -165,6 +189,24 @@ class surveyPlan:
         name has format obsplanYYYYMMDD.fits .
         """
 
+        year = int(np.floor(day_stats['MJDsunset'] - tiles_observed.meta['MJDBEGIN'])) + 1
+        # From the DESI document 1767 (v3) "Baseline survey strategy":
+        # In the northern galactic cap:
+        # Year - Layer 1 tiles - Layer 2 tiles - Layer 3 tiles - Layer 4 tiles
+        # 1         900              200              0                0
+        # 2         485              415            200              200
+        # 3           0              770            100              100
+        # 4           0                0            450              450
+        # 5           0                0            685              685
+        # In the southern galactic cap:
+        # Year - Layer 1 tiles - Layer 2 tiles - Layer 3 tiles - Layer 4 tiles
+        # 1         450                0              0                0
+        # 2         165              300              0                0
+        # 3           0              315             90               90
+        # 4           0                0            265              260
+        # 5           0                0            260              265
+        # Priorities shall be adjusted accordingly.
+
         # Update status
         nto = len(tiles_observed)
         for i in range(nto):
@@ -178,6 +220,29 @@ class surveyPlan:
             if ( self.status[i] < 2 and
                 ((self.isItDark(self.LSTmin[i]) == 'DARK' and self.isItDark(self.LSTmax[i]) == 'DARK' and self.program[i] == 'DARK') or
                  ((self.isItDark(self.LSTmin[i]) != 'DARK' or self.isItDark(self.LSTmax[i]) != 'DARK') and self.program[i] != 'DARK')) ):
+                # Add this tile to the plan, first adjust its priority.
+                if year == 1:
+                    if ( (self.cap[i] == 'N' and (self.Pass[i] == 3 or self.Pass[i] == 4)) or
+                          (self.cap[i] == 'S' and (self.Pass[i] == 2 or self.Pass[i] == 3 or self.Pass[i] == 4)) ):
+                          self.priority[i] = 9
+                    if ( self.cap[i] == 'N' and self.Pass[i] == 1 and self.priority[i] > 0):
+                        self.priority[i] -= 1
+                if year == 2:
+                    if ( self.cap[i] == 'S' and (self.Pass[i] == 3 or self.Pass[i] == 4) ):
+                         self.priority[i] = 9
+                if year == 3:
+                    if self.Pass[i] == 1:
+                        self.priority[i] = 0
+                    if self.Pass[i] == 2:
+                        self.priority[i] -= 1
+                if year >= 4:
+                    if self.Pass[i] <= 2:
+                        self.priority[i] = 0
+                # Check that it is in the range [0,9]
+                if self.priority[i] < 0:
+                    self.priority[i] = 0
+                if self.priority[i] > 9:
+                    self.priority[i] = 9
                 planList0.append((self.tileID[i], self.RA[i], self.DEC[i], self.Ebmv[i], self.LSTmin[i], self.LSTmax[i],
                                  self.maxExpLen[i], self.priority[i], self.status[i], self.program[i], self.obsconds[i]))
 
