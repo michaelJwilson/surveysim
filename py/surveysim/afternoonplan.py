@@ -76,6 +76,7 @@ class surveyPlan:
         for i in range(len(self.tileID)):
             radec = SkyCoord(ra = self.RA[i]*u.degree, dec = self.DEC[i]*u.degree)
             bstr = str(radec.galactic.b)
+            """
             if bstr[1] == 'd':
                 bdeg = float(bstr[0:1])
                 bmin = float(bstr[2:4])
@@ -93,6 +94,11 @@ class surveyPlan:
                 self.cap[i] = 'N'
             else:
                 self.cap[i] = 'S'
+            """
+            if bstr[0] == '-':
+                self.cap[i] = 'S'
+            else:
+                self.cap[i] = 'N'
         self.status = np.zeros(len(self.tileID))
         self.priority = np.zeros(len(self.tileID))
         # Assign priority as a function of DEC; this will
