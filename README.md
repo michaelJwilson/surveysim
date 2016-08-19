@@ -5,7 +5,9 @@ The full path to surveysim/py should be added to PYTHONPATH.
 To run, for example:
 
 	>>> from surveysim.wrapper import surveySim
-	>>> surveySim(29, 12, 2016, 3, 1, 2017)
+	>>> surveySim((2016, 12, 27), (2017, 1, 4), 123456)
 
-The dates have to be between 1 January 2016 and 31 December 2025.
+The dates have to be between 1 January 2016 and 31 December 2025.  The
+optional seed for the weather module's random number generator has to
+be an int or array_like convertible to an unsigned 32-bit integer.
 

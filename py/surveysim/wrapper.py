@@ -132,12 +132,15 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
     
     return tilesObserved
 
-def surveySim(startday, startmonth, startyear, endday, endmonth, endyear):
+def surveySim(startdate, enddate, seed=None):
 
+    (startyear, startmonth, startday) = startdate
+    (endyear, endmonth, endday) = enddate
+    
     sp = surveyPlan()
     day0 = Time(datetime(startyear, startmonth, startday, 12, 0, 0))
     mjd_start = day0.mjd
-    w = weatherModule(day0)
+    w = weatherModule(day0, seed)
     ocnt = obsCount()
 
     tile_file = 'tiles_observed.fits'
