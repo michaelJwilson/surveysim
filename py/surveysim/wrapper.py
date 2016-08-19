@@ -5,15 +5,14 @@ from astropy.time import Time
 from datetime import datetime
 from surveysim.weather import weatherModule
 from surveysim.calendar import obsCalendar
-from surveysim.exposurecalc import expTimeEstimator
-from surveysim.exposurecalc import airMassCalculator
+from surveysim.exposurecalc import expTimeEstimator, airMassCalculator
 import astropy.io.fits as pyfits
 from surveysim.afternoonplan import surveyPlan
 from surveysim.nextobservation import nextFieldSelector
 from surveysim.observefield import observeField
 from astropy.table import Table
-import os
 from surveysim.utils import mjd2lst
+import os
 
 class obsCount:
 
@@ -60,7 +59,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
             conditions = w.updateValues(conditions, mjd)
 
             lst = mjd2lst(mjd)
-            target = nextFieldSelector(obsplan, lst, conditions, tilesObserved)
+            target = nextFieldSelector(obsplan, mjd, conditions, tilesObserved)
             if target != None:
                 # Compute mean to apparent to observed ra and dec???
                 airmass = airMassCalculator(target['RA'], target['DEC'], lst)

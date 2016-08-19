@@ -3,8 +3,8 @@ from astropy.time import Time
 from surveysim.weather import weatherModule
 from surveysim.utils import radec2altaz
 
-def expTimeEstimator(weatherNow, airmass, program, ebmv, sn2, moonFrac):
-# Estimates expusure length given current conditions.
+def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
+    # Estimates expusure length given current conditions.
 
     seeing_ref = 1.1 # Seeing value to which actual seeing is normalised
     exp_ref_dark = 1000.0   # Reference exposure time in seconds
