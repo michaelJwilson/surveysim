@@ -147,7 +147,6 @@ def surveySim(startday, startmonth, startyear, endday, endmonth, endyear):
         print("The survey will start from scratch.")
         tilesObserved = Table(names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
         tilesObserved.meta['MJDBEGIN'] = mjd_start
-    print ("Everything initialised.")
 
     cal = obsCalendar(startday, startmonth, startyear, endday, endmonth, endyear)
     for day in cal:

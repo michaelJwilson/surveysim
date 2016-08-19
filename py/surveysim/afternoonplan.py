@@ -47,6 +47,7 @@ class surveyPlan:
         obsconds = tiledata.field('OBSCONDITIONS')
         obstime = tiledata.field('OBSTIME')
         HA = tiledata.field('HA')
+        bgal = tiledata.field('GALACLAT')
         hdulist0.close()
 
         self.tileID = tileID.compress((InDESI==1).flat) #Assuming 0=out, 1=in
@@ -72,33 +73,12 @@ class surveyPlan:
             elif self.LSTmax[i] > 360.0:
                 self.LSTmax[i] -= 360.0
         self.cap = np.chararray(len(self.tileID))
-        # These computations take a long time...
-        for i in range(len(self.tileID)):
-            radec = SkyCoord(ra = self.RA[i]*u.degree, dec = self.DEC[i]*u.degree)
-            bstr = str(radec.galactic.b)
-            """
-            if bstr[1] == 'd':
-                bdeg = float(bstr[0:1])
-                bmin = float(bstr[2:4])
-                bsec = float(bstr[5:-1])
-            elif bstr[2] == 'd':
-                bdeg = float(bstr[0:2])
-                bmin = float(bstr[3:5])
-                bsec = float(bstr[6:-1])
-            else:
-                bdeg = float(bstr[0:3])
-                bmin = float(bstr[4:6])
-                bsec = float(bstr[7:-1])
-            b = bdeg + bmin/60.0 + bsec/3600.0
-            if b >= 0.0:
+        btemp = bgal.compress((InDESI==1).flat)
+        for i in range(len(btemp)):
+            if btemp[i] >= 0.0:
                 self.cap[i] = 'N'
             else:
                 self.cap[i] = 'S'
-            """
-            if bstr[0] == '-':
-                self.cap[i] = 'S'
-            else:
-                self.cap[i] = 'N'
         self.status = np.zeros(len(self.tileID))
         self.priority = np.zeros(len(self.tileID))
         # Assign priority as a function of DEC; this will
