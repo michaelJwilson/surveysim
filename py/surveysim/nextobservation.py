@@ -2,7 +2,7 @@ import numpy as np
 import astropy.io.fits as pyfits
 #from surveysim.utils import angsep
 from surveysim.exposurecalc import airMassCalculator
-from surveysim.avoidobject import avoidObject
+from surveysim.avoidobject import avoidObject, moonLoc
 from surveysim.utils import mjd2lst
 from datetime import datetime
 from astropy.time import Time
@@ -60,9 +60,10 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
         status = tiledata['STATUS'][i]
         exposure = -1.0 # Updated after observation
         obsSN2 = -1.0   # Idem
+        moondist = moonLoc(dt.datetime, moonRA, moonDEC)
 
         target = {'tileID' : tileID, 'RA' : RA, 'DEC' : DEC, 'Program': program, 'Ebmv' : Ebmv, 'maxLen': maxLen,
-                  'MoonFrac': moonFrac, 'DESsn2': DESsn2, 'Status': status, 'Exposure': exposure, 'obsSN2': obsSN2}
+                  'MoonFrac': moonFrac, 'MoonDist': moondist, 'DESsn2': DESsn2, 'Status': status, 'Exposure': exposure, 'obsSN2': obsSN2}
     else:
         target = None
     return target

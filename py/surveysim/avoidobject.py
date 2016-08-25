@@ -31,7 +31,8 @@ def avoidObject(datetime, ra0, dec0):
 
     moon = ephem.Moon()
     moon.compute(gatech)
-    if ephem.separation(moon, (ra, dec)) < MIN_MOON_SEP:
+    moondist = ephem.separation(moon, (ra, dec))
+    if moondist < MIN_MOON_SEP:
         return False
     venus = ephem.Venus()
     venus.compute(gatech)
@@ -64,3 +65,26 @@ def avoidObject(datetime, ra0, dec0):
 
     # If still here, return True
     return True
+
+def moonLoc (datetime, ra0=None, dec0=None):
+    """
+    Returns the distance to the Moon if RA and DEC are provided;
+    returns the Moon's alt, az otherwise
+    """
+
+    ra = PI * ra0/180.0
+    dec = PI * dec0/180.0
+    
+    dt = ephem.Date(datetime)
+    gatech = ephem.Observer()
+    gatech.lon, gatech.lat = -111.59933611, 31.9639722222 # KPNO
+    gatech.date = dt
+    gatech.epoch = dt
+
+    moon = ephem.Moon()
+    moon.compute(gatech)
+    if (ra0 != None and dec0 != None):
+        moondist = ephem.separation(moon, (ra, dec))
+        return moondist
+    else:
+        return moon.alt, moon.az

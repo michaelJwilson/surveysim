@@ -77,7 +77,8 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                         t = Time(mjd, format = 'mjd')
                         tbase = str(t.isot)
                         obsList.append((target['tileID'],  target['RA'], target['DEC'], target['Program'], target['Ebmv'],
-                                       target['maxLen'], target['MoonFrac'], target['DESsn2'], target['Status'],
+                                       target['maxLen'], target['MoonFrac'], target['MoonDist'], conditions['Seeing'], conditions['Transparency'],
+                                       airmass, target['DESsn2'], target['Status'],
                                        target['Exposure'], target['obsSN2'], tbase))
                     else:
                         # Output headers, but no data.
@@ -90,6 +91,10 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                         prihdr['EBMV    '] = target['Ebmv']
                         prihdr['MAXLEN  '] = target['maxLen']
                         prihdr['MOONFRAC'] = target['MoonFrac']
+                        prihdr['MOONDIST'] = target['MoonDist']
+                        prihdr['SEEING  '] = conditions['Seeing']
+                        prihdr['LINTRANS'] = conditions['Transparency']
+                        prihdr['AIRMASS '] = airmass
                         prihdr['DESSN2  '] = target['DESsn2']
                         prihdr['STATUS  '] = target['Status']
                         prihdr['EXPTIME '] = target['Exposure']
@@ -121,12 +126,16 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                                     'EBMV    ',
                                     'MAXLEN  ',
                                     'MOONFRAC',
+                                    'MOONDIST',
+                                    'SEEING  ',
+                                    'LINTRANS',
+                                    'AIRMASS ',
                                     'DESSN2  ',
                                     'STATUS  ',
                                     'EXPTIME ',
                                     'OBSSN2  ',
                                     'DATE-OBS'),
-                            formats = ['i4', 'f8', 'f8', 'a8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24'])
+                            formats = ['i4', 'f8', 'f8', 'a8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24'])
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
     
