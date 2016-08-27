@@ -10,9 +10,10 @@ import astropy.io.fits as pyfits
 from surveysim.afternoonplan import surveyPlan
 from surveysim.nextobservation import nextFieldSelector
 from surveysim.observefield import observeField
-from astropy.table import Table
+from astropy.table import Table, vstack
 from surveysim.utils import mjd2lst
 import os
+from shutil import copyfile
 
 class obsCount:
 
@@ -138,6 +139,15 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                             formats = ['i4', 'f8', 'f8', 'a8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24'])
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
+        # This file is to facilitate plotting
+        if os.path.exists('obslist_all.fits'):
+            obsListOld = Table.read('obslist_all.fits', format='fits')
+            obsListNew = Table.read(filename, format='fits')
+            obsListAll = vstack([obsListOld, obsListNew])
+            print (len(obsListOld), len(obsListNew), len(obsListAll))
+            obsListAll.write('obslist_all.fits', format='fits', overwrite=True)
+        else:
+            copyfile(filename, 'obslist_all.fits')
     
     return tilesObserved
 
@@ -173,3 +183,4 @@ def surveySim(startdate, enddate, seed=None):
             break
 
     tilesObserved.write(tile_file, format='fits', overwrite=True)
+
