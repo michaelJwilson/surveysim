@@ -11,6 +11,7 @@ Alt_KPNO_m   = 2120.0
 def mjd2lst(mjd):
     t = Time(mjd, format = 'mjd', location=('-111.6d', '32.0d'))
     lst_tmp = t.copy()
+
     try:
         lst_str = str(lst_tmp.sidereal_time('apparent'))
     except IndexError:
@@ -52,7 +53,7 @@ def radec2altaz(ra, dec, lst):
     if sinAz < -1.0:
         sinAz = -1.0
 
-    return np.arcsin(sinAlt), np.arcsin(sinAz)
+    return np.degrees(np.arcsin(sinAlt)), np.degrees(np.arcsin(sinAz))
 
 # Calculates the angular separation between two objects.
 # All quantities are in decimal degrees.

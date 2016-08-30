@@ -49,7 +49,12 @@ def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
     Alt, Az = radec2altaz(ra, dec, lst)
     # Rosenberg (1966) formula
     cosZ = np.cos(np.radians(90.0-Alt))
-    amass = 1.0/(cosZ + 0.025*np.exp(-11.0*cosZ))
-    if amass <= 0.0:
-        print ('ERROR: negative airmass (', amass, '); LST, RA, DEC = ', lst, ra, dec,'!')
+    if Alt >= 0.0:
+        amass = 1.0/(cosZ + 0.025*np.exp(-11.0*cosZ))
+        if amass <= 0.0:
+            print ('ERROR: negative airmass (', amass, '); LST, RA, DEC = ', lst, ra, dec)
+            print ('Alt, Az = ', Alt, Az)
+    else:
+        amass = 1.0e99
+
     return amass

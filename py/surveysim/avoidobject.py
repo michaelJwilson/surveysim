@@ -2,7 +2,6 @@ import ephem
 from datetime import datetime
 from numpy import pi as PI
 
-MIN_MOON_SEP = 90.0 * PI / 180.0
 MIN_VENUS_SEP = 2.0 * PI / 180.0
 MIN_MARS_SEP = 2.0 * PI / 180.0
 MIN_JUPITER_SEP = 2.0 * PI / 180.0
@@ -17,7 +16,8 @@ def avoidObject(datetime, ra0, dec0):
     the coordinates (assumed to be apparent or observed, not mean).  The datetime
     object should have timezone info included.  The inputs are in decimal degrees.
 
-    The current list has: Moon, Venus, Mars, Jupiter, Saturn, Neptune, Uranus.
+    The current list has: Venus, Mars, Jupiter, Saturn, Neptune, Uranus;
+    the Moon is treated separately.
     """
 
     ra = PI * ra0/180.0
@@ -29,12 +29,6 @@ def avoidObject(datetime, ra0, dec0):
     gatech.date = dt
     gatech.epoch = dt
 
-    moon = ephem.Moon()
-    moon.compute(gatech)
-    moondist = ephem.separation(moon, (ra, dec))
-    alt, az = moonLoc(datetime)
-    if alt > 0.0 and moondist < MIN_MOON_SEP:
-        return False
     venus = ephem.Venus()
     venus.compute(gatech)
     if ephem.separation(venus, (ra, dec)) < MIN_VENUS_SEP:
@@ -67,10 +61,10 @@ def avoidObject(datetime, ra0, dec0):
     # If still here, return True
     return True
 
-def moonLoc (datetime, ra0=None, dec0=None):
+def moonLoc (datetime, ra0, dec0):
     """
-    Returns the distance to the Moon if RA and DEC are provided;
-    returns the Moon's alt, az otherwise
+    Returns the distance to the Moon if RA and DEC as well as alt, az.
+    Input and outputs are 
     """
 
     dt = ephem.Date(datetime)
@@ -81,10 +75,9 @@ def moonLoc (datetime, ra0=None, dec0=None):
 
     moon = ephem.Moon()
     moon.compute(gatech)
-    if (ra0 != None and dec0 != None):
-        ra = PI * ra0/180.0
-        dec = PI * dec0/180.0
-        moondist = ephem.separation(moon, (ra, dec))
-        return moondist*180.0/PI
-    else:
-        return (moon.alt)*180.0/PI, (moon.az)*180.0/PI
+    ra = PI * ra0/180.0
+    dec = PI * dec0/180.0
+    moondist = ephem.separation(moon, (ra, dec))
+    moondist*180.0/PI
+    
+    return moondist*180.0/PI, (moon.alt)*180.0/PI, (moon.az)*180.0/PI

@@ -85,11 +85,7 @@ class surveyPlan:
         # be adjested in the afternoon planning stage.
         for i in range(len(self.priority)):
             dec = self.DEC[i]
-            if dec <= -15.0:
-                priority = 1
-            elif dec > -15.0 and dec <= 0.0:
-                priority = 2
-            elif dec > 0.0 and dec <= 15.0:
+            if  dec <= 15.0:
                 priority = 3
             elif dec > 15.0 and dec <= 30.0:
                 priority = 4
@@ -97,10 +93,8 @@ class surveyPlan:
                 priority = 5
             elif dec > 45.0 and dec <= 60.0:
                 priority = 6
-            elif dec > 60.0 and dec < 75.0:
-                priority = 7
             else:
-                priority = 8
+                priority = 7
             self.priority[i] = priority
 
         # Dummy initialization: this is just to declare the class members
@@ -176,6 +170,7 @@ class surveyPlan:
         """
 
         year = int(np.floor(day_stats['MJDsunset'] - tiles_observed.meta['MJDBEGIN'])) + 1
+        # Adjust DARK time program tile priorities
         # From the DESI document 1767 (v3) "Baseline survey strategy":
         # In the northern galactic cap:
         # Year - Layer 1 tiles - Layer 2 tiles - Layer 3 tiles - Layer 4 tiles
@@ -192,6 +187,8 @@ class surveyPlan:
         # 4           0                0            265              260
         # 5           0                0            260              265
         # Priorities shall be adjusted accordingly.
+        # Priorities can only be set to 0, 1, 2 or 8, 9, 10 by
+        # *human intervention*!
 
         # Update status
         nto = len(tiles_observed)
@@ -203,32 +200,26 @@ class surveyPlan:
         planList0 = []
 
         for i in range(len(self.tileID)):
-            if ( self.status[i] < 2 and
-                ((self.isItDark(self.LSTmin[i]) == 'DARK' and self.isItDark(self.LSTmax[i]) == 'DARK' and self.program[i] == 'DARK') or
-                 ((self.isItDark(self.LSTmin[i]) != 'DARK' or self.isItDark(self.LSTmax[i]) != 'DARK') and self.program[i] != 'DARK')) ):
+            if ( self.status[i] < 2 ):
                 # Add this tile to the plan, first adjust its priority.
-                if year == 1:
-                    if ( (self.cap[i] == 'N' and (self.Pass[i] == 3 or self.Pass[i] == 4)) or
-                          (self.cap[i] == 'S' and (self.Pass[i] == 2 or self.Pass[i] == 3 or self.Pass[i] == 4)) ):
-                          self.priority[i] = 9
-                    if ( self.cap[i] == 'N' and self.Pass[i] == 1 and self.priority[i] > 0):
-                        self.priority[i] -= 1
-                if year == 2:
-                    if ( self.cap[i] == 'S' and (self.Pass[i] == 3 or self.Pass[i] == 4) ):
-                         self.priority[i] = 9
-                if year == 3:
-                    if self.Pass[i] == 1:
-                        self.priority[i] = 0
-                    if self.Pass[i] == 2:
-                        self.priority[i] -= 1
-                if year >= 4:
-                    if self.Pass[i] <= 2:
-                        self.priority[i] = 0
-                # Check that it is in the range [0,9]
-                if self.priority[i] < 0:
-                    self.priority[i] = 0
-                if self.priority[i] > 9:
-                    self.priority[i] = 9
+                if self.program[i] == 'DARK':
+                    if year == 1:
+                        if ( (self.cap[i] == 'N' and (self.Pass[i] == 3 or self.Pass[i] == 4)) or
+                            (self.cap[i] == 'S' and (self.Pass[i] == 2 or self.Pass[i] == 3 or self.Pass[i] == 4)) ):
+                            self.priority[i] = 7
+                        if ( self.cap[i] == 'N' and self.Pass[i] == 1 and self.priority[i] > 3):
+                            self.priority[i] -= 1
+                    if year == 2:
+                        if ( self.cap[i] == 'S' and (self.Pass[i] == 3 or self.Pass[i] == 4) ):
+                            self.priority[i] = 7
+                    if year == 3:
+                        if self.Pass[i] == 1:
+                            self.priority[i] = 3
+                        if self.Pass[i] == 2 and self.priority[i] > 3:
+                            self.priority[i] -= 1
+                    if year >= 4:
+                        if self.Pass[i] <= 2:
+                            self.priority[i] = 3
                 planList0.append((self.tileID[i], self.RA[i], self.DEC[i], self.Ebmv[i], self.LSTmin[i], self.LSTmax[i],
                                  self.maxExpLen[i], self.priority[i], self.status[i], self.program[i], self.obsconds[i]))
 

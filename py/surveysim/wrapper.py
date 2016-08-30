@@ -144,7 +144,6 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
             obsListOld = Table.read('obslist_all.fits', format='fits')
             obsListNew = Table.read(filename, format='fits')
             obsListAll = vstack([obsListOld, obsListNew])
-            print (len(obsListOld), len(obsListNew), len(obsListAll))
             obsListAll.write('obslist_all.fits', format='fits', overwrite=True)
         else:
             copyfile(filename, 'obslist_all.fits')
