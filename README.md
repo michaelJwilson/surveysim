@@ -7,7 +7,6 @@ To run, for example:
 	>>> from surveysim.wrapper import surveySim
 	>>> surveySim((2016, 12, 27), (2017, 1, 4), 123456)
 
-The dates have to be between 1 January 2016 and 31 December 2025.  The
-optional seed for the weather module's random number generator has to
+The optional seed for the weather module's random number generator has to
 be an int or array_like convertible to an unsigned 32-bit integer.
 
