@@ -2,9 +2,9 @@
 
 import numpy as np
 from astropy.time import Time
-from datetime import datetime
+from datetime import datetime, timedelta
 from surveysim.weather import weatherModule
-from surveysim.calendar import obsCalendar
+from surveysim.nightcal import getCal
 from surveysim.exposurecalc import expTimeEstimator, airMassCalculator
 import astropy.io.fits as pyfits
 from surveysim.afternoonplan import surveyPlan
@@ -150,15 +150,18 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
     
     return tilesObserved
 
-def surveySim(startdate, enddate, seed=None):
+def surveySim(sd0, ed0, seed=None):
 
-    (startyear, startmonth, startday) = startdate
-    (endyear, endmonth, endday) = enddate
+    # Note 1900 UTC is midday at KPNO
+    (startyear, startmonth, startday) = sd0
+    startdate = datetime(startyear, startmonth, startday, 19, 0, 0)
+    (endyear, endmonth, endday) = ed0
+    enddate = datetime(endyear, endmonth, endday, 19, 0, 0)
     
     sp = surveyPlan()
-    day0 = Time(datetime(startyear, startmonth, startday, 12, 0, 0))
+    day0 = Time(datetime(startyear, startmonth, startday, 19, 0, 0))
     mjd_start = day0.mjd
-    w = weatherModule(day0, seed)
+    w = weatherModule(startdate, seed)
     ocnt = obsCount()
 
     tile_file = 'tiles_observed.fits'
@@ -169,17 +172,22 @@ def surveySim(startdate, enddate, seed=None):
         tilesObserved = Table(names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
         tilesObserved.meta['MJDBEGIN'] = mjd_start
 
-    cal = obsCalendar(startday, startmonth, startyear, endday, endmonth, endyear)
-    for day in cal:
+    #cal = obsCalendar(startday, startmonth, startyear, endday, endmonth, endyear)
+    oneday = timedelta(days=1)
+    day = startdate
+    while day <= enddate:
+        day_stats = getCal(day)
         ntodate = len(tilesObserved)
-        t = Time(day['MJDsunset'], format = 'mjd')
-        w.resetDome(t)
-        tiles_todo, obsplan = sp.afternoonPlan(day, tilesObserved)
-        tilesObserved = nightOps(day, obsplan, w, ocnt, tilesObserved)
-        t = Time(day['MJDsunset'], format = 'mjd')
+        #t = Time(day_stats['MJDsunset'], format = 'mjd')
+        #w.resetDome(t)
+        w.resetDome(day)
+        tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
+        tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved)
+        t = Time(day, format = 'datetime')
         print ('On the night starting ', t.iso, ', we observed ', len(tilesObserved)-ntodate, ' tiles.')
         if tiles_todo == 0:
             break
+        day += oneday
 
     tilesObserved.write(tile_file, format='fits', overwrite=True)
 

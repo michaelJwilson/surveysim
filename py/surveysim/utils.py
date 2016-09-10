@@ -11,14 +11,17 @@ Alt_KPNO_m   = 2120.0
 def mjd2lst(mjd):
     t = Time(mjd, format = 'mjd', location=('-111.6d', '32.0d'))
     lst_tmp = t.copy()
-
+    """
     try:
         lst_str = str(lst_tmp.sidereal_time('apparent'))
     except IndexError:
         lst_tmp.delta_ut1_utc = -0.1225
         lst_str = str(lst_tmp.sidereal_time('apparent'))
-        # 23h09m35.9586s
-        # 01234567890123
+    """
+    lst_tmp.delta_ut1_utc = -0.1225
+    lst_str = str(lst_tmp.sidereal_time('apparent'))
+    # 23h09m35.9586s
+    # 01234567890123
     if lst_str[2] == 'h':
         lst_hr = float(lst_str[0:2])
         lst_mn = float(lst_str[3:5])

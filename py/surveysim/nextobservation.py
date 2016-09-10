@@ -18,8 +18,8 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
 
     hdulist = pyfits.open(obsplan)
     tiledata = hdulist[1].data
-    moonRA = hdulist[0].header['MOONRA  ']
-    moonDEC = hdulist[0].header['MOONDEC ']
+    #moonRA = hdulist[0].header['MOONRA  ']
+    #moonDEC = hdulist[0].header['MOONDEC ']
     moonfrac = hdulist[0].header['MOONFRAC']
     tileID = tiledata['TILEID']
     tmin = tiledata['LSTMIN']
