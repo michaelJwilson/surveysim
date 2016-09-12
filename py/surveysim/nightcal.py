@@ -30,7 +30,7 @@ def getCal(day):
     if (MJDmoonrise > MJDsunrise):
        MJDmoonrise = float( mayall.previous_rising(ephem.Moon()) + day0.mjd )
     m0 = ephem.Moon()
-    m0.compute()
+    m0.compute(day)
     MoonFrac = float( m0.moon_phase )
 
     # Get the night's directory name right away.
