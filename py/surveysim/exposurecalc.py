@@ -9,8 +9,8 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
     seeing_ref = 1.1 # Seeing value to which actual seeing is normalised
     exp_ref_dark = 1000.0   # Reference exposure time in seconds
     exp_ref_bright = 300.0  # Idem but for bright time programme
-    exp_ref_grey = 650.0    # Made up number: just took the average
-    sn2_nom = 100.0 # Nominal sign-to-noise
+    exp_ref_grey = exp_ref_dark
+    sn2_nom = 100.0 # Nominal sign-to-noise: again, made-up number
 
     if program == "DARK":
         exp_ref = exp_ref_dark
@@ -25,7 +25,6 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
     b = -1.55
     c = 1.15
     f_seeing = (a-0.25*b*b/c) / (a+b*seeing+c*seeing*seeing)
-    #print (weatherNow['Transparency'])
     if weatherNow['Transparency'] > 0.0:
         f_transparency = 1.0 / weatherNow['Transparency']
     else:

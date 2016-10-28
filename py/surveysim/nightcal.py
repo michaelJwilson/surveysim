@@ -7,10 +7,10 @@ import ephem
 def getCal(day):
 
     mayall = ephem.Observer()
-    mayall.lat, mayall.lon = (31.9639722222)/180*np.pi, -111.59933611/180*np.pi
+    mayall.lat, mayall.lon = (31.9639722222)/180.0*np.pi, -111.59933611/180.0*np.pi
     mayall.date = day
-    mayall.pressure = 0      # Disabling pyephem's refraction calculations, just use
-    mayall.horizon = '-0:34' # the value that the USNO uses.
+    mayall.pressure = 0.0      # Disabling pyephem's refraction calculations, just use
+    mayall.horizon = '-0:34'   # the value that the USNO uses.
     day0 = Time(datetime(1900,1,1,12,0,0)) # This throws a warning because of the early year, but it is harmless.
     # Sun
     MJDsunset = float( mayall.next_setting(ephem.Sun()) + day0.mjd )

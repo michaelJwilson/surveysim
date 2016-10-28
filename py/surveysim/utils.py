@@ -7,6 +7,20 @@ Lon_KPNO_deg = -1.0 * (111.0 + (35.0 + 57.61/60.0)/60.0)
 Lat_KPNO_deg = 31.0 + (57.0 + 50.3/60.0)/60.0
 Alt_KPNO_m   = 2120.0
 
+def earthOrientation(MJD):
+    # This is an approximate formula because the ser7.dat file's range
+    # is not long enough for the duration of the survey.
+    # All formulae are from the Naval Observatory.
+    T = 2000.0 + (MJD - 51544.03) / 365.2422
+    UT2_UT1 = 0.022*np.sin(2.0*np.pi*T) - 0.012*np.cos(2.0*np.pi*T) \
+            - 0.006*np.sin(4.0*np.pi*T) + 0.007*np.cos(4.0*np.pi*T)
+    A = 2.0*np.pi*(MJD-57681.0)/365.25
+    C = 2.0*np.pi*(MJD-57681.0)/435.0
+    x =  0.1042 + 0.0809*np.cos(A) - 0.0636*np.sin(A) + 0.0229*np.cos(C) - 0.0156*np.sin(C) 
+    y =  0.3713 - 0.0593*np.cos(A) - 0.0798*np.sin(A) - 0.0156*np.cos(C) - 0.0229*np.sin(C) 
+    UT1_UTC = -0.3259 - 0.00138*(MJD - 57689.0) - (UT2_UT1)
+    return x, y, UT1_UTC
+
 # Converts decimal MJD to LST in decimal degrees
 def mjd2lst(mjd):
     t = Time(mjd, format = 'mjd', location=('-111.6d', '32.0d'))
@@ -18,7 +32,8 @@ def mjd2lst(mjd):
         lst_tmp.delta_ut1_utc = -0.1225
         lst_str = str(lst_tmp.sidereal_time('apparent'))
     """
-    lst_tmp.delta_ut1_utc = -0.1225
+    x, y, dut = earthOrientation(mjd)
+    lst_tmp.delta_ut1_utc = dut
     lst_str = str(lst_tmp.sidereal_time('apparent'))
     # 23h09m35.9586s
     # 01234567890123
@@ -66,3 +81,5 @@ def angsep(ra1, dec1, ra2, dec2):
     DEC2 = np.radians(dec2)
     cosDelta = np.sin(DEC1)*np.sin(DEC2) + np.cos(DEC1)*np.cos(DEC2)*np.cos(deltaRA)
     return np.degrees(np.arccos(cosDelta))
+
+

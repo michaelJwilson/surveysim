@@ -52,9 +52,13 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
         os.mkdir(day_stats['dirName'])
     
     conditions = w.getValues(mjd)
-    print ('Conditions at the beginning of the night: ')
-    print (conditions)
-    if conditions['OpenDome'] == True:
+    if conditions['OpenDome'] == False:
+        print("\nBad weather forced the dome to remain shut for the night.")
+    else:
+        print ("\nConditions at the beginning of the night: ")
+        print ("\tSeeing: ", conditions['Seeing'], "arcseconds")
+        print ("\tTransparency: ", conditions['Transparency'])
+        print ("\tCloud cover: ", 100.0*conditions['Clouds'], "%")
 
         while nightOver == False:
             conditions = w.updateValues(conditions, mjd)
@@ -62,11 +66,13 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
             lst = mjd2lst(mjd)
             target = nextFieldSelector(obsplan, mjd, conditions, tilesObserved)
             if target != None:
+                #print("lst = ", lst)
                 # Compute mean to apparent to observed ra and dec???
                 airmass = airMassCalculator(target['RA'], target['DEC'], lst)
-                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'])
+                #exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'])
+                exposure = target['maxLen']
                 #print ('Estimated exposure = ', exposure, 'Maximum allowed exposure for tileID', target['tileID'], ' = ', target['maxLen'])
-                if exposure < target['maxLen']:
+                if exposure <= 1.05 * target['maxLen']:
                     status, real_exposure, real_sn2 = observeField(target, exposure)
                     target['Status'] = status
                     target['Exposure'] = real_exposure
@@ -172,14 +178,11 @@ def surveySim(sd0, ed0, seed=None):
         tilesObserved = Table(names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
         tilesObserved.meta['MJDBEGIN'] = mjd_start
 
-    #cal = obsCalendar(startday, startmonth, startyear, endday, endmonth, endyear)
     oneday = timedelta(days=1)
     day = startdate
     while day <= enddate:
         day_stats = getCal(day)
         ntodate = len(tilesObserved)
-        #t = Time(day_stats['MJDsunset'], format = 'mjd')
-        #w.resetDome(t)
         w.resetDome(day)
         tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
         tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved)

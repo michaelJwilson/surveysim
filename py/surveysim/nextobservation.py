@@ -11,15 +11,13 @@ from astropy.time import Time
 # The only thing it does is return the first target on the list
 # that is after the current time.
 
-MAX_AIRMASS = 3.0
+MAX_AIRMASS = 10.0 #3.0 This new bound effectively does nothing.
 MIN_MOON_SEP = 90.0
 
 def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
 
     hdulist = pyfits.open(obsplan)
     tiledata = hdulist[1].data
-    #moonRA = hdulist[0].header['MOONRA  ']
-    #moonDEC = hdulist[0].header['MOONDEC ']
     moonfrac = hdulist[0].header['MOONFRAC']
     tileID = tiledata['TILEID']
     tmin = tiledata['LSTMIN']

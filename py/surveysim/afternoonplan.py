@@ -46,6 +46,8 @@ class surveyPlan:
         program = tiledata.field('PROGRAM')
         obsconds = tiledata.field('OBSCONDITIONS')
         obstime = tiledata.field('OBSTIME')
+        lstbegin = tiledata.field('BEGINOBS')
+        lstend = tiledata.field('ENDOBS')
         HA = tiledata.field('HA')
         bgal = tiledata.field('GALACLAT')
         hdulist0.close()
@@ -55,23 +57,29 @@ class surveyPlan:
         self.DEC = DEC.compress((InDESI==1).flat)
         self.Pass = Pass.compress((InDESI==1).flat)
         self.Ebmv = Ebmv.compress((InDESI==1).flat)
-        self.maxExpLen = 2.0 * obstime.compress((InDESI==1).flat) # This assumes bright time program
+        #self.maxExpLen = 2.0 * obstime.compress((InDESI==1).flat)
+        self.maxExpLen = obstime.compress((InDESI==1).flat)
         self.starDensity = starDensity.compress((InDESI==1).flat)
         self.program = program.compress((InDESI==1).flat)
         self.obsconds = obsconds.compress((InDESI==1).flat)
+        self.LSTmin = lstbegin.compress((InDESI==1).flat) * 15.0 - 2.5
+        self.LSTmax = lstend.compress((InDESI==1).flat) * 15.0 + 2.5
+        """
         LST = self.RA + HA.compress((InDESI==1).flat)
-        self.LSTmin = LST - 15.0
+        self.LSTmin = LST - 5.0
         for i in range(len(self.LSTmin)):
             if self.LSTmin[i] < 0.0:
                 self.LSTmin[i] += 360.0
             elif self.LSTmin[i] >360.0:
                 self.LSTmin[i] -= 360.0
-        self.LSTmax = LST + 15.0
+        self.LSTmax = LST + 5.0
         for i in range(len(self.LSTmax)):
             if self.LSTmax[i] < 0.0:
                 self.LSTmax[i] += 360.0
             elif self.LSTmax[i] > 360.0:
                 self.LSTmax[i] -= 360.0
+        """
+        
         self.cap = np.chararray(len(self.tileID))
         btemp = bgal.compress((InDESI==1).flat)
         for i in range(len(btemp)):
@@ -158,7 +166,7 @@ class surveyPlan:
                 planList0.append((self.tileID[i], self.RA[i], self.DEC[i], self.Ebmv[i], self.LSTmin[i], self.LSTmax[i],
                                  self.maxExpLen[i], self.priority[i], self.status[i], self.program[i], self.obsconds[i]))
 
-        planList = sorted(planList0, key=itemgetter(7), reverse=True)
+        planList = sorted(planList0, key=itemgetter(7), reverse=False)
         cols = np.rec.array(planList,
                             names = ('TILEID', 'RA', 'DEC', 'EBV_MED', 'LSTMIN', 'LSTMAX', 'MAXEXPLEN', 'PRIORITY', 'STATUS', 'PROGRAM', 'OBSCONDITIONS'),
                             formats = ['i4', 'f8', 'f8', 'f8', 'f4', 'f4', 'f4', 'i4', 'i4', 'a6', 'i2'])
@@ -167,8 +175,6 @@ class surveyPlan:
 
         prihdr = pyfits.Header()
         prihdr['MOONFRAC'] = day_stats['MoonFrac']
-        #prihdr['MOONRA  '] = day_stats['MoonRA']
-        #prihdr['MOONDEC '] = day_stats['MoonDEC']
         prihdu = pyfits.PrimaryHDU(header=prihdr)
         filename = 'obsplan' + day_stats['dirName'] + '.fits'
         thdulist = pyfits.HDUList([prihdu, tbhdu])
