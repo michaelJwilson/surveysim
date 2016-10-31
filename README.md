@@ -10,3 +10,7 @@ To run, for example:
 The optional seed for the weather module's random number generator has to
 be an int or array_like convertible to an unsigned 32-bit integer.
 
+To run the plotting tool:
+
+        >>> from surveysim import plotsurvey
+
