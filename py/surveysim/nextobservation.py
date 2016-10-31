@@ -54,6 +54,8 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
         status = tiledata['STATUS'][i]
         exposure = -1.0 # Updated after observation
         obsSN2 = -1.0   # Idem
+        if moonalt < 0.0:
+            moondist = -180.0 # Avoid counting it if below the horizon.
         target = {'tileID' : tileID, 'RA' : RA, 'DEC' : DEC, 'Program': program[i], 'Ebmv' : Ebmv, 'maxLen': maxLen,
                   'MoonFrac': moonfrac, 'MoonDist': moondist, 'DESsn2': DESsn2, 'Status': status, 'Exposure': exposure, 'obsSN2': obsSN2}
     else:

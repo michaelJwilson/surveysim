@@ -2,12 +2,13 @@ from astropy.time import Time
 from datetime import datetime
 import numpy as np
 import ephem
+import surveysim.kpno as kpno
 
 # Assumes that the input time is midday local time
 def getCal(day):
 
     mayall = ephem.Observer()
-    mayall.lat, mayall.lon = (31.9639722222)/180.0*np.pi, -111.59933611/180.0*np.pi
+    mayall.lat, mayall.lon = np.radians(kpno.mayall.lat_deg), np.radians(kpno.mayall.west_lon_deg)
     mayall.date = day
     mayall.pressure = 0.0      # Disabling pyephem's refraction calculations, just use
     mayall.horizon = '-0:34'   # the value that the USNO uses.

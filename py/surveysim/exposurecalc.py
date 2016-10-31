@@ -30,6 +30,7 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
     else:
         f_transparency = 1.0e9
     f_ebmv = np.power(10.0,ebmv/2.5)
+    f_am = np.power(amass,1.25)
     """
     if moonFrac < 1.0:
         f_moon = 1.0 / (1.0 - moonFrac/100.0)
@@ -37,7 +38,7 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
         f_moon = 30.0
     """
     f_moon = 1.0 # Temporary until real values are in the code
-    f = f_seeing * f_transparency * f_ebmv * f_moon
+    f = f_am * f_seeing * f_transparency * f_ebmv * f_moon
     if f >= 0.0:
         value = exp_ref * f * (sn2 / sn2_nom)
     else:

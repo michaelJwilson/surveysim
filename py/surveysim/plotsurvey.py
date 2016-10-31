@@ -44,7 +44,8 @@ plt.xlabel('Moon illumination fraction')
 plt.ylabel('Count')
 
 plt.subplot(326)
-x = t['MOONDIST']
+y = t['MOONDIST']
+x = y.compress((y>0.0).flat) # Distance is set negative if below the horizon.
 n, bins, patches = plt.hist(x, 20, facecolor='0.5', alpha=0.75)
 plt.xlabel('Distance from the Moon (deg)')
 plt.ylabel('Count')

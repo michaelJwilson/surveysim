@@ -7,8 +7,6 @@ from pkg_resources import resource_filename
 from surveysim.utils import radec2altaz, mjd2lst
 from operator import itemgetter
 
-Lat_KPNO_deg = 31.0 + (57.0 + 50.3/60.0)/60.0
-
 class surveyPlan:
     
     def __init__(self):

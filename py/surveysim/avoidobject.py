@@ -1,6 +1,7 @@
 import ephem
 from datetime import datetime
 from numpy import pi as PI
+from surveysim.kpno import mayall
 
 MIN_VENUS_SEP = 2.0 * PI / 180.0
 MIN_MARS_SEP = 2.0 * PI / 180.0
@@ -25,7 +26,7 @@ def avoidObject(datetime, ra0, dec0):
     
     dt = ephem.Date(datetime)
     gatech = ephem.Observer()
-    gatech.lon, gatech.lat = -111.59933611, 31.9639722222 # KPNO
+    gatech.lon, gatech.lat = mayall.west_lon_deg, mayall.lat_deg
     gatech.date = dt
     gatech.epoch = dt
 

@@ -1,11 +1,6 @@
 import numpy as np
 from astropy.time import Time
-
-# Location of Kitt Peak National Observatory Mayall 4m Telescope
-# Taken from SlaLib obs.c, which cites the 1981 Almanac
-Lon_KPNO_deg = -1.0 * (111.0 + (35.0 + 57.61/60.0)/60.0)
-Lat_KPNO_deg = 31.0 + (57.0 + 50.3/60.0)/60.0
-Alt_KPNO_m   = 2120.0
+from surveysim.kpno import mayall
 
 def earthOrientation(MJD):
     # This is an approximate formula because the ser7.dat file's range
@@ -23,7 +18,10 @@ def earthOrientation(MJD):
 
 # Converts decimal MJD to LST in decimal degrees
 def mjd2lst(mjd):
-    t = Time(mjd, format = 'mjd', location=('-111.6d', '32.0d'))
+    lon = str(mayall.west_lon_deg) + 'd'
+    lat = str(mayall.lat_deg) + 'd'
+    
+    t = Time(mjd, format = 'mjd', location=(lon, lat))
     lst_tmp = t.copy()
     """
     try:
@@ -57,7 +55,7 @@ def radec2altaz(ra, dec, lst):
     if h < 0.0:
         h += 360.0
     d = np.radians(dec)
-    phi = np.radians(Lat_KPNO_deg)
+    phi = np.radians(mayall.lat_deg)
 
     sinAz = np.sin(h) / (np.cos(h)*np.sin(phi) - np.tan(d)*np.cos(phi))
     sinAlt = np.sin(phi)*np.sin(d) + np.cos(phi)*np.cos(d)*np.cos(h)
