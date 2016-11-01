@@ -70,7 +70,7 @@ def moonLoc (datetime, ra0, dec0):
 
     dt = ephem.Date(datetime)
     gatech = ephem.Observer()
-    gatech.lon, gatech.lat = -111.59933611, 31.9639722222 # KPNO
+    gatech.lon, gatech.lat = mayall.west_lon_deg, mayall.lat_deg
     gatech.date = dt
     gatech.epoch = dt
 
