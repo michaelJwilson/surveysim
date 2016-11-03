@@ -47,7 +47,7 @@ class surveyPlan:
         lstbegin = tiledata.field('BEGINOBS')
         lstend = tiledata.field('ENDOBS')
         HA = tiledata.field('HA')
-        bgal = tiledata.field('GALACLAT')
+#        bgal = tiledata.field('GALACLAT')
         hdulist0.close()
 
         self.tileID = tileID.compress((InDESI==1).flat) #Assuming 0=out, 1=in
@@ -79,9 +79,16 @@ class surveyPlan:
         """
         
         self.cap = np.chararray(len(self.tileID))
-        btemp = bgal.compress((InDESI==1).flat)
-        for i in range(len(btemp)):
-            if btemp[i] >= 0.0:
+        #btemp = bgal.compress((InDESI==1).flat)
+        # Formulae for ecliptic to galactic (angles in degrees):
+        # tan(l-303) = sin(192.25-alpha) / (cos(192.25-alpha)sin(27.4)-tan(delta)cos(27.4))
+        # sin(b) = sin(delta)sin(27.4) + cos(delta)cos(27.4)cos(192.5-alpha)
+        # These are good for B1950, but it should be good enough for our purposes.
+        for i in range(len(self.cap)):
+            a = np.radians(192.25 - self.RA[i])
+            b = np.radians(self.DEC[i])
+            c = np.radians(27.4)
+            if  (np.sin(b)*np.sin(c) + np.cos(b)*np.cos(c)*np.cos(a)) >= 0.0:
                 self.cap[i] = 'N'
             else:
                 self.cap[i] = 'S'
