@@ -5,9 +5,7 @@ from matplotlib import rc
 import matplotlib.ticker as ticker
 
 """
-This is a short script to plot the evolution of the survey
-from the file tiles_observed.dat (same as tiles_observed.fits,
-but in ASCII format) output from surveySim.
+This function plots various quantities output from surveySim.
  -- Martin Landriau, August 2016
 """
 def plotsurvey(filename='obslist_all.fits'):

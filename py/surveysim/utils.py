@@ -53,10 +53,10 @@ def radec2altaz(ra, dec, lst):
     
     h = np.radians(lst - ra)
     if h < 0.0:
-        h += 360.0
+        h += 2.0*np.pi
     d = np.radians(dec)
     phi = np.radians(mayall.lat_deg)
-
+    
     sinAz = np.sin(h) / (np.cos(h)*np.sin(phi) - np.tan(d)*np.cos(phi))
     sinAlt = np.sin(phi)*np.sin(d) + np.cos(phi)*np.cos(d)*np.cos(h)
 
