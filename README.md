@@ -12,5 +12,8 @@ be an int or array_like convertible to an unsigned 32-bit integer.
 
 To run the plotting tool:
 
-        >>> from surveysim import plotsurvey
+        >>> from surveysim.plotsurvey import plotsurvey
+        >>> plotsurvey()
+
+The function takes an optional filename; the default is ./obslist_all.fits .
 
