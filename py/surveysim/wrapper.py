@@ -69,10 +69,10 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                 #print("lst = ", lst)
                 # Compute mean to apparent to observed ra and dec???
                 airmass = airMassCalculator(target['RA'], target['DEC'], lst)
-                #exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'])
-                exposure = target['maxLen']
+                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'])
+                #exposure = target['maxLen']
                 #print ('Estimated exposure = ', exposure, 'Maximum allowed exposure for tileID', target['tileID'], ' = ', target['maxLen'])
-                if exposure <= 1.05 * target['maxLen']:
+                if exposure <= 3.0 * target['maxLen']:
                     status, real_exposure, real_sn2 = observeField(target, exposure)
                     target['Status'] = status
                     target['Exposure'] = real_exposure
@@ -86,7 +86,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                         obsList.append((target['tileID'],  target['RA'], target['DEC'], target['Program'], target['Ebmv'],
                                        target['maxLen'], target['MoonFrac'], target['MoonDist'], target['MoonAlt'], conditions['Seeing'], conditions['Transparency'],
                                        airmass, target['DESsn2'], target['Status'],
-                                       target['Exposure'], target['obsSN2'], tbase))
+                                       target['Exposure'], target['obsSN2'], tbase, mjd))
                     else:
                         # Output headers, but no data.
                         # In the future: GFAs (i, x, y + metadata for i=id, time, postagestampid) and fiber positions.
@@ -111,6 +111,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                         tbase = str(t.isot)
                         nt = len(tbase)
                         prihdr['DATE-OBS'] = tbase
+                        prihdr['MJD     '] = mjd
                         filename = day_stats['dirName'] + '/desi-exp-' + ocnt.update() + '.fits'
                         prihdu = pyfits.PrimaryHDU(header=prihdr)
                         prihdu.writeto(filename, clobber=True)
@@ -143,8 +144,9 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                                     'STATUS  ',
                                     'EXPTIME ',
                                     'OBSSN2  ',
-                                    'DATE-OBS'),
-                            formats = ['i4', 'f8', 'f8', 'a8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24'])
+                                    'DATE-OBS',
+                                    'MJD     '),
+                            formats = ['i4', 'f8', 'f8', 'a8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24', 'f8'])
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
         # This file is to facilitate plotting
