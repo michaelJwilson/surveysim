@@ -13,7 +13,7 @@ be an int or array_like convertible to an unsigned 32-bit integer.
 To run the plotting tool:
 
 	>>> from surveysim.plotsurvey import plotsurvey
-	>>> plotsurvey("your_output_file.fits, plot_type='t')
+	>>> plotsurvey("your_output_file.fits", plot_type='t')
 
-The default filename is ./obslist_all.fits and plot_type is either 'f' (footprint, default), 'h' (histograms) or 't' (time evolution).
+The default filename is ./obslist_all.fits and plot_type is either 'f' (footprint, default), 'h' (histograms), 't' (time evolution) or 'e' (exposure time).
 

@@ -104,6 +104,34 @@ def plotsurvey(filename='obslist_all.fits', plot_type='f'):
         plt.ylabel('Number of tiles observed')
 
 
+    elif plot_type == 'e':
+        i = np.where( t['PROGRAM'] == 'DARK')
+        y = t['EXPTIME']
+        plt.figure(1)
+
+        plt.subplot(221)
+        x = t['LINTRANS']
+        plt.scatter(x[i], y[i], marker='.', color='black')
+        plt.xlabel('Linear transparency')
+        plt.ylabel('Exposure time (seconds)')
+
+        plt.subplot(222)
+        x = t['SEEING']
+        plt.scatter(x[i], y[i], marker='.', color='black')
+        plt.xlabel('Seeing (arcseconds)')
+        plt.ylabel('Exposure time (seconds)')
+
+        plt.subplot(223)
+        x = t['EBMV']
+        plt.scatter(x[i], y[i], marker='.', color='black')
+        plt.xlabel('E(B-V)')
+        plt.ylabel('Exposure time (seconds)')
+
+        plt.subplot(224)
+        x = t['AIRMASS']
+        plt.scatter(x[i], y[i], marker='.', color='black')
+        plt.xlabel('Airmass')
+        plt.ylabel('Exposure time (seconds)')
 
     plt.show()
 
