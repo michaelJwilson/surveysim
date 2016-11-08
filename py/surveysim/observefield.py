@@ -17,4 +17,7 @@ def setup_time(previous_ra, previous_dec, ra, dec):
     ddec = np.abs(previous_dec-dec)
     d = np.maximum(dra, ddec)
     slew_time = 11.5 + d/0.45
-    return (focus_time + slew_time)/86400.0
+    overhead = focus_time + slew_time
+    if overhead < 120.0:
+        overhead = 120.0
+    return overhead/86400.0

@@ -30,16 +30,16 @@ class weatherModule:
 
     def simSeeing(self, dt):
         # Returns current seeing in arcseconds
-        seeing = 1.1 + self.rn.normal(0.0, 0.1)
-        if seeing < 0.65:
-            seeing = 0.65
+        seeing = self.rn.lognormal(0.0, 0.25)
+        if seeing < 0.5:
+            seeing = 0.5
         return seeing
 
     def simTransparency(self, dt):
         # Returns current (linear) transparency
-        # Dummy for now
-        transparency = 1.0 - self.rn.lognormal(-1.25, 0.5)
+        transparency = self.rn.lognormal(0.11111111, 0.3333333)
         if transparency < 0.0 : transparency = 0.0
+        if transparency > 1.0 : transparency = 1.0
         return transparency
 
     def simClouds(self, dt):
