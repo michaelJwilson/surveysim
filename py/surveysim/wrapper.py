@@ -191,8 +191,9 @@ def surveySim(sd0, ed0, seed=None):
         tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
         tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved)
         t = Time(day, format = 'datetime')
-        print ('On the night starting ', t.iso, ', we observed ', len(tilesObserved)-ntodate, ' tiles.')
-        if tiles_todo == 0:
+        ntiles_tonight = len(tilesObserved)-ntodate
+        print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
+        if (tiles_todo-ntiles_tonight) == 0:
             break
         day += oneday
 
