@@ -7,14 +7,27 @@ from surveysim.utils import mjd2lst
 from datetime import datetime
 from astropy.time import Time
 
-# This is a VERY simplfied version of the next field seclector.
-# The only thing it does is return the first target on the list
-# that is after the current time.
-
 MAX_AIRMASS = 10.0 #3.0 This new bound effectively does nothing.
 MIN_MOON_SEP = 90.0
 
 def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
+    """
+    Returns the first tile for which the current time falls inside
+    its assigned LST window and is far enough from the Moon and
+    planets.
+
+    Args:
+        obsplan: string, FITS file containing the afternoon plan
+        mjd: float, current time
+        conditions: dictionnary containing the weather info
+        tilesObserved: list containing the tileID of all completed tiles
+
+    Returns:
+        target: dictionnary containing the following keys:
+                'tileID', 'RA', 'DEC', 'Program', 'Ebmv', 'maxLen',
+                'MoonFrac', 'MoonDist', 'MoonAlt', 'DESsn2', 'Status',
+                'Exposure', 'obsSN2'
+    """
 
     hdulist = pyfits.open(obsplan)
     tiledata = hdulist[1].data
@@ -59,3 +72,4 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
     else:
         target = None
     return target
+

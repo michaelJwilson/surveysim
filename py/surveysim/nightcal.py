@@ -4,8 +4,23 @@ import numpy as np
 import ephem
 import surveysim.kpno as kpno
 
-# Assumes that the input time is midday local time
 def getCal(day):
+    """
+    Computes Sun and Moon set and rise times, 13 and 15 degree-twilight times
+    and Moon illumination fraction.
+
+    Args:
+        day: datetime objects, assumed to be at midday local time.
+
+    Returns:
+        dictionnary containing the following keys:
+        'MJDsunset', 'MJDsunrise', 'MJDetwi', 'MJDmtwi', 'MJDe13twi',
+        'MJDm13twi', 'MJDmoonrise', 'MJDmoonset', 'MoonFrac', 'dirName'
+
+    Note:
+        dirName is not used in practise, but will in principle for
+        actual ops.
+    """
 
     mayall = ephem.Observer()
     mayall.lat, mayall.lon = np.radians(kpno.mayall.lat_deg), np.radians(kpno.mayall.west_lon_deg)

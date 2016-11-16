@@ -3,9 +3,20 @@ from astropy.time import Time
 from surveysim.kpno import mayall
 
 def earthOrientation(MJD):
-    # This is an approximate formula because the ser7.dat file's range
-    # is not long enough for the duration of the survey.
-    # All formulae are from the Naval Observatory.
+    """
+    This is an approximate formula because the ser7.dat file's range
+    is not long enough for the duration of the survey.
+    All formulae are from the Naval Observatory.
+
+    Args:
+        MJD: float
+
+    Returns:
+        x: float (arcseconds)
+        y: float (arcseconds)
+        UT1-UTC: float (seconds)
+    """
+
     T = 2000.0 + (MJD - 51544.03) / 365.2422
     UT2_UT1 = 0.022*np.sin(2.0*np.pi*T) - 0.012*np.cos(2.0*np.pi*T) \
             - 0.006*np.sin(4.0*np.pi*T) + 0.007*np.cos(4.0*np.pi*T)
@@ -16,20 +27,29 @@ def earthOrientation(MJD):
     UT1_UTC = -0.3259 - 0.00138*(MJD - 57689.0) - (UT2_UT1)
     return x, y, UT1_UTC
 
-# Converts decimal MJD to LST in decimal degrees
 def mjd2lst(mjd):
+    """
+    Converts decimal MJD to LST in decimal degrees
+
+    Args:
+        mjd: float
+
+    Returns:
+        lst: float (degrees)
+    """
+
     lon = str(mayall.west_lon_deg) + 'd'
     lat = str(mayall.lat_deg) + 'd'
     
     t = Time(mjd, format = 'mjd', location=(lon, lat))
     lst_tmp = t.copy()
-    """
-    try:
-        lst_str = str(lst_tmp.sidereal_time('apparent'))
-    except IndexError:
-        lst_tmp.delta_ut1_utc = -0.1225
-        lst_str = str(lst_tmp.sidereal_time('apparent'))
-    """
+    
+    #try:
+    #    lst_str = str(lst_tmp.sidereal_time('apparent'))
+    #except IndexError:
+    #    lst_tmp.delta_ut1_utc = -0.1225
+    #    lst_str = str(lst_tmp.sidereal_time('apparent'))
+
     x, y, dut = earthOrientation(mjd)
     lst_tmp.delta_ut1_utc = dut
     lst_str = str(lst_tmp.sidereal_time('apparent'))
@@ -47,10 +67,19 @@ def mjd2lst(mjd):
     lst *= 15.0 # Convert from hours to degrees
     return lst
 
-# All quantities are in decimal degrees
-# Note that these should be *observed* RA and DEC, not mean, not apparent.
 def radec2altaz(ra, dec, lst):
-    
+    """
+    Converts from ecliptic to horizontal coordinate systems.
+
+    Args:
+        ra: float, observed right ascension (degrees)
+        dec: float, observed declination (degrees)
+        lst: float, local sidereal time (degrees)
+
+    Returns:
+        alt: float, altitude i.e. elevation (degrees)
+        az: float, azimuth (degrees)
+    """
     h = np.radians(lst - ra)
     if h < 0.0:
         h += 2.0*np.pi
@@ -71,9 +100,20 @@ def radec2altaz(ra, dec, lst):
 
     return np.degrees(np.arcsin(sinAlt)), np.degrees(np.arcsin(sinAz))
 
-# Calculates the angular separation between two objects.
-# All quantities are in decimal degrees.
 def angsep(ra1, dec1, ra2, dec2):
+    """
+    Calculates the angular separation between two objects.
+
+    Args:
+        ra1: float (degrees)
+        dec1: float (degrees)
+        ra2: float (degrees)
+        dec2: float (degrees)
+
+    Returns:
+        delta: float (degrees)
+    """
+
     deltaRA = np.radians(ra1-ra2)
     DEC1 = np.radians(dec1)
     DEC2 = np.radians(dec2)

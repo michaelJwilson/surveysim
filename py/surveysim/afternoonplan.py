@@ -8,28 +8,21 @@ from surveysim.utils import radec2altaz, mjd2lst
 from operator import itemgetter
 
 class surveyPlan:
+    """
+    Main class for survey planning
+    """
     
     def __init__(self):
-    # Read list of DESI tiles
-    # Format of prototype file:
-    # name:
-    #     ['TILEID', 'RA', 'DEC', 'PASS', 'IN_DESI', 'EBV_MED', 'AIRMASS', 'EXPOSEFAC', 'STAR_DENSITY', 'PROGRAM', 'OBSCONDITIONS']
-    # format:
-    #     ['J', 'D', 'D', 'I', 'I', 'E', 'E', 'E', 'E', '6A', 'I']
-    # unit:
-    #     ['', '', '', '', '', '', '', '', '']
-    # null:
-    #     ['', '', '', '', '', '', '', '', '']
-    # bscale:
-    #     ['', '', '', '', '', '', '', '', '']
-    # bzero:
-    #     ['', '', '', '', '', '', '', '', '']
-    # disp:
-    #     ['', '', '', '', '', '', '', '', '']
-    # start:
-    #     ['', '', '', '', '', '', '', '', '']
-    # dim:
-    #     ['', '', '', '', '', '', '', '', '']
+        """
+        Initialises survey by reading in the file desi_tiles.fits
+        and populates the class members.
+
+        Note:
+           Temporarily, the file contains an extra column compared to the one on desimodel,
+           i.e. the assigned LST. The computation of this quantity will be integrated into
+           this code.
+        """
+
         hdulist0 = pyfits.open(resource_filename('surveysim', 'data/desi-tiles.fits'))
         tiledata = hdulist0[1].data
         tileID = tiledata.field('TILEID')
@@ -62,21 +55,20 @@ class surveyPlan:
         self.obsconds = obsconds.compress((InDESI==1).flat)
         self.LSTmin = lstbegin.compress((InDESI==1).flat) * 15.0 - 2.5
         self.LSTmax = lstend.compress((InDESI==1).flat) * 15.0 + 2.5
-        """
-        LST = self.RA + HA.compress((InDESI==1).flat)
-        self.LSTmin = LST - 5.0
-        for i in range(len(self.LSTmin)):
-            if self.LSTmin[i] < 0.0:
-                self.LSTmin[i] += 360.0
-            elif self.LSTmin[i] >360.0:
-                self.LSTmin[i] -= 360.0
-        self.LSTmax = LST + 5.0
-        for i in range(len(self.LSTmax)):
-            if self.LSTmax[i] < 0.0:
-                self.LSTmax[i] += 360.0
-            elif self.LSTmax[i] > 360.0:
-                self.LSTmax[i] -= 360.0
-        """
+        
+        #LST = self.RA + HA.compress((InDESI==1).flat)
+        #self.LSTmin = LST - 5.0
+        #for i in range(len(self.LSTmin)):
+        #    if self.LSTmin[i] < 0.0:
+        #        self.LSTmin[i] += 360.0
+        #    elif self.LSTmin[i] >360.0:
+        #        self.LSTmin[i] -= 360.0
+        #self.LSTmax = LST + 5.0
+        #for i in range(len(self.LSTmax)):
+        #    if self.LSTmax[i] < 0.0:
+        #        self.LSTmax[i] += 360.0
+        #    elif self.LSTmax[i] > 360.0:
+        #        self.LSTmax[i] -= 360.0
         
         self.cap = np.chararray(len(self.tileID))
         #btemp = bgal.compress((InDESI==1).flat)
@@ -114,8 +106,17 @@ class surveyPlan:
     def afternoonPlan(self, day_stats, tiles_observed):
         """
         All the file names are hard coded, so there is no need to
-        have them as arguments to this function.  The output file
-        name has format obsplanYYYYMMDD.fits .
+        have them as arguments to this function.
+
+        Args:
+            day_stats: dictionnary containing the following keys:
+                       'MJDsunset', 'MJDsunrise', 'MJDetwi', 'MJDmtwi', 'MJDe13twi',
+                       'MJDm13twi', 'MJDmoonrise', 'MJDmoonset', 'MoonFrac', 'dirName'
+            tiles_observed: table with follwing columns: tileID, status
+
+        Returns:
+            string containg the filename for today's plan; it has the format
+            obsplanYYYYMMDD.fits
         """
 
         year = int(np.floor(day_stats['MJDsunset'] - tiles_observed.meta['MJDBEGIN'])) + 1

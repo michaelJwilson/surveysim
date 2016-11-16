@@ -4,8 +4,22 @@ from surveysim.weather import weatherModule
 from surveysim.utils import radec2altaz
 
 def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
-    # Estimates expusure length given current conditions.
+    """
+    Estimates expusure length given current conditions.
 
+    Args:
+        weatherNow: dictionnary containing the following keys:
+                    'Seeing', 'Transparency', 'OpenDome', 'Clouds'
+        amass: float, air mass
+        programm: string, 'DARK', 'BRIGHT' or 'GRAY'
+        ebmv: float, E(B-V)
+        sn2: float, desired (S/N)^2
+        moonfrac: float, Moon illumination fraction, between 0 and 1.
+
+    Returns:
+        float, estimated exposure time
+    """
+        
     seeing_ref = 1.1 # Seeing value to which actual seeing is normalised
     exp_ref_dark = 1000.0   # Reference exposure time in seconds
     exp_ref_bright = 300.0  # Idem but for bright time programme
@@ -29,21 +43,16 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
         f_transparency = 1.0 / weatherNow['Transparency']
     else:
         f_transparency = 1.0e9
-    """
-    Ag=3.303*ebv[i]
-    Ai=1.698*ebv[i]
-    i_increase[i]=(10^(Ai/2.5))^2
-    g_increase[i]=(10^(Ag/2.5))^2
-    """
+
+    #Ag=3.303*ebv[i]
+    #Ai=1.698*ebv[i]
+    #i_increase[i]=(10^(Ai/2.5))^2
+    #g_increase[i]=(10^(Ag/2.5))^2
+ 
     Ag = 3.303*ebmv # Use g-band
     f_ebmv = np.power(10.0,Ag/2.5)
     f_am = np.power(amass,1.25)
-    """
-    if moonFrac < 1.0:
-        f_moon = 1.0 / (1.0 - moonFrac/100.0)
-    else:
-        f_moon = 30.0
-    """
+
     f_moon = 1.0 # Temporary until real values are in the code
     #print (f_am, f_seeing, f_transparency, f_ebmv, f_moon)
     f = f_am * f_seeing * f_transparency * f_ebmv * f_moon
@@ -54,8 +63,20 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
     return value
 
 def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
+    """
+    Calculates airmass given position and LST.  Uses formula from
+    Rosenberg (1966)
+
+    Args:
+        ra: float (degrees)
+        dec: float (degrees)
+        lst: float (degrees)
+
+    Returns:
+        float, air mass
+    """
+
     Alt, Az = radec2altaz(ra, dec, lst)
-    # Rosenberg (1966) formula
     cosZ = np.cos(np.radians(90.0-Alt))
     if Alt >= 0.0:
         amass = 1.0/(cosZ + 0.025*np.exp(-11.0*cosZ))
@@ -66,3 +87,4 @@ def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
         amass = 1.0e99
 
     return amass
+
