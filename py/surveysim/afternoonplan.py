@@ -12,10 +12,13 @@ class surveyPlan:
     Main class for survey planning
     """
     
-    def __init__(self):
+    def __init__(self, tilesubset=None):
         """
         Initialises survey by reading in the file desi_tiles.fits
         and populates the class members.
+
+        Optional:
+            tilesubset: array of integer tileids to use; ignore others
 
         Note:
            Temporarily, the file contains an extra column compared to the one on desimodel,
@@ -42,6 +45,10 @@ class surveyPlan:
         HA = tiledata.field('HA')
 #        bgal = tiledata.field('GALACLAT')
         hdulist0.close()
+
+        #- Trim to requested subset of tiles if specified
+        if tilesubset is not None:
+            InDESI &= np.in1d(tileID, tilesubset)
 
         self.tileID = tileID.compress((InDESI==1).flat) #Assuming 0=out, 1=in
         self.RA = RA.compress((InDESI==1).flat)

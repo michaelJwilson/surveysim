@@ -191,14 +191,18 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
     
     return tilesObserved
 
-def surveySim(sd0, ed0, seed=None):
+def surveySim(sd0, ed0, seed=None, tilesubset=None):
     """
     Main driver for survey simulations.
 
     Args:
         sd0: tuple of three integers: startyear, startmonth, startday
         ed0: tuple of three integers: endyear, endmonth, endday
+
+    Optional:
         seed: integer, to initialise random number generator for weather simulator
+        tilesubset : array of integer tileIDs to use while ignoring others
+            in the DESI footprint
     """
 
     # Note 1900 UTC is midday at KPNO
@@ -207,7 +211,7 @@ def surveySim(sd0, ed0, seed=None):
     (endyear, endmonth, endday) = ed0
     enddate = datetime(endyear, endmonth, endday, 19, 0, 0)
     
-    sp = surveyPlan()
+    sp = surveyPlan(tilesubset=tilesubset)
     day0 = Time(datetime(startyear, startmonth, startday, 19, 0, 0))
     mjd_start = day0.mjd
     w = weatherModule(startdate, seed)
