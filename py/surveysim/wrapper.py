@@ -16,11 +16,24 @@ import os
 from shutil import copyfile
 
 class obsCount:
+    """
+    Counter for observation number.  In real operations, each observation
+    will have its own file with its number as part of the filename.
+    """
 
     def __init__(self):
+        """
+        Initialise the counter to zero
+        """
         self.obsNumber = 0
     
     def update(self):
+        """
+        Adds 1 to the counter
+
+        Returns:
+            string containing the part of the filename with the observation number
+        """
         self.obsNumber += 1
         obsNumber = self.obsNumber
         if obsNumber >= 10000000:
@@ -42,6 +55,24 @@ class obsCount:
         return partFileName
 
 def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
+    """
+    Carries out observations during one night and writes the output to disk
+
+    Args:
+        day_stats: dictionnary containing the follwing keys:
+                   'MJDsunset', 'MJDsunrise', 'MJDetwi', 'MJDmtwi', 'MJDe13twi',
+                   'MJDm13twi', 'MJDmoonrise', 'MJDmoonset', 'MoonFrac', 'dirName'
+        obsplan: string, filename of today's afternoon plan
+        w: dictionnary containing the following keys
+           'Seeing', 'Transparency', 'OpenDome', 'Clouds'
+        ocnt: obsCount object
+        tilesObserved: table with follwing columns: tileID, status
+        tableOutput: bool, if True writes a table of all the night's observations
+                     instead of one file per observation.
+
+    Returns:
+        Updated tilesObserved table
+    """
 
     nightOver = False
     mjd = day_stats['MJDsunset']
@@ -161,6 +192,14 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
     return tilesObserved
 
 def surveySim(sd0, ed0, seed=None):
+    """
+    Main driver for survey simulations.
+
+    Args:
+        sd0: tuple of three integers: startyear, startmonth, startday
+        ed0: tuple of three integers: endyear, endmonth, endday
+        seed: integer, to initialise random number generator for weather simulator
+    """
 
     # Note 1900 UTC is midday at KPNO
     (startyear, startmonth, startday) = sd0

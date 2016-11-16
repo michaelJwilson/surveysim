@@ -13,12 +13,18 @@ MIN_CERES_SEP = 2.0 * PI / 180.0
 
 def avoidObject(datetime, ra0, dec0):
     """
-    Returns True if all the objects on the list are far enough away from
-    the coordinates (assumed to be apparent or observed, not mean).  The datetime
-    object should have timezone info included.  The inputs are in decimal degrees.
-
+    Checks whether all the objects on the list are far enough away from
+    the input coordinates.
     The current list has: Venus, Mars, Jupiter, Saturn, Neptune, Uranus;
     the Moon is treated separately.
+
+    Args:
+        datetime: datetime object; should have timezone info
+        ra0: float (apparent or observed, degrees)
+        dec0: float (apparent or observed, degrees)
+
+    Returns:
+        bool, True if all objects on the list are far enough away
     """
 
     ra = PI * ra0/180.0
@@ -65,7 +71,16 @@ def avoidObject(datetime, ra0, dec0):
 def moonLoc (datetime, ra0, dec0):
     """
     Returns the distance to the Moon if RA and DEC as well as alt, az.
-    Input and outputs are 
+
+    Args:
+        datetime: datetime object; should have timezone info
+        ra0: float (apparent or observed, degrees)
+        dec0: float (apparent or observed, degrees)
+
+    Returns:
+        float, distance from the Moon (degrees)
+        float, Moon altitude (degrees)
+        float, Moon azimuth (degrees) 
     """
 
     dt = ephem.Date(datetime)

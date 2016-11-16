@@ -4,11 +4,15 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib.ticker as ticker
 
-"""
-This function plots various quantities output from surveySim.
- -- Martin Landriau, August 2016
-"""
 def plotsurvey(filename='obslist_all.fits', plot_type='f'):
+    """
+    This function plots various quantities output from surveySim.
+
+    Args:
+        filename: string, file must be in obslist{YYYYMMDD|_all}.fits format
+        plot_type: 'f', 'h', 't' or 'e'
+    """ 
+
     t = Table.read(filename, format='fits')
 
     if plot_type == 'f':
