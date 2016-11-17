@@ -227,17 +227,24 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None):
 
     oneday = timedelta(days=1)
     day = startdate
-    while day <= enddate:
-        day_stats = getCal(day)
-        ntodate = len(tilesObserved)
-        w.resetDome(day)
-        tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
-        tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved)
-        t = Time(day, format = 'datetime')
-        ntiles_tonight = len(tilesObserved)-ntodate
-        print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
-        if (tiles_todo-ntiles_tonight) == 0:
-            break
+    day_monsoon_start = 13
+    month_monsoon_start = 7
+    day_monsoon_end = 27
+    month_monsoon_end = 8
+    survey_done = False
+    while (day <= enddate and survey_done == False):
+        if ( not (day >= datetime(day.year, month_monsoon_start, day_monsoon_start) and
+                  day <= datetime(day.year, month_monsoon_end, day_monsoon_end)) ):
+            day_stats = getCal(day)
+            ntodate = len(tilesObserved)
+            w.resetDome(day)
+            tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
+            tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved)
+            t = Time(day, format = 'datetime')
+            ntiles_tonight = len(tilesObserved)-ntodate
+            print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
+            if (tiles_todo-ntiles_tonight) == 0:
+                survey_done = True
         day += oneday
 
     tilesObserved.write(tile_file, format='fits', overwrite=True)
