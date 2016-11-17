@@ -91,13 +91,15 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
         print ("\tTransparency: ", conditions['Transparency'])
         print ("\tCloud cover: ", 100.0*conditions['Clouds'], "%")
 
+        slew = False
+        ra_prev = 1.0e99
+        dec_prev = 1.0e99
         while nightOver == False:
             conditions = w.updateValues(conditions, mjd)
 
             lst = mjd2lst(mjd)
-            target = nextFieldSelector(obsplan, mjd, conditions, tilesObserved)
+            target, setup_time = nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, ra_prev, dec_prev)
             if target != None:
-                #print("lst = ", lst)
                 # Compute mean to apparent to observed ra and dec???
                 airmass = airMassCalculator(target['RA'], target['DEC'], lst)
                 exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'])
@@ -108,9 +110,11 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                     target['Status'] = status
                     target['Exposure'] = real_exposure
                     target['obsSN2'] = real_sn2
-                    mjd += real_exposure/86400.0
-                    exposureAttempted = True
+                    mjd += (setup_time + real_exposure)/86400.0
                     tilesObserved.add_row([target['tileID'], status])
+                    slew = True
+                    ra_prev = target['RA']
+                    dec_prev = target['DEC']
                     if tableOutput:
                         t = Time(mjd, format = 'mjd')
                         tbase = str(t.isot)
@@ -150,8 +154,10 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                     # Try another target?
                     # Observe longer split into modulo(max_len)
                     mjd += 0.25/24.0
+                    slew = False # Can slew to new target while waiting.
             else:
                 mjd += 0.25/24.0
+                slew = False
             # Check time
             if mjd > day_stats['MJDsunrise']:
                 nightOver = True
