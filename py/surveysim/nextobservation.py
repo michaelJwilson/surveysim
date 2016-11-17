@@ -4,13 +4,14 @@ import astropy.io.fits as pyfits
 from surveysim.exposurecalc import airMassCalculator
 from surveysim.avoidobject import avoidObject, moonLoc
 from surveysim.utils import mjd2lst
+from surveysim.observefield import setup_time
 from datetime import datetime
 from astropy.time import Time
 
 MAX_AIRMASS = 10.0 #3.0 This new bound effectively does nothing.
 MIN_MOON_SEP = 90.0
 
-def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
+def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra, previous_dec):
     """
     Returns the first tile for which the current time falls inside
     its assigned LST window and is far enough from the Moon and
@@ -21,12 +22,16 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
         mjd: float, current time
         conditions: dictionnary containing the weather info
         tilesObserved: list containing the tileID of all completed tiles
+        slew: bool, True if a slew time needs to be taken into account
+        previous_ra: float, ra of the previous observed tile (degrees)
+        previous_dec: float, dec of the previous observed tile (degrees)
 
     Returns:
         target: dictionnary containing the following keys:
                 'tileID', 'RA', 'DEC', 'Program', 'Ebmv', 'maxLen',
                 'MoonFrac', 'MoonDist', 'MoonAlt', 'DESsn2', 'Status',
                 'Exposure', 'obsSN2'
+        overhead: float (seconds)
     """
 
     hdulist = pyfits.open(obsplan)
@@ -44,7 +49,12 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
     dt = Time(mjd, format='mjd')
     found = False
     for i in range(len(tileID)):
-        t1 = tmin[i]
+        dra = np.abs(ra[i]-previous_ra)
+        if dra > 180.0:
+            dra = 360.0 - dra
+        ddec = np.abs(dec[i]-previous_dec)
+        overhead = setup_time(slew, dra, ddec)
+        t1 = tmin[i] + overhead/240.0
         t2 = tmax[i] - explen[i]
 
         if ( ((t1 <= t2) and (lst > t1 and lst < t2)) or ( (t2 < t1) and ((lst > t1 and t1 <=360.0) or (lst >= 0.0 and lst < t2))) ):
@@ -71,5 +81,5 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved):
                   'MoonFrac': moonfrac, 'MoonDist': moondist, 'MoonAlt': moonalt, 'DESsn2': DESsn2, 'Status': status, 'Exposure': exposure, 'obsSN2': obsSN2}
     else:
         target = None
-    return target
+    return target, overhead
 
