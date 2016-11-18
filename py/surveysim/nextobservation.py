@@ -10,6 +10,7 @@ from astropy.time import Time
 
 MAX_AIRMASS = 10.0 #3.0 This new bound effectively does nothing.
 MIN_MOON_SEP = 90.0
+MIN_MOON_SEP_BGS = 5.0
 
 def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra, previous_dec):
     """
@@ -30,7 +31,7 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
         target: dictionnary containing the following keys:
                 'tileID', 'RA', 'DEC', 'Program', 'Ebmv', 'maxLen',
                 'MoonFrac', 'MoonDist', 'MoonAlt', 'DESsn2', 'Status',
-                'Exposure', 'obsSN2'
+                'Exposure', 'obsSN2', 'obsConds'
         overhead: float (seconds)
     """
 
@@ -44,6 +45,7 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
     ra = tiledata['RA']
     dec = tiledata['DEC']
     program = tiledata['PROGRAM']
+    obsconds = tiledata['OBSCONDITIONS']
 
     lst = mjd2lst(mjd)
     dt = Time(mjd, format='mjd')
@@ -61,9 +63,10 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
             if (avoidObject(dt.datetime, ra[i], dec[i]) and airMassCalculator(ra[i], dec[i], lst) < MAX_AIRMASS):
                 moondist, moonalt, moonaz = moonLoc(dt.datetime, ra[i], dec[i])
                 if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
-                    if ( (moonalt < 0.0 and program[i] == 'DARK') or
-                         ((moonfrac < 0.2 or (moonalt*moonfrac < 12.0)) and moondist > MIN_MOON_SEP and program[i] == 'GRAY') or
-                         (program[i] == 'BRIGHT') ):
+                    if ( (moonalt < 0.0 and obsconds[i] == 1) or
+                         (moonalt >=0.0 and 
+                         (((moonfrac < 0.2 or (moonalt*moonfrac < 12.0)) and moondist > MIN_MOON_SEP and obsconds[i] == 2) or
+                         (obsconds[i] == 4 and moondist > MIN_MOON_SEP_BGS) ))):
                         found = True
                         break
 
@@ -78,7 +81,8 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
         exposure = -1.0 # Updated after observation
         obsSN2 = -1.0   # Idem
         target = {'tileID' : tileID, 'RA' : RA, 'DEC' : DEC, 'Program': program[i], 'Ebmv' : Ebmv, 'maxLen': maxLen,
-                  'MoonFrac': moonfrac, 'MoonDist': moondist, 'MoonAlt': moonalt, 'DESsn2': DESsn2, 'Status': status, 'Exposure': exposure, 'obsSN2': obsSN2}
+                  'MoonFrac': moonfrac, 'MoonDist': moondist, 'MoonAlt': moonalt, 'DESsn2': DESsn2, 'Status': status,
+                  'Exposure': exposure, 'obsSN2': obsSN2, 'obsConds': obsconds[i]}
     else:
         target = None
     return target, overhead

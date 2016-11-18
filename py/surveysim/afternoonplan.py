@@ -26,24 +26,25 @@ class surveyPlan:
            this code.
         """
 
-        hdulist0 = pyfits.open(resource_filename('surveysim', 'data/desi-tiles.fits'))
+        hdulist0 = pyfits.open(resource_filename('surveysim', 'data/tile-info.fits'))
         tiledata = hdulist0[1].data
         tileID = tiledata.field('TILEID')
         RA = tiledata.field('RA')
         DEC = tiledata.field('DEC')
         Pass = tiledata.field('PASS')
-        InDESI = tiledata.field('IN_DESI')
-        Ebmv = tiledata.field('EBV_MED')
+        #InDESI = tiledata.field('IN_DESI') Has been removed from list.
+        InDESI = np.ones(len(tileID), dtype=np.int8)
+        Ebmv = tiledata.field('EBV')
         AM = tiledata.field('AIRMASS')
-        expFac = tiledata.field('EXPOSEFAC')
-        starDensity = tiledata.field('STAR_DENSITY')
+        #expFac = tiledata.field('EXPOSEFAC')
+        #starDensity = tiledata.field('STAR_DENSITY')
         program = tiledata.field('PROGRAM')
         obsconds = tiledata.field('OBSCONDITIONS')
         obstime = tiledata.field('OBSTIME')
         lstbegin = tiledata.field('BEGINOBS')
         lstend = tiledata.field('ENDOBS')
         HA = tiledata.field('HA')
-#        bgal = tiledata.field('GALACLAT')
+        bgal = tiledata.field('GLAT')
         hdulist0.close()
 
         #- Trim to requested subset of tiles if specified
@@ -57,7 +58,7 @@ class surveyPlan:
         self.Ebmv = Ebmv.compress((InDESI==1).flat)
         #self.maxExpLen = 2.0 * obstime.compress((InDESI==1).flat)
         self.maxExpLen = obstime.compress((InDESI==1).flat)
-        self.starDensity = starDensity.compress((InDESI==1).flat)
+        #self.starDensity = starDensity.compress((InDESI==1).flat)
         self.program = program.compress((InDESI==1).flat)
         self.obsconds = obsconds.compress((InDESI==1).flat)
         self.LSTmin = lstbegin.compress((InDESI==1).flat) * 15.0 - 2.5
@@ -78,20 +79,21 @@ class surveyPlan:
         #        self.LSTmax[i] -= 360.0
         
         self.cap = np.chararray(len(self.tileID))
-        #btemp = bgal.compress((InDESI==1).flat)
+        btemp = bgal.compress((InDESI==1).flat)
         # Formulae for ecliptic to galactic (angles in degrees):
         # tan(l-303) = sin(192.25-alpha) / (cos(192.25-alpha)sin(27.4)-tan(delta)cos(27.4))
         # sin(b) = sin(delta)sin(27.4) + cos(delta)cos(27.4)cos(192.5-alpha)
         # These are good for B1950, but it should be good enough for our purposes.
         for i in range(len(self.cap)):
-            a = np.radians(192.25 - self.RA[i])
-            b = np.radians(self.DEC[i])
-            c = np.radians(27.4)
-            if  (np.sin(b)*np.sin(c) + np.cos(b)*np.cos(c)*np.cos(a)) >= 0.0:
+            #a = np.radians(192.25 - self.RA[i])
+            #b = np.radians(self.DEC[i])
+            #c = np.radians(27.4)
+            #if  (np.sin(b)*np.sin(c) + np.cos(b)*np.cos(c)*np.cos(a)) >= 0.0:
+            if btemp[i] >= 0.0:
                 self.cap[i] = 'N'
             else:
                 self.cap[i] = 'S'
-        self.status = np.zeros(len(self.tileID))
+        self.status = np.zeros(len(self.tileID)) # This should be obsbit, but it is set to 2 everywhere.
         self.priority = np.zeros(len(self.tileID))
         # Assign priority as a function of DEC; this will
         # be adjested in the afternoon planning stage.
@@ -126,7 +128,7 @@ class surveyPlan:
             obsplanYYYYMMDD.fits
         """
 
-        year = int(np.floor(day_stats['MJDsunset'] - tiles_observed.meta['MJDBEGIN'])) + 1
+        year = int(np.floor( (day_stats['MJDsunset'] - tiles_observed.meta['MJDBEGIN'])) / 365.25 ) + 1
         # Adjust DARK time program tile priorities
         # From the DESI document 1767 (v3) "Baseline survey strategy":
         # In the northern galactic cap:
@@ -158,24 +160,37 @@ class surveyPlan:
         for i in range(len(self.tileID)):
             if ( self.status[i] < 2 ):
                 # Add this tile to the plan, first adjust its priority.
-                if self.program[i] == 'DARK':
+                if (self.obsconds[i] == 1 or self.obsconds[i] == 2): # Pass 1, 2, 3, & 4 are numbered 0, 1, 2, 3.
                     if year == 1:
-                        if ( (self.cap[i] == 'N' and (self.Pass[i] == 3 or self.Pass[i] == 4)) or
-                            (self.cap[i] == 'S' and (self.Pass[i] == 2 or self.Pass[i] == 3 or self.Pass[i] == 4)) ):
+                        if ( (self.cap[i] == 'N' and (self.Pass[i] == 2 or self.Pass[i] == 3)) or
+                            (self.cap[i] == 'S' and (self.Pass[i] == 1 or self.Pass[i] == 2 or self.Pass[i] == 3)) ):
                             self.priority[i] = 7
-                        if ( self.cap[i] == 'N' and self.Pass[i] == 1 and self.priority[i] > 3):
+                        if ( self.cap[i] == 'N' and self.Pass[i] == 0 and self.priority[i] > 3):
                             self.priority[i] -= 1
                     if year == 2:
-                        if ( self.cap[i] == 'S' and (self.Pass[i] == 3 or self.Pass[i] == 4) ):
+                        if ( self.cap[i] == 'S' and (self.Pass[i] == 2 or self.Pass[i] == 3) ):
                             self.priority[i] = 7
                     if year == 3:
-                        if self.Pass[i] == 1:
+                        if self.Pass[i] == 0:
                             self.priority[i] = 3
-                        if self.Pass[i] == 2 and self.priority[i] > 3:
+                        if self.Pass[i] == 1 and self.priority[i] > 3:
                             self.priority[i] -= 1
                     if year >= 4:
-                        if self.Pass[i] <= 2:
+                        if self.Pass[i] <= 1:
                             self.priority[i] = 3
+                elif (self.obsconds[i]) == 4: # BGS, pass 1, 2 & 3 are numbered 4, 5, 6.
+                    if year == 1:
+                        if ( self.Pass[i] == 4 or self.Pass[i] == 5 ):
+                            self.priority[i] -= 1
+                    if year == 2 or year == 3:
+                        if self.Pass[i] == 4:
+                            self.priority[i] = 3
+                        if self.Pass[i] == 5:
+                            self.priority[i] -= 1
+                    if year >= 4:
+                        if self.Pass[i] <= 5:
+                            self.priority[i] = 3
+                    
                 planList0.append((self.tileID[i], self.RA[i], self.DEC[i], self.Ebmv[i], self.LSTmin[i], self.LSTmax[i],
                                  self.maxExpLen[i], self.priority[i], self.status[i], self.program[i], self.obsconds[i]))
 
