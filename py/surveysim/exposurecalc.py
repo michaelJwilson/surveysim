@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.time import Time
+import astropy.units as u
 from surveysim.weather import weatherModule
 from surveysim.utils import radec2altaz
 
@@ -55,7 +56,7 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac, moonDist, 
     f_ebmv = np.power(10.0,Ag/2.5)
     f_am = np.power(amass,1.25)
 
-    f_moon = 1.0 # Temporary until real values are in the code
+    f_moon = moonExposureTimeFactor(moonFrac, moonDist, moonAlt)
     #print (f_am, f_seeing, f_transparency, f_ebmv, f_moon)
     f = f_am * f_seeing * f_transparency * f_ebmv * f_moon
     if f >= 0.0:
@@ -63,6 +64,37 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac, moonDist, 
     else:
         value = exp_ref
     return value
+
+
+def moonExposureTimeFactor(moonFrac, moonDist, moonAlt):
+    """Calculate exposure time factor due to scattered moonlight.
+
+    This factor is based on a study of SNR for ELG targets and designed to
+    achieve a median SNR of 7 for a typical ELG [OII] doublet at the lower
+    flux limit of 8e-17 erg/(cm2 s A), averaged over the expected ELG target
+    redshift distribution 0.6 < z < 1.7.
+
+    For details, see the jupyter notebook doc/nb/ScatteredMoon.ipynb in
+    this package.
+
+    Parameters
+    ----------
+    moonFrac : float
+        Illuminated fraction of the moon, between 0-1.
+    moonDist : float
+        Separation angle between field center and moon in degrees.
+    moonAlt : float
+        Altitude angle of the moon above the horizon in degrees.
+
+    Returns
+    -------
+    float
+        Dimensionless factor that exposure time should be increased to
+        account for increased sky brightness due to scattered moonlight.
+        Will be 1 when the moon is below the horizon.
+    """
+    return 1.
+
 
 def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
     """
