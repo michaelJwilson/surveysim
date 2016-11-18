@@ -3,7 +3,7 @@ from astropy.time import Time
 from surveysim.weather import weatherModule
 from surveysim.utils import radec2altaz
 
-def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
+def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac, moonDist, moonAlt):
     """
     Estimates expusure length given current conditions.
 
@@ -14,12 +14,14 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
         programm: string, 'DARK', 'BRIGHT' or 'GRAY'
         ebmv: float, E(B-V)
         sn2: float, desired (S/N)^2
-        moonfrac: float, Moon illumination fraction, between 0 and 1.
+        moonFrac: float, Moon illumination fraction, between 0 (new) and 1 (full).
+        moonDist: float, separation angle between field center and moon in degrees.
+        moonAlt: float, moon altitude angle in degrees.
 
     Returns:
         float, estimated exposure time
     """
-        
+
     seeing_ref = 1.1 # Seeing value to which actual seeing is normalised
     exp_ref_dark = 1000.0   # Reference exposure time in seconds
     exp_ref_bright = 300.0  # Idem but for bright time programme
@@ -48,7 +50,7 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac):
     #Ai=1.698*ebv[i]
     #i_increase[i]=(10^(Ai/2.5))^2
     #g_increase[i]=(10^(Ag/2.5))^2
- 
+
     Ag = 3.303*ebmv # Use g-band
     f_ebmv = np.power(10.0,Ag/2.5)
     f_am = np.power(amass,1.25)
@@ -87,4 +89,3 @@ def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
         amass = 1.0e99
 
     return amass
-

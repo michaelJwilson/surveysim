@@ -26,7 +26,7 @@ class obsCount:
         Initialise the counter to zero
         """
         self.obsNumber = 0
-    
+
     def update(self):
         """
         Adds 1 to the counter
@@ -81,7 +81,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
         obsList = []
     else:
         os.mkdir(day_stats['dirName'])
-    
+
     conditions = w.getValues(mjd)
     if conditions['OpenDome'] == False:
         print("\nBad weather forced the dome to remain shut for the night.")
@@ -100,7 +100,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
                 #print("lst = ", lst)
                 # Compute mean to apparent to observed ra and dec???
                 airmass = airMassCalculator(target['RA'], target['DEC'], lst)
-                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'])
+                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'], target['MoonDist'], target['MoonAlt'])
                 #exposure = target['maxLen']
                 #print ('Estimated exposure = ', exposure, 'Maximum allowed exposure for tileID', target['tileID'], ' = ', target['maxLen'])
                 if exposure <= 3.0 * target['maxLen']:
@@ -188,7 +188,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True):
             obsListAll.write('obslist_all.fits', format='fits', overwrite=True)
         else:
             copyfile(filename, 'obslist_all.fits')
-    
+
     return tilesObserved
 
 def surveySim(sd0, ed0, seed=None, tilesubset=None):
@@ -210,7 +210,7 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None):
     startdate = datetime(startyear, startmonth, startday, 19, 0, 0)
     (endyear, endmonth, endday) = ed0
     enddate = datetime(endyear, endmonth, endday, 19, 0, 0)
-    
+
     sp = surveyPlan(tilesubset=tilesubset)
     day0 = Time(datetime(startyear, startmonth, startday, 19, 0, 0))
     mjd_start = day0.mjd
@@ -241,4 +241,3 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None):
         day += oneday
 
     tilesObserved.write(tile_file, format='fits', overwrite=True)
-
