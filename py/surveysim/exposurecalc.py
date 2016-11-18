@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.time import Time
 import astropy.units as u
+import specsim.simulator
 from surveysim.weather import weatherModule
 from surveysim.utils import radec2altaz
 
@@ -66,6 +67,15 @@ def expTimeEstimator(weatherNow, amass, program, ebmv, sn2, moonFrac, moonDist, 
     return value
 
 
+# A specsim moon model that will be created once, then cached here.
+_moonModel = None
+
+# Linear regression coefficients for converting scattered moon V-band
+# magnitude into an exposure-time correction factor.
+_moonCoefficients = np.array([
+    -8.83964463188, -7372368.5041596508, 775.17763895781638,
+    -20185.959363990656, 174143.69095766739])
+
 def moonExposureTimeFactor(moonFrac, moonDist, moonAlt):
     """Calculate exposure time factor due to scattered moonlight.
 
@@ -73,6 +83,10 @@ def moonExposureTimeFactor(moonFrac, moonDist, moonAlt):
     achieve a median SNR of 7 for a typical ELG [OII] doublet at the lower
     flux limit of 8e-17 erg/(cm2 s A), averaged over the expected ELG target
     redshift distribution 0.6 < z < 1.7.
+
+    TODO:
+    - Check the assumption that exposure time scales with SNR ** -0.5.
+    - Check if this ELG-based analysis is also valid for BGS targets.
 
     For details, see the jupyter notebook doc/nb/ScatteredMoon.ipynb in
     this package.
@@ -93,7 +107,27 @@ def moonExposureTimeFactor(moonFrac, moonDist, moonAlt):
         account for increased sky brightness due to scattered moonlight.
         Will be 1 when the moon is below the horizon.
     """
-    return 1.
+    if moonAlt < 0:
+        return 1.
+
+    global _moonModel
+    if not _moonModel:
+        # Create a specim moon model.
+        print('Creating a specsim moon model.')
+        desi = specsim.simulator.Simulator('desi')
+        _moonModel = desi.atmosphere.moon
+
+    # Convert input parameters to those used in the specim moon model.
+    _moonModel.moon_phase = np.arccos(2 * moonFrac - 1) / np.pi
+    _moonModel.moon_zenith = (90 - moonAlt) * u.deg
+    _moonModel.separation_angle = moonDist * u.deg
+
+    # Calculate the scattered moon V-band magnitude.
+    V = _moonModel.scattered_V.value
+
+    # Evaluate the linear regression model.
+    X = np.array((1, np.exp(-V), 1/V, 1/V**2, 1/V**3))
+    return _moonCoefficients.dot(X)
 
 
 def airMassCalculator(ra, dec, lst): # Valid for small to moderate angles.
