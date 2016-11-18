@@ -16,9 +16,9 @@ def plotsurvey(filename='obslist_all.fits', plot_type='f'):
     t = Table.read(filename, format='fits')
 
     if plot_type == 'f':
-        plt.figure(1)
-        plt.subplot(111)
+        fig, ax = plt.subplots()
         ra = t['RA']
+        ra[ra>300.0] -= 360.0
         dec = t['DEC']
         mjd = t['MJD']
         mjd_start = np.min(mjd)
@@ -37,7 +37,10 @@ def plotsurvey(filename='obslist_all.fits', plot_type='f'):
 
         plt.xlabel('RA (deg)')
         plt.ylabel('DEC (deg)')
-        plt.legend((y1, y2, y3, y4, y5), ('Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'), scatterpoints=1)
+        plt.legend((y1, y2, y3, y4, y5), ('Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'), scatterpoints=1, loc=2)
+        ticks = ax.get_xticks()
+        ticks[ticks < 0] += 360
+        ax.set_xticklabels([int(tick) for tick in ticks])
 
     elif plot_type == 'h':
         plt.figure(1)
@@ -81,30 +84,32 @@ def plotsurvey(filename='obslist_all.fits', plot_type='f'):
 
     elif plot_type == 't':
         mjd = t['MJD']
+        mjd_start = np.min(mjd)
+        mjd -= mjd_start
         plt.figure(1)
 
         plt.subplot(221)
         y = t['MOONALT']
         plt.plot(mjd, y, linestyle='-', color='black')
-        plt.xlabel('MJD')
+        plt.xlabel('Days')
         plt.ylabel('Moon elevation (degrees)')
 
         plt.subplot(222)
         y = t['SEEING']
         plt.plot(mjd, y, linestyle='-', color='black')
-        plt.xlabel('MJD')
+        plt.xlabel('Days')
         plt.ylabel('Seeing (arcseconds)')
 
         plt.subplot(223)
         y = t['LINTRANS']
         plt.plot(mjd, y, linestyle='-', color='black')
-        plt.xlabel('MJD')
+        plt.xlabel('Days')
         plt.ylabel('Linear transparency')
 
         plt.subplot(224)
         y = np.arange(len(mjd)) + 1
         plt.plot(mjd, y, linestyle='-', color='black')
-        plt.xlabel('MJD')
+        plt.xlabel('Days')
         plt.ylabel('Number of tiles observed')
 
 

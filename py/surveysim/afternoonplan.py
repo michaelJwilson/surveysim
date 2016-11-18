@@ -6,6 +6,7 @@ from astropy.coordinates import SkyCoord
 from pkg_resources import resource_filename
 from surveysim.utils import radec2altaz, mjd2lst
 from operator import itemgetter
+from desitarget.targetmask import obsconditions as obsbits
 
 class surveyPlan:
     """
@@ -160,7 +161,7 @@ class surveyPlan:
         for i in range(len(self.tileID)):
             if ( self.status[i] < 2 ):
                 # Add this tile to the plan, first adjust its priority.
-                if (self.obsconds[i] == 1 or self.obsconds[i] == 2): # Pass 1, 2, 3, & 4 are numbered 0, 1, 2, 3.
+                if (self.obsconds[i] & obsbits.mask('DARK|GRAY')) != 0: # Pass 1, 2, 3, & 4 are numbered 0, 1, 2, 3.
                     if year == 1:
                         if ( (self.cap[i] == 'N' and (self.Pass[i] == 2 or self.Pass[i] == 3)) or
                             (self.cap[i] == 'S' and (self.Pass[i] == 1 or self.Pass[i] == 2 or self.Pass[i] == 3)) ):
@@ -178,7 +179,7 @@ class surveyPlan:
                     if year >= 4:
                         if self.Pass[i] <= 1:
                             self.priority[i] = 3
-                elif (self.obsconds[i]) == 4: # BGS, pass 1, 2 & 3 are numbered 4, 5, 6.
+                elif (self.obsconds[i] & obsbits.mask('BRIGHT')) != 0: # BGS, pass 1, 2 & 3 are numbered 4, 5, 6.
                     if year == 1:
                         if ( self.Pass[i] == 4 or self.Pass[i] == 5 ):
                             self.priority[i] -= 1
