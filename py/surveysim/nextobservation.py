@@ -2,12 +2,11 @@ import numpy as np
 import astropy.io.fits as pyfits
 #from surveysim.utils import angsep
 from surveysim.exposurecalc import airMassCalculator
-from surveysim.avoidobject import avoidObject, moonLoc
 from surveysim.utils import mjd2lst
 from surveysim.observefield import setup_time
 from astropy.time import Time
 from desitarget.targetmask import obsconditions as obsbits
-
+from desisurvey.avoidobject import avoidObject, moonLoc
 MAX_AIRMASS = 10.0 #3.0 This new bound effectively does nothing.
 MIN_MOON_SEP = 90.0
 MIN_MOON_SEP_BGS = 5.0
