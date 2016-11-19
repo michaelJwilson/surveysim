@@ -5,7 +5,6 @@ from surveysim.exposurecalc import airMassCalculator
 from surveysim.avoidobject import avoidObject, moonLoc
 from surveysim.utils import mjd2lst
 from surveysim.observefield import setup_time
-from datetime import datetime
 from astropy.time import Time
 from desitarget.targetmask import obsconditions as obsbits
 
@@ -61,8 +60,8 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
         t2 = tmax[i] - explen[i]
 
         if ( ((t1 <= t2) and (lst > t1 and lst < t2)) or ( (t2 < t1) and ((lst > t1 and t1 <=360.0) or (lst >= 0.0 and lst < t2))) ):
-            if (avoidObject(dt.datetime, ra[i], dec[i]) and airMassCalculator(ra[i], dec[i], lst) < MAX_AIRMASS):
-                moondist, moonalt, moonaz = moonLoc(dt.datetime, ra[i], dec[i])
+            if (avoidObject(dt, ra[i], dec[i]) and airMassCalculator(ra[i], dec[i], lst) < MAX_AIRMASS):
+                moondist, moonalt, moonaz = moonLoc(dt, ra[i], dec[i])
                 if ( (len(tilesObserved) > 0 and tileID[i] not in tilesObserved['TILEID']) or len(tilesObserved) == 0 ):
                     if (( (moonalt < 0.0 and (obsconds[i] & obsbits.mask('DARK')) != 0) ) or
                          (moonalt >=0.0 and
@@ -87,4 +86,3 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
     else:
         target = None
     return target, overhead
-

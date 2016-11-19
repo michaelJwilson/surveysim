@@ -1,7 +1,8 @@
-import ephem
-from datetime import datetime
+from astropy.coordinates import solar_system_ephemeris, EarthLocation, get_body
+from astropy.time import Time
 from numpy import pi as PI
-from surveysim.kpno import mayall
+from numpy import arccos, cos, sin, sqrt
+from astropy.coordinates import AltAz
 
 MIN_VENUS_SEP = 2.0 * PI / 180.0
 MIN_MARS_SEP = 2.0 * PI / 180.0
@@ -10,6 +11,23 @@ MIN_SATURN_SEP = 2.0 * PI / 180.0
 MIN_NEPTUNE_SEP = 2.0 * PI / 180.0
 MIN_URANUS_SEP = 2.0 * PI / 180.0
 MIN_CERES_SEP = 2.0 * PI / 180.0
+def angdist(ra1,dec1,ra2,dec2):
+    """
+    Computes the angular distance between two objects
+
+    Args:
+        ra1: float (R.A for one of the objects, degrees)
+        ra2: float (R.A. for the other object, degrees)
+        dec1: float (DEC for one of the objects, degrees)
+        dec2: float (DEC for the other object, degrees)
+
+    Returns:
+        float, Angular distance in radians between the objects
+    """
+    angdist = arccos(sin(dec1*180/PI)*sin(dec2*180/PI)+ \
+                     cos(dec1*180/PI)*cos(dec2*180/PI)*cos((ra1-ra2)*180/PI))
+    return angdist
+
 
 def avoidObject(datetime, ra0, dec0):
     """
@@ -19,7 +37,7 @@ def avoidObject(datetime, ra0, dec0):
     the Moon is treated separately.
 
     Args:
-        datetime: datetime object; should have timezone info
+        datetime: astropy Time; should have timezone info
         ra0: float (apparent or observed, degrees)
         dec0: float (apparent or observed, degrees)
 
@@ -27,42 +45,33 @@ def avoidObject(datetime, ra0, dec0):
         bool, True if all objects on the list are far enough away
     """
 
-    ra = PI * ra0/180.0
-    dec = PI * dec0/180.0
-    
-    dt = ephem.Date(datetime)
-    gatech = ephem.Observer()
-    gatech.lon, gatech.lat = mayall.west_lon_deg, mayall.lat_deg
-    gatech.date = dt
-    gatech.epoch = dt
+    #KPNO's location (slightly different than in kpno.py)
+    location = EarthLocation.of_site('Kitt Peak National Observatory')
+    with solar_system_ephemeris.set('de432s'):
+        venus = get_body('venus', datetime, location)
+        mars = get_body('mars', datetime, location)
+        jupiter = get_body('jupiter', datetime, location)
+        saturn = get_body('saturn', datetime, location)
+        uranus = get_body('uranus', datetime, location)
+        neptune = get_body('neptune', datetime, location)
 
-    venus = ephem.Venus()
-    venus.compute(gatech)
-    if ephem.separation(venus, (ra, dec)) < MIN_VENUS_SEP:
+    dist_venus = angdist(venus.ra.deg,venus.dec.deg,ra0,dec0)
+    if dist_venus < MIN_VENUS_SEP:
         return False
-    mars = ephem.Mars()
-    mars.compute(gatech)
-    if ephem.separation(mars, (ra, dec)) < MIN_MARS_SEP:
+    dist_mars = angdist(mars.ra.deg,mars.dec.deg,ra0,dec0)
+    if dist_mars < MIN_MARS_SEP:
         return False
-    #ceres = ephem.Ceres()
-    #ceres.compute(gatech)
-    #if ephem.separation(ceres, (ra, dec)) < MIN_CERES_SEP:
-    #    return False
-    jupiter = ephem.Jupiter()
-    jupiter.compute(gatech)
-    if ephem.separation(jupiter, (ra, dec)) < MIN_JUPITER_SEP:
+    dist_jupiter = angdist(jupiter.ra.deg,jupiter.dec.deg,ra0,dec0)
+    if dist_jupiter < MIN_JUPITER_SEP:
         return False
-    saturn = ephem.Saturn()
-    saturn.compute(gatech)
-    if ephem.separation(saturn, (ra, dec)) < MIN_SATURN_SEP:
+    dist_saturn = angdist(saturn.ra.deg,saturn.dec.deg,ra0,dec0)
+    if dist_saturn < MIN_SATURN_SEP:
         return False
-    neptune = ephem.Neptune()
-    neptune.compute(gatech)
-    if ephem.separation(neptune, (ra, dec)) < MIN_NEPTUNE_SEP:
+    dist_neptune = angdist(neptune.ra.deg,neptune.dec.deg,ra0,dec0)
+    if dist_neptune < MIN_NEPTUNE_SEP:
         return False
-    uranus = ephem.Uranus()
-    uranus.compute(gatech)
-    if ephem.separation(uranus, (ra, dec)) < MIN_URANUS_SEP:
+    dist_uranus = angdist(uranus.ra.deg,uranus.dec.deg,ra0,dec0)
+    if dist_uranus < MIN_URANUS_SEP:
         return False
 
     # If still here, return True
@@ -73,27 +82,21 @@ def moonLoc (datetime, ra0, dec0):
     Returns the distance to the Moon if RA and DEC as well as alt, az.
 
     Args:
-        datetime: datetime object; should have timezone info
+        datetime: astropy Time; should have timezone info
         ra0: float (apparent or observed, degrees)
         dec0: float (apparent or observed, degrees)
 
     Returns:
         float, distance from the Moon (degrees)
         float, Moon altitude (degrees)
-        float, Moon azimuth (degrees) 
+        float, Moon azimuth (degrees)
     """
 
-    dt = ephem.Date(datetime)
-    gatech = ephem.Observer()
-    gatech.lon, gatech.lat = mayall.west_lon_deg, mayall.lat_deg
-    gatech.date = dt
-    gatech.epoch = dt
-
-    moon = ephem.Moon()
-    moon.compute(gatech)
-    ra = PI * ra0/180.0
-    dec = PI * dec0/180.0
-    moondist = ephem.separation(moon, (ra, dec))
-    moondist*180.0/PI
-    
-    return moondist*180.0/PI, (moon.alt)*180.0/PI, (moon.az)*180.0/PI
+    location = EarthLocation.of_site('Kitt Peak National Observatory')
+    aa = AltAz(location=location, obstime=datetime)
+    with solar_system_ephemeris.set('de432s'):
+        moon = get_body('moon', datetime, location)
+    moondist = angdist(moon.ra.deg,moon.dec.deg,ra0,dec0)
+    print moon.ra.deg, moon.dec.deg
+    moon = moon.transform_to(aa)
+    return moondist*180.0/PI, moon.alt.deg, moon.az.deg
