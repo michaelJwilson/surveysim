@@ -1,17 +1,15 @@
 import numpy as np
 import astropy.io.fits as pyfits
-#from surveysim.utils import angsep
 from surveysim.exposurecalc import airMassCalculator
 from surveysim.utils import mjd2lst
-from surveysim.observefield import setup_time
 from astropy.time import Time
 from desitarget.targetmask import obsconditions as obsbits
-from desisurvey.avoidobject import avoidObject, moonLoc
+
 MAX_AIRMASS = 10.0 #3.0 This new bound effectively does nothing.
 MIN_MOON_SEP = 90.0
 MIN_MOON_SEP_BGS = 5.0
 
-def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra, previous_dec):
+def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra, previous_dec, use_jpl=False):
     """
     Returns the first tile for which the current time falls inside
     its assigned LST window and is far enough from the Moon and
@@ -25,6 +23,7 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
         slew: bool, True if a slew time needs to be taken into account
         previous_ra: float, ra of the previous observed tile (degrees)
         previous_dec: float, dec of the previous observed tile (degrees)
+        use_jpl: bool, True if using jplephem and astropy instead of pyephem
 
     Returns:
         target: dictionnary containing the following keys:
@@ -33,6 +32,10 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
                 'Exposure', 'obsSN2', 'obsConds'
         overhead: float (seconds)
     """
+    if (use_jpl):
+        from desisurvey.avoidobjectJPL import avoidObject, moonLoc
+    else:
+        from surveysim.avoidobject import avoidObject, moonLoc
 
     hdulist = pyfits.open(obsplan)
     tiledata = hdulist[1].data
@@ -85,3 +88,27 @@ def nextFieldSelector(obsplan, mjd, conditions, tilesObserved, slew, previous_ra
     else:
         target = None
     return target, overhead
+
+def setup_time(slew, dra, ddec):
+    """
+    Computes setup time: slew and focus (assumes readout can proceed during
+    slew.
+
+    Args:
+        slew: bool, True if slew time needs to be taken into account
+        dra: float, difference in RA between previous and current tile (degrees)
+        ddec: float, difference in DEC between previous and current tile (degrees)
+
+    Returns:
+        float, total setup time (seconds)
+    """
+
+    focus_time = 30.0
+    slew_time = 0.0
+    if slew:
+        d = np.maximum(dra, ddec)
+        slew_time = 11.5 + d/0.45
+    overhead = focus_time + slew_time
+    if overhead < 120.0:
+        overhead = 120.0
+    return overhead
