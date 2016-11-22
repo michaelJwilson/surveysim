@@ -2,12 +2,13 @@
 surveysim change log
 ====================
 
-1.1.2 (unreleased)
+0.2.0 (2016-11-18)
 ------------------
 
-* No changes yet
+* Modified some file names
+* Moved some functions from one file to another
 
-1.1.1 (2016-11-14)
+0.1.1 (2016-11-14)
 ------------------
 
 * fixed crash at end and data/ install (PR #3)
