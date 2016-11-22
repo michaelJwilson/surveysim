@@ -3,5 +3,6 @@ __pycache__
 *.pyc
 *.egg-info
 
-# we need py/surveysim/data/tile-info.fits; can't ignore all fits files
-# *.fits
+# Ignore all FITS files, except in py/surveysim/data/
+*.fits
+!py/surveysim/data/*.fits
