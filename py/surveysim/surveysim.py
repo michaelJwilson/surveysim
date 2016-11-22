@@ -1,20 +1,14 @@
-#! /usr/bin/python
-
 import numpy as np
-from astropy.time import Time
-from datetime import datetime, timedelta
-from surveysim.weather import weatherModule
-from surveysim.nightcal import getCal
-#from surveysim.exposurecalc import expTimeEstimator, airMassCalculator
-import astropy.io.fits as pyfits
-from surveysim.afternoonplan import surveyPlan
-from surveysim.nightops import obsCount, nightOps
-#from surveysim.nextobservation import nextFieldSelector
-#from surveysim.observefield import observeField
-from astropy.table import Table, vstack
-#from surveysim.utils import mjd2lst
 import os
 from shutil import copyfile
+from datetime import datetime, timedelta
+from astropy.time import Time
+from astropy.table import Table, vstack
+import astropy.io.fits as pyfits
+from surveysim.weather import weatherModule
+from desisurvey.nightcal import getCal
+from desisurvey.afternoonplan import surveyPlan
+from desisurvey.nightops import obsCount, nightOps
 
 def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
     """
