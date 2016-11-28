@@ -22,6 +22,8 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
         seed: integer, to initialise random number generator for weather simulator
         tilesubset : array of integer tileIDs to use while ignoring others
             in the DESI footprint
+        use_jpl: bool, which avoidobject to use; True if astropy+jplephem,
+            False if pyephem
     """
 
     # Note 1900 UTC is midday at KPNO
@@ -65,6 +67,7 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
             t = Time(day, format = 'datetime')
             ntiles_tonight = len(tilesObserved)-ntodate
             print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
+            print ('There are ', tiles_todo-ntiles_tonight, 'left to observe.')
             if (tiles_todo-ntiles_tonight) == 0:
                 survey_done = True
         day += oneday
