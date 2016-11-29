@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 import numpy as np
 
 def observeField(target, exposure):

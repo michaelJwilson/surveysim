@@ -1,20 +1,14 @@
-#! /usr/bin/python
-
 import numpy as np
-from astropy.time import Time
-from datetime import datetime, timedelta
-from surveysim.weather import weatherModule
-from surveysim.nightcal import getCal
-#from surveysim.exposurecalc import expTimeEstimator, airMassCalculator
-import astropy.io.fits as pyfits
-from surveysim.afternoonplan import surveyPlan
-from surveysim.nightops import obsCount, nightOps
-#from surveysim.nextobservation import nextFieldSelector
-#from surveysim.observefield import observeField
-from astropy.table import Table, vstack
-#from surveysim.utils import mjd2lst
 import os
 from shutil import copyfile
+from datetime import datetime, timedelta
+from astropy.time import Time
+from astropy.table import Table, vstack
+import astropy.io.fits as pyfits
+from surveysim.weather import weatherModule
+from desisurvey.nightcal import getCal
+from desisurvey.afternoonplan import surveyPlan
+from desisurvey.nightops import obsCount, nightOps
 
 def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
     """
@@ -28,6 +22,8 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
         seed: integer, to initialise random number generator for weather simulator
         tilesubset : array of integer tileIDs to use while ignoring others
             in the DESI footprint
+        use_jpl: bool, which avoidobject to use; True if astropy+jplephem,
+            False if pyephem
     """
 
     # Note 1900 UTC is midday at KPNO
@@ -71,6 +67,7 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
             t = Time(day, format = 'datetime')
             ntiles_tonight = len(tilesObserved)-ntodate
             print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
+            print ('There are ', tiles_todo-ntiles_tonight, 'left to observe.')
             if (tiles_todo-ntiles_tonight) == 0:
                 survey_done = True
         day += oneday

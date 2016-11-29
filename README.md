@@ -1,16 +1,14 @@
 # surveysim
 
-The full path to surveysim/py should be added to PYTHONPATH.
-
-To run, for example:
+This package simulates the execution of the DESI main survey (ELG, LRG, QSO) and BGS survey.  To run, for example:
 
 	>>> from surveysim.surveysim import surveySim
 	>>> surveySim((2016, 12, 27), (2017, 1, 4), seed=123456, use_jpl=False)
 
 The optional seed for the weather module's random number generator has to
-be an int or array_like convertible to an unsigned 32-bit integer; use_jpl specifies which version of avoidobject.py to use.
+be an int or array_like convertible to an unsigned 32-bit integer; use_jpl specifies which version of avoidobject.py to use (True use PyEphem, False uses astropy + jplephem).
 
-To run the plotting tool:
+A plotting utility is provided to look at the progression of the survey and various metrics.  To run the plotting tool:
 
 	>>> from surveysim.plotsurvey import plotsurvey
 	>>> plotsurvey("obslist{_all|YYYYMMDD}.fits", plot_type='t', program='m')
