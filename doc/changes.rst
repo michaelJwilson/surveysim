@@ -2,7 +2,7 @@
 surveysim change log
 ====================
 
-0.3.0 (2016-11-18)
+0.3.0 (2016-11-29)
 ------------------
 
 * Moved non-simulation specific parts to desisurvey
