@@ -61,15 +61,18 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
                   day <= datetime(day.year, month_monsoon_end, day_monsoon_end)) ):
             day_stats = getCal(day)
             ntodate = len(tilesObserved)
-            w.resetDome(day)
-            tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
-            tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved, use_jpl=use_jpl)
-            t = Time(day, format = 'datetime')
-            ntiles_tonight = len(tilesObserved)-ntodate
-            print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
-            print ('There are ', tiles_todo-ntiles_tonight, 'left to observe.')
-            if (tiles_todo-ntiles_tonight) == 0:
-                survey_done = True
+            if day_stats['MoonFrac'] < 0.85:
+                w.resetDome(day)
+                tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
+                tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved, use_jpl=use_jpl)
+                t = Time(day, format = 'datetime')
+                ntiles_tonight = len(tilesObserved)-ntodate
+                print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
+                print ('There are ', tiles_todo-ntiles_tonight, 'left to observe.')
+                if (tiles_todo-ntiles_tonight) == 0:
+                    survey_done = True
+            else:
+                print ('Monthly maintenance period around Full Moon. No observing.')
         day += oneday
 
     tilesObserved.write(tile_file, format='fits', overwrite=True)
