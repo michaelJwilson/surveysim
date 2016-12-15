@@ -2,6 +2,11 @@
 surveysim change log
 ====================
 
+0.3.1 (unreleased)
+------------------
+
+* Fixed outlier HA tile assignments around RA 200-220
+
 0.3.0 (2016-11-29)
 ------------------
 
