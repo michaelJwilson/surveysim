@@ -2,10 +2,16 @@
 surveysim change log
 ====================
 
-0.3.1 (unreleased)
+0.3.2 (unreleased)
 ------------------
 
-* Fixed outlier HA tile assignments around RA 200-220
+* No changes yet
+
+0.3.1 (2016-12-21)
+------------------
+
+* Fixed outlier HA tile assignments around RA 200-220 (PR #26)
+* Added 7 day shutdown around full moon (PR #25)
 
 0.3.0 (2016-11-29)
 ------------------
