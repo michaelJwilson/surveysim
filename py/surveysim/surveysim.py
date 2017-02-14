@@ -33,6 +33,7 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
     enddate = datetime(endyear, endmonth, endday, 19, 0, 0)
 
     sp = surveyPlan(tilesubset=tilesubset)
+    tiles_todo = sp.numtiles
     day0 = Time(datetime(startyear, startmonth, startday, 19, 0, 0))
     mjd_start = day0.mjd
     w = weatherModule(startdate, seed)
@@ -63,13 +64,14 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
             ntodate = len(tilesObserved)
             if day_stats['MoonFrac'] < 0.85:
                 w.resetDome(day)
-                tiles_todo, obsplan = sp.afternoonPlan(day_stats, tilesObserved)
+                obsplan = sp.afternoonPlan(day_stats, tilesObserved)
                 tilesObserved = nightOps(day_stats, obsplan, w, ocnt, tilesObserved, use_jpl=use_jpl)
                 t = Time(day, format = 'datetime')
                 ntiles_tonight = len(tilesObserved)-ntodate
+                tiles_todo -= ntiles_tonight
                 print ('On the night starting ', t.iso, ', we observed ', ntiles_tonight, ' tiles.')
-                print ('There are ', tiles_todo-ntiles_tonight, 'left to observe.')
-                if (tiles_todo-ntiles_tonight) == 0:
+                print ('There are ', tiles_todo, 'left to observe.')
+                if (sp.numtiles - len(tilesObserved)) == 0:
                     survey_done = True
             else:
                 print ('Monthly maintenance period around Full Moon. No observing.')
