@@ -62,8 +62,8 @@ class weatherModule:
             seeing: float (arcseconds)
         """
         seeing = self.rn.lognormal(0.0, 0.25)
-        if seeing < 0.5:
-            seeing = 0.5
+        if seeing < 0.65:
+            seeing = 0.65
         return seeing
 
     def simTransparency(self, dt):
