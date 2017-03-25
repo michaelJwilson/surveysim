@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 import numpy as np
-import os
+import os.path
 from shutil import copyfile
 from datetime import datetime, timedelta
 from astropy.time import Time
@@ -27,15 +27,17 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
             False if pyephem
     """
 
-    # Note 1900 UTC is midday at KPNO
+    # Note 1900 UTC is midday at KPNO, which is in Mountain Standard Time UTC-7
+    # and does not observe daylight savings.
+    tz_offset = (19, 0, 0) # hours, minutes, seconds
     (startyear, startmonth, startday) = sd0
-    startdate = datetime(startyear, startmonth, startday, 19, 0, 0)
-    (endyear, endmonth, endday) = ed0
-    enddate = datetime(endyear, endmonth, endday, 19, 0, 0)
+    startdate = datetime(*(sd0 + tz_offset))
+    enddate = datetime(*(ed0 + tz_offset))
     surveycal = getCalAll(startdate, enddate)
+    surveycal.write('surveycal.fits', overwrite=True)
 
-    day1 = Time(datetime(startyear, startmonth, startday, 19, 0, 0))
-    day2 = Time(datetime(endyear, endmonth, endday, 19, 0, 0))
+    day1 = Time(startdate)
+    day2 = Time(enddate)
     mjd_start = day1.mjd
     mjd_end = day2.mjd
     sp = surveyPlan(mjd_start, mjd_end, surveycal, tilesubset=tilesubset)
