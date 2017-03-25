@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import numpy as np
 import os
 from shutil import copyfile
@@ -5,7 +6,7 @@ from datetime import datetime, timedelta
 from astropy.time import Time
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
-from surveysim.weather import weatherModule
+from weather import weatherModule
 from desisurvey.nightcal import getCalAll
 from desisurvey.afternoonplan import surveyPlan
 from desisurvey.nightops import obsCount, nightOps
@@ -52,7 +53,7 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
         start_val = 0
 
     ocnt = obsCount(start_val)
-    
+
     oneday = timedelta(days=1)
     day = startdate
     day_monsoon_start = 13

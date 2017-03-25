@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import numpy as np
 
 def observeField(target, exposure):
@@ -21,4 +22,3 @@ def observeField(target, exposure):
     realSN2 = target['DESsn2'] + np.random.uniform(0.0, 1.0)
 
     return status, real_exposure, realSN2
-
