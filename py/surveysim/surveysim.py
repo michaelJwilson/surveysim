@@ -31,18 +31,17 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
     # and does not observe daylight savings.
     tz_offset = (19, 0, 0) # hours, minutes, seconds
     (startyear, startmonth, startday) = sd0
-    startdate = datetime(*(sd0 + tz_offset))
-    enddate = datetime(*(ed0 + tz_offset))
-    surveycal = getCalAll(startdate, enddate)
-    surveycal.write('surveycal.fits', overwrite=True)
+    startdate = Time(datetime(*(sd0 + tz_offset)))
+    enddate = Time(datetime(*(ed0 + tz_offset)))
 
-    day1 = Time(startdate)
-    day2 = Time(enddate)
-    mjd_start = day1.mjd
-    mjd_end = day2.mjd
-    sp = surveyPlan(mjd_start, mjd_end, surveycal, tilesubset=tilesubset)
-    tiles_todo = sp.numtiles
-    w = weatherModule(startdate, seed)
+    # Tabulate sun and moon ephemerides for each night of the survey.
+    surveycal = getCalAll(startdate, enddate, use_cache=True)
+
+    # Build the survey plan.
+    sp = surveyPlan(startdate.mjd, enddate.mjd, surveycal, tilesubset=tilesubset)
+
+    # Initialize the survey weather conditions generator.
+    w = weatherModule(startdate.datetime, seed)
 
     tile_file = 'tiles_observed.fits'
     if os.path.exists(tile_file):
@@ -57,14 +56,15 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
     ocnt = obsCount(start_val)
 
     oneday = timedelta(days=1)
-    day = startdate
+    day = startdate.datetime
     day_monsoon_start = 13
     month_monsoon_start = 7
     day_monsoon_end = 27
     month_monsoon_end = 8
     survey_done = False
     iday = 0
-    while (day <= enddate and survey_done == False):
+    tiles_todo = sp.numtiles
+    while (day <= enddate.datetime and survey_done == False):
         if ( not (day >= datetime(day.year, month_monsoon_start, day_monsoon_start) and
                   day <= datetime(day.year, month_monsoon_end, day_monsoon_end)) ):
             day_stats = surveycal[iday]
