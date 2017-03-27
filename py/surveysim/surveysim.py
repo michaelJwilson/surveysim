@@ -50,23 +50,23 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
     else:
         print("The survey will start from scratch.")
         tilesObserved = Table(names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
-        tilesObserved.meta['MJDBEGIN'] = mjd_start
+        tilesObserved.meta['MJDBEGIN'] = startdate.mjd
         start_val = 0
 
     ocnt = obsCount(start_val)
 
+    # Define the summer monsoon season.
+    monsoon_start = (7, 13)  # month, day
+    monsoon_stop = (8, 27)   # month, day
     oneday = timedelta(days=1)
     day = startdate.datetime
-    day_monsoon_start = 13
-    month_monsoon_start = 7
-    day_monsoon_end = 27
-    month_monsoon_end = 8
     survey_done = False
     iday = 0
     tiles_todo = sp.numtiles
     while (day <= enddate.datetime and survey_done == False):
-        if ( not (day >= datetime(day.year, month_monsoon_start, day_monsoon_start) and
-                  day <= datetime(day.year, month_monsoon_end, day_monsoon_end)) ):
+        print('>> Simulating', day)
+        if (day < datetime(day.year, *monsoon_start) or
+            day > datetime(day.year, *monsoon_stop)):
             day_stats = surveycal[iday]
             ntodate = len(tilesObserved)
             if day_stats['MoonFrac'] < 0.85:
