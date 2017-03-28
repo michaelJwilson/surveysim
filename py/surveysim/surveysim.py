@@ -1,4 +1,4 @@
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 import numpy as np
 import os.path
 from shutil import copyfile
@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from astropy.time import Time
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
-from weather import weatherModule
+from surveysim.weather import weatherModule
 from desisurvey.nightcal import getCalAll
 from desisurvey.afternoonplan import surveyPlan
 from desisurvey.nightops import obsCount, nightOps
