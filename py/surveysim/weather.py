@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import numpy as np
 from astropy.time import Time
 from datetime import datetime

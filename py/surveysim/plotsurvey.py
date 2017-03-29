@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import numpy as np
 from astropy.table import Table
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ def plotsurvey(filename='obslist_all.fits', plot_type='f', program='m'):
         filename: string, file must be in obslist{YYYYMMDD|_all}.fits format
         plot_type: 'f', 'h', 't' or 'e'
         program: 'm' (main survey, i.e. dark+grey), 'b' (BGS), 'a' (all)
-    """ 
+    """
 
     t = Table.read(filename, format='fits')
 
@@ -125,7 +126,7 @@ def plotsurvey(filename='obslist_all.fits', plot_type='f', program='m'):
         else:
             print("if set, program should be a, m or b; default is m.\n")
             return
-        
+
         mjd = t['MJD']
         mjd_start = np.min(mjd)
         mjd -= mjd_start
@@ -202,4 +203,3 @@ def plotsurvey(filename='obslist_all.fits', plot_type='f', program='m'):
         plt.ylabel('Exposure time (seconds)')
 
     plt.show()
-

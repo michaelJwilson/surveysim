@@ -1,5 +1,6 @@
+from __future__ import print_function, division, absolute_import
 import numpy as np
-import os
+import os.path
 from shutil import copyfile
 from datetime import datetime, timedelta
 from astropy.time import Time
@@ -26,20 +27,21 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
             False if pyephem
     """
 
-    # Note 1900 UTC is midday at KPNO
+    # Note 1900 UTC is midday at KPNO, which is in Mountain Standard Time UTC-7
+    # and does not observe daylight savings.
+    tz_offset = (19, 0, 0) # hours, minutes, seconds
     (startyear, startmonth, startday) = sd0
-    startdate = datetime(startyear, startmonth, startday, 19, 0, 0)
-    (endyear, endmonth, endday) = ed0
-    enddate = datetime(endyear, endmonth, endday, 19, 0, 0)
-    surveycal = getCalAll(startdate, enddate)
+    startdate = Time(datetime(*(sd0 + tz_offset)))
+    enddate = Time(datetime(*(ed0 + tz_offset)))
 
-    day1 = Time(datetime(startyear, startmonth, startday, 19, 0, 0))
-    day2 = Time(datetime(endyear, endmonth, endday, 19, 0, 0))
-    mjd_start = day1.mjd
-    mjd_end = day2.mjd
-    sp = surveyPlan(mjd_start, mjd_end, surveycal, tilesubset=tilesubset)
-    tiles_todo = sp.numtiles
-    w = weatherModule(startdate, seed)
+    # Tabulate sun and moon ephemerides for each night of the survey.
+    surveycal = getCalAll(startdate, enddate, use_cache=True)
+
+    # Build the survey plan.
+    sp = surveyPlan(startdate.mjd, enddate.mjd, surveycal, tilesubset=tilesubset)
+
+    # Initialize the survey weather conditions generator.
+    w = weatherModule(startdate.datetime, seed)
 
     tile_file = 'tiles_observed.fits'
     if os.path.exists(tile_file):
@@ -48,22 +50,23 @@ def surveySim(sd0, ed0, seed=None, tilesubset=None, use_jpl=False):
     else:
         print("The survey will start from scratch.")
         tilesObserved = Table(names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
-        tilesObserved.meta['MJDBEGIN'] = mjd_start
+        tilesObserved.meta['MJDBEGIN'] = startdate.mjd
         start_val = 0
 
     ocnt = obsCount(start_val)
-    
+
+    # Define the summer monsoon season.
+    monsoon_start = (7, 13)  # month, day
+    monsoon_stop = (8, 27)   # month, day
     oneday = timedelta(days=1)
-    day = startdate
-    day_monsoon_start = 13
-    month_monsoon_start = 7
-    day_monsoon_end = 27
-    month_monsoon_end = 8
+    day = startdate.datetime
     survey_done = False
     iday = 0
-    while (day <= enddate and survey_done == False):
-        if ( not (day >= datetime(day.year, month_monsoon_start, day_monsoon_start) and
-                  day <= datetime(day.year, month_monsoon_end, day_monsoon_end)) ):
+    tiles_todo = sp.numtiles
+    while (day <= enddate.datetime and survey_done == False):
+        print('>> Simulating', day)
+        if (day < datetime(day.year, *monsoon_start) or
+            day > datetime(day.year, *monsoon_stop)):
             day_stats = surveycal[iday]
             ntodate = len(tilesObserved)
             if day_stats['MoonFrac'] < 0.85:
