@@ -3,6 +3,9 @@ __pycache__
 *.pyc
 *.egg-info
 
+build
+dist
+
 # Ignore all FITS files, except in py/surveysim/data/
 *.fits
 !py/surveysim/data/*.fits
