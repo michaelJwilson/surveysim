@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+"""
+Simulate a DESI survey
+"""
+from __future__ import print_function, division, absolute_import
+
+import sys
+
+import surveysim.scripts.surveysim
+
+
+if __name__ == '__main__':
+    args = surveysim.scripts.surveysim.parse()
+    sys.exit(surveysim.scripts.surveysim.main(args))
