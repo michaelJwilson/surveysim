@@ -1,5 +1,5 @@
 #! /usr/bin/python
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from datetime import datetime, timedelta
@@ -119,7 +119,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
                     dec_prev = target['DEC']
                     if tableOutput:
                         t = Time(mjd, format = 'mjd')
-                        tbase = str(t.isot)                        
+                        tbase = str(t.isot)
                         obsList.append((target['tileID'],  target['RA'], target['DEC'], target['PASS'], target['Program'], target['Ebmv'],
                                        target['maxLen'], target['MoonFrac'], target['MoonDist'], target['MoonAlt'], conditions['Seeing'], conditions['Transparency'],
                                        airmass, target['DESsn2'], target['Status'],
