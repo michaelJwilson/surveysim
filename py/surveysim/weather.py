@@ -17,7 +17,6 @@ class weatherModule:
             dt: datetime object containing the start of the simulation
             seed: integer
         """
-        print(dt)
         self.rn = np.random.RandomState(seed)
         self.openDome = self.simDome(dt)
         self.dt = dt

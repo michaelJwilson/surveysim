@@ -13,6 +13,8 @@ from desisurvey.utils import mjd2lst
 from desisurvey.nextobservation import nextFieldSelector
 from surveysim.observefield import observeField
 import desisurvey.nightcal
+import desiutil.log
+
 
 LSTres = 1.0/144.0 # Should be the same as in afternoon planner and next field selector
 MaxExpLen = 3600.0 # One hour
@@ -41,7 +43,8 @@ class obsCount:
         self.obsNumber += 1
         return '{:08d}'.format(self.obsNumber)
 
-def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_jpl=False):
+def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True,
+             use_jpl=False):
     """
     Carries out observations during one night and writes the output to disk
 
@@ -60,6 +63,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
     Returns:
         Updated tilesObserved table
     """
+    log = desiutil.log.get_logger()
 
     nightOver = False
     mjd = day_stats['MJDsunset']
@@ -79,12 +83,11 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
         f.write(wcondsstr)
     f.close()
     if conditions['OpenDome'] == False:
-        print("\nBad weather forced the dome to remain shut for the night.")
+        log.info("Bad weather forced the dome to remain shut for the night.")
     else:
-        print("\nConditions at the beginning of the night: ")
-        print("\tSeeing: ", conditions['Seeing'], "arcseconds")
-        print("\tTransparency: ", conditions['Transparency'])
-        print("\tCloud cover: ", 100.0*conditions['Clouds'], "%")
+        log.info('Dome open conditions: seeing {0:.3f}", transparency {1:.3f}, '
+                 .format(conditions['Seeing'], conditions['Transparency']) +
+                 'cloud {0:.1f}%'.format(100 * conditions['Clouds']))
 
         # Initialize a moon (alt, az) interpolator using the pre-tabulated
         # ephemerides for this night.
