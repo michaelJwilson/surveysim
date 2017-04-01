@@ -6,6 +6,9 @@ __pycache__
 build
 dist
 
+# Ignore nightstats.dat written by nightops.nightOps
+nightstats.dat
+
 # Ignore all FITS files, except in py/surveysim/data/
 *.fits
 !py/surveysim/data/*.fits
