@@ -10,5 +10,9 @@ import surveysim.scripts.surveysim
 
 
 if __name__ == '__main__':
-    args = surveysim.scripts.surveysim.parse()
-    sys.exit(surveysim.scripts.surveysim.main(args))
+    try:
+        args = surveysim.scripts.surveysim.parse()
+        surveysim.scripts.surveysim.main(args)
+    except RuntimeError as e: #Exception as e:
+        print(e)
+        sys.exit(-1)

@@ -1,12 +1,12 @@
 # surveysim
 
-This package simulates the execution of the DESI main survey (ELG, LRG, QSO) and BGS survey.  To run, for example:
+This package simulates the execution of the DESI main survey (ELG, LRG, QSO) and BGS survey.  For example, to run the first year of the nominal survey:
 
-	>>> from surveysim.surveysim import surveySim
-	>>> surveySim((2016, 12, 27), (2017, 1, 4), seed=123456, use_jpl=False)
+    % surveysim --start 2019-08-28 --end 2020-07-13 --verbose
 
-The optional seed for the weather module's random number generator has to
-be an int or array_like convertible to an unsigned 32-bit integer; use_jpl specifies which version of avoidobject.py to use (True use PyEphem, False uses astropy + jplephem).
+For details on all the available options use:
+
+    % surveysim --help
 
 A plotting utility is provided to look at the progression of the survey and various metrics.  To run the plotting tool:
 
@@ -14,4 +14,3 @@ A plotting utility is provided to look at the progression of the survey and vari
 	>>> plotsurvey("obslist{_all|YYYYMMDD}.fits", plot_type='t', program='m')
 
 The default filename is ./obslist_all.fits; plot_type is either 'f' (footprint, default), 'h' (histograms), 't' (time evolution) or 'e' (exposure time); and program us either 'm' (main survey), 'b' (BGS) or 'a' (all).
-
