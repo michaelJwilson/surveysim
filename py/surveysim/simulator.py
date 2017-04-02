@@ -11,7 +11,7 @@ import astropy.io.fits as pyfits
 import astropy.units as u
 import astropy.time
 from surveysim.weather import weatherModule
-from desisurvey.nightcal import getCalAll
+from desisurvey.nightcal import Ephemerides
 from desisurvey.afternoonplan import surveyPlan
 from surveysim.nightops import obsCount, nightOps
 import desiutil.log
@@ -51,11 +51,11 @@ class Simulator(object):
             self.startdate, self.enddate))
 
         # Tabulate sun and moon ephemerides for each night of the survey.
-        self.surveycal = getCalAll(self.startdate, self.enddate, use_cache=True)
+        self.ephem = Ephemerides(self.startdate, self.enddate, use_cache=False)
 
         # Build the survey plan.
         self.sp = surveyPlan(self.startdate.mjd, self.enddate.mjd,
-                             self.surveycal, tilesubset=tilesubset)
+                             tilesubset=tilesubset)
 
         # Initialize the survey weather conditions generator.
         self.w = weatherModule(self.startdate.datetime, seed)
@@ -106,9 +106,9 @@ class Simulator(object):
         self.log.info('Simulating {0}'.format(self.day.datetime.date()))
 
         # Lookup today's ephemerides.
-        day_stats = self.surveycal[self.iday]
-        sunset = astropy.time.Time(day_stats['MJDsunset'], format='mjd')
-        assert sunset > self.day and sunset - self.day < 1 * u.day
+        today = self.ephem.get(self.day)
+        sunset = today['MJDsunset']
+        assert sunset > self.day.mjd and sunset - self.day.mjd < 1
 
         # Check if we are in the moonsoon period.
         year = self.day.datetime.year
@@ -118,14 +118,14 @@ class Simulator(object):
             self.day.datetime >= monsoon_stop):
 
             # Check if we are in the full-moon engineering period.
-            if day_stats['MoonFrac'] < 0.85:
+            if today['MoonFrac'] < 0.85:
 
                 # Simulate a normal observing night.
                 ntodate = len(self.tilesObserved)
                 self.w.resetDome(self.day.datetime)
-                obsplan = self.sp.afternoonPlan(day_stats, self.tilesObserved)
+                obsplan = self.sp.afternoonPlan(today, self.tilesObserved)
                 self.tilesObserved = nightOps(
-                    day_stats, obsplan, self.w, self.ocnt, self.tilesObserved,
+                    today, obsplan, self.w, self.ocnt, self.tilesObserved,
                     use_jpl=self.use_jpl)
                 ntiles_tonight = len(self.tilesObserved)-ntodate
                 self.tiles_todo -= ntiles_tonight
@@ -136,7 +136,7 @@ class Simulator(object):
             else:
                 self.log.info(
                     'No observing around full moon ({0:.1f}% illuminated).'
-                    .format(100 * day_stats['MoonFrac']))
+                    .format(100 * today['MoonFrac']))
         else:
             self.log.info('No observing during monsoon {0} to {1}'
                      .format(monsoon_start.date(), monsoon_stop.date()))
