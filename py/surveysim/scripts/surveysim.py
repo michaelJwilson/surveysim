@@ -72,8 +72,6 @@ def main(args):
         args.start, args.stop, args.seed, tilesubset=None,
         use_jpl=args.use_jpl, tile_file=args.resume)
 
-    return
-
     while simulator.next_day():
         pass
 

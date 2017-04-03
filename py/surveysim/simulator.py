@@ -51,7 +51,7 @@ class Simulator(object):
             self.startdate, self.enddate))
 
         # Tabulate sun and moon ephemerides for each night of the survey.
-        self.ephem = Ephemerides(self.startdate, self.enddate, use_cache=False)
+        self.ephem = Ephemerides(self.startdate, self.enddate, use_cache=True)
 
         # Build the survey plan.
         self.sp = surveyPlan(self.startdate.mjd, self.enddate.mjd,
@@ -103,7 +103,12 @@ class Simulator(object):
             True if there are more days to simulate.
         """
         assert self.day >= self.startdate and self.day < self.enddate
-        self.log.info('Simulating {0}'.format(self.day.datetime.date()))
+        date = self.day.datetime.date()
+        self.log.info('Simulating {0}'.format(date))
+
+        # Prepare a date string YYYYMMDD to use in filenames.
+        date_string = '{y:04d}{m:02d}{d:02d}'.format(
+            y=date.year, m=date.month, d=date.day)
 
         # Lookup today's ephemerides.
         today = self.ephem.get(self.day)
@@ -123,10 +128,11 @@ class Simulator(object):
                 # Simulate a normal observing night.
                 ntodate = len(self.tilesObserved)
                 self.w.resetDome(self.day.datetime)
-                obsplan = self.sp.afternoonPlan(today, self.tilesObserved)
+                obsplan = self.sp.afternoonPlan(
+                    today, date_string, self.tilesObserved)
                 self.tilesObserved = nightOps(
-                    today, obsplan, self.w, self.ocnt, self.tilesObserved,
-                    use_jpl=self.use_jpl)
+                    today, date_string, obsplan, self.w, self.ocnt,
+                    self.tilesObserved, use_jpl=self.use_jpl)
                 ntiles_tonight = len(self.tilesObserved)-ntodate
                 self.tiles_todo -= ntiles_tonight
                 self.log.info('Observed {0} tiles tonight, {1} remaining.'

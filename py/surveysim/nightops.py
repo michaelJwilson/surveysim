@@ -43,15 +43,14 @@ class obsCount:
         self.obsNumber += 1
         return '{:08d}'.format(self.obsNumber)
 
-def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True,
-             use_jpl=False):
+def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
+             tableOutput=True, use_jpl=False):
     """
     Carries out observations during one night and writes the output to disk
 
     Args:
-        day_stats: dictionnary containing the follwing keys:
-                   'MJDsunset', 'MJDsunrise', 'MJDetwi', 'MJDmtwi', 'MJDe13twi',
-                   'MJDm13twi', 'MJDmoonrise', 'MJDmoonset', 'MoonFrac', 'dirName'
+        day_stats: row of tabulated ephmerides data for today
+        date_string: string of the form YYYYMMDD
         obsplan: string, filename of today's afternoon plan
         w: dictionnary containing the following keys
            'Seeing', 'Transparency', 'OpenDome', 'Clouds'
@@ -71,7 +70,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True,
     if tableOutput:
         obsList = []
     else:
-        os.mkdir(day_stats['dirName'])
+        os.mkdir(date_string)
 
     conditions = w.getValues(mjd)
     f = open("nightstats.dat", "a+")
@@ -152,7 +151,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True,
                         nt = len(tbase)
                         prihdr['DATE-OBS'] = tbase
                         prihdr['MJD     '] = mjd
-                        filename = day_stats['dirName'] + '/desi-exp-' + ocnt.update() + '.fits'
+                        filename = date_string + '/desi-exp-' + ocnt.update() + '.fits'
                         prihdu = pyfits.PrimaryHDU(header=prihdr)
                         prihdu.writeto(filename, clobber=True)
                 else:
@@ -168,7 +167,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True,
                 nightOver = True
 
     if tableOutput and len(obsList) > 0:
-        filename = 'obslist' + day_stats['dirName'].decode('ascii') + '.fits'
+        filename = 'obslist' + date_string + '.fits'
         cols = np.rec.array(obsList,
                            names = ('TILEID  ',
                                     'RA      ',
