@@ -4,6 +4,7 @@ from __future__ import print_function, division, absolute_import
 
 import argparse
 import datetime
+import os
 
 import desiutil.log
 
@@ -67,6 +68,12 @@ def main(args):
         log = desiutil.log.get_logger(desiutil.log.DEBUG)
     else:
         log = desiutil.log.get_logger(desiutil.log.WARNING)
+
+    # Remove any existing obslist_all.fits file since nightops
+    # concatenates to it.
+    if os.path.exists('obslist_all.fits'):
+        os.rename('obslist_all.fits', 'obslist_all_save.fits')
+        log.info('Renamed obslist_all.fits to obslist_all_save.fits')
 
     simulator = surveysim.simulator.Simulator(
         args.start, args.stop, args.seed, tilesubset=None,
