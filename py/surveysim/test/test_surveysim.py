@@ -3,6 +3,9 @@ import numpy as np
 from astropy.table import Table
 from astropy import units
 from astropy.time import Time
+import desiutil.log
+import datetime
+
 
 class TestSurveySim(unittest.TestCase):
 
@@ -26,17 +29,20 @@ class TestSurveySim(unittest.TestCase):
         pass
 
     def test_surveysim(self):
-        from surveysim.surveysim import surveySim
-        surveySim((2019,9,1), (2019,9,8), seed=123456, use_jpl=False)
+        from surveysim.simulator import Simulator
+        start = datetime.date(2019,9,1)
+        stop = datetime.date(2019,9,8)
+        sim = Simulator(start, stop, seed=123456, use_jpl=False)
+        while sim.next_day():
+            pass
 
         #- A plan should exist for every night
-        for i in range(1,9):
+        for i in range(1,8):
             self.assertTrue(os.path.exists('obsplan201909{:02d}.fits'.format(i)))
 
         #- Observations will exist for just some nights
         self.assertTrue(os.path.exists('obslist_all.fits'))
-        self.assertTrue(os.path.exists('tiles_observed.fits'))
-        
+
         #- Confirm that observations map to obslistYEARMMDD.fits files
         obs = Table.read('obslist_all.fits')
         nights = set()

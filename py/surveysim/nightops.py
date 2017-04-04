@@ -1,5 +1,5 @@
 #! /usr/bin/python
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from datetime import datetime, timedelta
@@ -13,6 +13,8 @@ from desisurvey.utils import mjd2lst
 from desisurvey.nextobservation import nextFieldSelector
 from surveysim.observefield import observeField
 import desisurvey.nightcal
+import desiutil.log
+
 
 LSTres = 1.0/144.0 # Should be the same as in afternoon planner and next field selector
 MaxExpLen = 3600.0 # One hour
@@ -41,14 +43,14 @@ class obsCount:
         self.obsNumber += 1
         return '{:08d}'.format(self.obsNumber)
 
-def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_jpl=False):
+def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
+             tableOutput=True, use_jpl=False):
     """
     Carries out observations during one night and writes the output to disk
 
     Args:
-        day_stats: dictionnary containing the follwing keys:
-                   'MJDsunset', 'MJDsunrise', 'MJDetwi', 'MJDmtwi', 'MJDe13twi',
-                   'MJDm13twi', 'MJDmoonrise', 'MJDmoonset', 'MoonFrac', 'dirName'
+        day_stats: row of tabulated ephmerides data for today
+        date_string: string of the form YYYYMMDD
         obsplan: string, filename of today's afternoon plan
         w: dictionnary containing the following keys
            'Seeing', 'Transparency', 'OpenDome', 'Clouds'
@@ -60,6 +62,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
     Returns:
         Updated tilesObserved table
     """
+    log = desiutil.log.get_logger()
 
     nightOver = False
     mjd = day_stats['MJDsunset']
@@ -67,7 +70,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
     if tableOutput:
         obsList = []
     else:
-        os.mkdir(day_stats['dirName'])
+        os.mkdir(date_string)
 
     conditions = w.getValues(mjd)
     f = open("nightstats.dat", "a+")
@@ -79,12 +82,11 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
         f.write(wcondsstr)
     f.close()
     if conditions['OpenDome'] == False:
-        print("\nBad weather forced the dome to remain shut for the night.")
+        log.info("Bad weather forced the dome to remain shut for the night.")
     else:
-        print("\nConditions at the beginning of the night: ")
-        print("\tSeeing: ", conditions['Seeing'], "arcseconds")
-        print("\tTransparency: ", conditions['Transparency'])
-        print("\tCloud cover: ", 100.0*conditions['Clouds'], "%")
+        log.info('Dome open conditions: seeing {0:.3f}", transparency {1:.3f}, '
+                 .format(conditions['Seeing'], conditions['Transparency']) +
+                 'cloud {0:.1f}%'.format(100 * conditions['Clouds']))
 
         # Initialize a moon (alt, az) interpolator using the pre-tabulated
         # ephemerides for this night.
@@ -119,7 +121,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
                     dec_prev = target['DEC']
                     if tableOutput:
                         t = Time(mjd, format = 'mjd')
-                        tbase = str(t.isot)                        
+                        tbase = str(t.isot)
                         obsList.append((target['tileID'],  target['RA'], target['DEC'], target['PASS'], target['Program'], target['Ebmv'],
                                        target['maxLen'], target['MoonFrac'], target['MoonDist'], target['MoonAlt'], conditions['Seeing'], conditions['Transparency'],
                                        airmass, target['DESsn2'], target['Status'],
@@ -149,7 +151,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
                         nt = len(tbase)
                         prihdr['DATE-OBS'] = tbase
                         prihdr['MJD     '] = mjd
-                        filename = day_stats['dirName'] + '/desi-exp-' + ocnt.update() + '.fits'
+                        filename = date_string + '/desi-exp-' + ocnt.update() + '.fits'
                         prihdu = pyfits.PrimaryHDU(header=prihdr)
                         prihdu.writeto(filename, clobber=True)
                 else:
@@ -165,7 +167,7 @@ def nightOps(day_stats, obsplan, w, ocnt, tilesObserved, tableOutput=True, use_j
                 nightOver = True
 
     if tableOutput and len(obsList) > 0:
-        filename = 'obslist' + day_stats['dirName'].decode('ascii') + '.fits'
+        filename = 'obslist' + date_string + '.fits'
         cols = np.rec.array(obsList,
                            names = ('TILEID  ',
                                     'RA      ',
