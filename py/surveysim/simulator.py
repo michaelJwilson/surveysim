@@ -11,7 +11,7 @@ import astropy.io.fits as pyfits
 import astropy.units as u
 import astropy.time
 from surveysim.weather import weatherModule
-from desisurvey.nightcal import Ephemerides
+from desisurvey.ephemerides import Ephemerides
 from desisurvey.afternoonplan import surveyPlan
 from surveysim.nightops import obsCount, nightOps
 import desiutil.log

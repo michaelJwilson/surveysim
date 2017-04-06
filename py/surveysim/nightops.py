@@ -12,7 +12,7 @@ from desisurvey.exposurecalc import expTimeEstimator, airMassCalculator
 from desisurvey.utils import mjd2lst
 from desisurvey.nextobservation import nextFieldSelector
 from surveysim.observefield import observeField
-import desisurvey.nightcal
+import desisurvey.ephemerides
 import desiutil.log
 
 
@@ -90,7 +90,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
 
         # Initialize a moon (alt, az) interpolator using the pre-tabulated
         # ephemerides for this night.
-        moon_pos = desisurvey.nightcal.get_moon_interpolator(day_stats)
+        moon_pos = desisurvey.ephemerides.get_moon_interpolator(day_stats)
 
         slew = False
         ra_prev = 1.0e99
