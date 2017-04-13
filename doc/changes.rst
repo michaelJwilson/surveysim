@@ -2,7 +2,17 @@
 surveysim change log
 ====================
 
-0.3.2 (unreleased)
+0.4.2 (unreleased)
+------------------
+
+* No changes yet
+
+0.4.1 (2017-04-13)
+------------------
+
+* Fixed package names to work with desisurvey >= 0.4.0
+
+0.4.0 (2017-04-04)
 ------------------
 
 * Adds unit tests
