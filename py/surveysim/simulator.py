@@ -51,11 +51,11 @@ class Simulator(object):
             self.startdate, self.enddate))
 
         # Tabulate sun and moon ephemerides for each night of the survey.
-        self.ephem = Ephemerides(self.startdate, self.enddate, use_cache=True)
+        self.ephem = Ephemerides(start_date, stop_date, use_cache=True)
 
         # Build the survey plan.
         self.sp = surveyPlan(self.startdate.mjd, self.enddate.mjd,
-                             tilesubset=tilesubset)
+                             self.ephem, tilesubset=tilesubset)
 
         # Initialize the survey weather conditions generator.
         self.w = weatherModule(self.startdate.datetime, seed)

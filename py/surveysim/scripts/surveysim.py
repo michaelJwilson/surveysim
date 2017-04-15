@@ -44,11 +44,11 @@ def parse(options=None):
 
     # Validate start/stop date args and covert to datetime objects.
     try:
-        args.start = datetime.datetime.strptime(args.start, '%Y-%m-%d')
+        args.start = datetime.datetime.strptime(args.start, '%Y-%m-%d').date()
     except ValueError as e:
         raise ValueError('Invalid start-date: {0}'.format(e))
     try:
-        args.stop = datetime.datetime.strptime(args.stop, '%Y-%m-%d')
+        args.stop = datetime.datetime.strptime(args.stop, '%Y-%m-%d').date()
     except ValueError as e:
         raise ValueError('Invalid stop-date: {0}'.format(e))
     if args.start >= args.stop:
