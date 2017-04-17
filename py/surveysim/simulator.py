@@ -15,6 +15,7 @@ from desisurvey.ephemerides import Ephemerides
 from desisurvey.afternoonplan import surveyPlan
 from surveysim.nightops import obsCount, nightOps
 import desiutil.log
+import desisurvey.utils
 
 
 class Simulator(object):
@@ -42,29 +43,22 @@ class Simulator(object):
         self.log = desiutil.log.get_logger()
         self.use_jpl = use_jpl
 
-        # Note 1900 UTC is midday at KPNO, which is in Mountain Standard Time
-        # UTC-7 and does not observe daylight savings.
-        local_noon = datetime.time(hour=19)
-        self.startdate = Time(datetime.datetime.combine(start_date, local_noon))
-        self.enddate = Time(datetime.datetime.combine(stop_date, local_noon))
-        self.log.info('Simulator initialized for {0} to {1}'.format(
-            self.startdate, self.enddate))
+        # Validate date range.
+        self.num_days = (stop_date - start_date).days + 1
+        if self.num_days <= 0:
+            raise ValueError('Expected start_date < stop_date.')
+        self.start_date = start_date
+        self.stop_date = stop_date
 
         # Tabulate sun and moon ephemerides for each night of the survey.
         self.ephem = Ephemerides(start_date, stop_date, use_cache=True)
 
         # Build the survey plan.
-        self.sp = surveyPlan(self.startdate.mjd, self.enddate.mjd,
+        self.sp = surveyPlan(self.ephem.start.mjd, self.ephem.stop.mjd,
                              self.ephem, tilesubset=tilesubset)
 
         # Initialize the survey weather conditions generator.
-        self.w = weatherModule(self.startdate.datetime, seed)
-
-        # Define the moonsoon season as a tuple (month, day, hour, min, sec).
-        # There is no observing on monsoon_start and observations resume
-        # on monsoon_stop.
-        self.monsoon_start = (7, 13) + (local_noon.hour, 0, 0)
-        self.monsoon_stop = (8, 27) + (local_noon.hour, 0, 0)
+        self.w = weatherModule(self.ephem.start.datetime, seed)
 
         # Resume a simulation using previously observed tiles, if requested.
         if tile_file is not None:
@@ -76,18 +70,17 @@ class Simulator(object):
             self.log.info('Survey will start from scratch.')
             tilesObserved = Table(
                 names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
-            tilesObserved.meta['MJDBEGIN'] = self.startdate.mjd
+            tilesObserved.meta['MJDBEGIN'] = self.ephem.start.mjd
             start_val = 0
         self.tilesObserved = tilesObserved
         self.ocnt = obsCount(start_val)
 
+        self.day_index = 0
         self.survey_done = False
-        self.day = self.startdate
-        self.iday = 0
         self.tiles_todo = self.sp.numtiles
         self.log.info(
-            'Simulator initialized with {0} tiles remaining to observe.'
-            .format(self.tiles_todo))
+            'Simulator initialized for {0} to {1} with {2} tiles remaining.'
+            .format(start_date, stop_date, self.tiles_todo))
 
 
     def next_day(self):
@@ -102,32 +95,34 @@ class Simulator(object):
         bool
             True if there are more days to simulate.
         """
-        assert self.day >= self.startdate and self.day < self.enddate
-        date = self.day.datetime.date()
+        if self.day_index >= self.num_days or self.survey_done:
+            return False
+
+        date = self.start_date + datetime.timedelta(days=self.day_index)
         self.log.info('Simulating {0}'.format(date))
 
-        # Prepare a date string YYYYMMDD to use in filenames.
-        date_string = '{y:04d}{m:02d}{d:02d}'.format(
-            y=date.year, m=date.month, d=date.day)
+        if desisurvey.utils.is_monsoon(date):
+            self.log.info('No observing during monsoon.')
+        else:
 
-        # Lookup today's ephemerides.
-        today = self.ephem.get(self.day)
-        sunset = today['MJDsunset']
-        assert sunset > self.day.mjd and sunset - self.day.mjd < 1
+            # Prepare a date string YYYYMMDD to use in filenames.
+            date_string = '{y:04d}{m:02d}{d:02d}'.format(
+                y=date.year, m=date.month, d=date.day)
 
-        # Check if we are in the moonsoon period.
-        year = self.day.datetime.year
-        monsoon_start = datetime.datetime(year, *self.monsoon_start)
-        monsoon_stop = datetime.datetime(year, *self.monsoon_stop)
-        if (self.day.datetime < monsoon_start or
-            self.day.datetime >= monsoon_stop):
+            # Each day of observing starts at local noon.
+            local_noon = desisurvey.utils.local_noon_on_date(date)
+
+            # Lookup today's ephemerides.
+            today = self.ephem.get(local_noon)
+            sunset = today['MJDsunset']
+            assert sunset > local_noon.mjd and sunset - local_noon.mjd < 1
 
             # Check if we are in the full-moon engineering period.
             if today['MoonFrac'] < 0.85:
 
                 # Simulate a normal observing night.
                 ntodate = len(self.tilesObserved)
-                self.w.resetDome(self.day.datetime)
+                self.w.resetDome(local_noon.datetime)
                 obsplan = self.sp.afternoonPlan(
                     today, date_string, self.tilesObserved)
                 self.tilesObserved = nightOps(
@@ -143,13 +138,9 @@ class Simulator(object):
                 self.log.info(
                     'No observing around full moon ({0:.1f}% illuminated).'
                     .format(100 * today['MoonFrac']))
-        else:
-            self.log.info('No observing during monsoon {0} to {1}'
-                     .format(monsoon_start.date(), monsoon_stop.date()))
 
-        self.day += 1 * u.day
-        self.iday += 1
-        if self.day == self.enddate:
+        self.day_index += 1
+        if self.day_index == self.num_days:
             self.survey_done = True
 
         return not self.survey_done
