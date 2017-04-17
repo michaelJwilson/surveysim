@@ -21,10 +21,10 @@ def parse(options=None):
     parser.add_argument('-v', '--verbose', action='store_true',
         help='provide verbose output on progress')
     parser.add_argument(
-        '--start', type=str, default='2019-08-28', metavar='DATE',
+        '--start', type=str, default=None, metavar='DATE',
         help='survey starts on the evening of this day, formatted as YYYY-MM-DD')
     parser.add_argument(
-        '--stop', type=str, default='2020-07-14', metavar='DATE',
+        '--stop', type=str, default=None, metavar='DATE',
         help='survey stops on the morning of this day, formatted as YYYY-MM-DD')
     parser.add_argument(
         '--seed', type=int, default=123, metavar='N',
@@ -48,14 +48,22 @@ def parse(options=None):
         args = parser.parse_args(options)
 
     # Validate start/stop date args and covert to datetime objects.
-    try:
-        args.start = datetime.datetime.strptime(args.start, '%Y-%m-%d').date()
-    except ValueError as e:
-        raise ValueError('Invalid start-date: {0}'.format(e))
-    try:
-        args.stop = datetime.datetime.strptime(args.stop, '%Y-%m-%d').date()
-    except ValueError as e:
-        raise ValueError('Invalid stop-date: {0}'.format(e))
+    # Unspecified values are taken from our config.
+    config = desisurvey.config.Configuration()
+    if args.start is None:
+        args.start = config.first_day()
+    else:
+        try:
+            args.start = datetime.datetime.strptime(args.start, '%Y-%m-%d').date()
+        except ValueError as e:
+            raise ValueError('Invalid start-date: {0}'.format(e))
+    if args.stop is None:
+        args.stop = config.last_day()
+    else:
+        try:
+            args.stop = datetime.datetime.strptime(args.stop, '%Y-%m-%d').date()
+        except ValueError as e:
+            raise ValueError('Invalid stop-date: {0}'.format(e))
     if args.start >= args.stop:
         raise ValueError('Expected start-date < stop-date.')
 
@@ -82,8 +90,7 @@ def main(args):
 
     # Set the output path if requested.
     if args.output_path is not None:
-        config = desisurvey.config.Configuration()
-        config.set_output_path(args.output_path)
+        desisurvey.config.Configuration().set_output_path(args.output_path)
 
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
