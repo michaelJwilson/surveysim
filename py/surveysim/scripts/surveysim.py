@@ -8,6 +8,8 @@ import os
 
 import desiutil.log
 
+import desisurvey.config
+
 import surveysim.simulator
 
 
@@ -36,6 +38,9 @@ def parse(options=None):
     parser.add_argument(
         '--resume', default=None, metavar='FILENAME',
         help='Name of saved observations for resuming a simulation')
+    parser.add_argument(
+        '--output-path', default=None, metavar='PATH',
+        help='Output path where output files should be written')
 
     if options is None:
         args = parser.parse_args()
@@ -75,10 +80,18 @@ def main(args):
         os.rename('obslist_all.fits', 'obslist_all_save.fits')
         log.info('Renamed obslist_all.fits to obslist_all_save.fits')
 
+    # Set the output path if requested.
+    if args.output_path is not None:
+        config = desisurvey.config.Configuration()
+        config.set_output_path(args.output_path)
+
+    # Create the simulator.
     simulator = surveysim.simulator.Simulator(
         args.start, args.stop, args.seed, tilesubset=None,
         use_jpl=args.use_jpl, tile_file=args.resume)
 
+    # Simulate each night until the survey is complete or the last
+    # day is reached.
     while simulator.next_day():
         pass
 
