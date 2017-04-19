@@ -44,7 +44,7 @@ class Simulator(object):
         self.use_jpl = use_jpl
 
         # Validate date range.
-        self.num_days = (stop_date - start_date).days + 1
+        self.num_days = (stop_date - start_date).days
         if self.num_days <= 0:
             raise ValueError('Expected start_date < stop_date.')
         self.start_date = start_date
@@ -113,7 +113,7 @@ class Simulator(object):
             local_noon = desisurvey.utils.local_noon_on_date(date)
 
             # Lookup today's ephemerides.
-            today = self.ephem.get(local_noon)
+            today = self.ephem.get_night(date)
             sunset = today['MJDsunset']
             assert sunset > local_noon.mjd and sunset - local_noon.mjd < 1
 
