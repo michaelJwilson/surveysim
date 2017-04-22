@@ -103,6 +103,8 @@ class Simulator(object):
 
         if desisurvey.utils.is_monsoon(date):
             self.log.info('No observing during monsoon.')
+        elif self.ephem.is_full_moon(date):
+            self.log.info('No observing during full moon.')
         else:
 
             # Prepare a date string YYYYMMDD to use in filenames.
@@ -117,27 +119,20 @@ class Simulator(object):
             sunset = today['MJDsunset']
             assert sunset > local_noon.mjd and sunset - local_noon.mjd < 1
 
-            # Check if we are in the full-moon engineering period.
-            if today['MoonFrac'] < 0.85:
-
-                # Simulate a normal observing night.
-                ntodate = len(self.tilesObserved)
-                self.w.resetDome(local_noon.datetime)
-                obsplan = self.sp.afternoonPlan(
-                    today, date_string, self.tilesObserved)
-                self.tilesObserved = nightOps(
-                    today, date_string, obsplan, self.w, self.ocnt,
-                    self.tilesObserved, use_jpl=self.use_jpl)
-                ntiles_tonight = len(self.tilesObserved)-ntodate
-                self.tiles_todo -= ntiles_tonight
-                self.log.info('Observed {0} tiles tonight, {1} remaining.'
-                              .format(ntiles_tonight, self.tiles_todo))
-                if (self.sp.numtiles - len(self.tilesObserved)) == 0:
-                    self.survey_done = True
-            else:
-                self.log.info(
-                    'No observing around full moon ({0:.1f}% illuminated).'
-                    .format(100 * today['MoonFrac']))
+            # Simulate a normal observing night.
+            ntodate = len(self.tilesObserved)
+            self.w.resetDome(local_noon.datetime)
+            obsplan = self.sp.afternoonPlan(
+                today, date_string, self.tilesObserved)
+            self.tilesObserved = nightOps(
+                today, date_string, obsplan, self.w, self.ocnt,
+                self.tilesObserved, use_jpl=self.use_jpl)
+            ntiles_tonight = len(self.tilesObserved)-ntodate
+            self.tiles_todo -= ntiles_tonight
+            self.log.info('Observed {0} tiles tonight, {1} remaining.'
+                          .format(ntiles_tonight, self.tiles_todo))
+            if (self.sp.numtiles - len(self.tilesObserved)) == 0:
+                self.survey_done = True
 
         self.day_index += 1
         if self.day_index == self.num_days:
