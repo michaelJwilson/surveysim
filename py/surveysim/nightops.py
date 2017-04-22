@@ -13,6 +13,7 @@ from desisurvey.utils import mjd2lst
 from desisurvey.nextobservation import nextFieldSelector
 from surveysim.observefield import observeField
 import desisurvey.ephemerides
+import desisurvey.config
 import desiutil.log
 
 
@@ -63,6 +64,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
         Updated tilesObserved table
     """
     log = desiutil.log.get_logger()
+    config = desisurvey.config.Configuration()
 
     nightOver = False
     mjd = day_stats['MJDsunset']
@@ -73,7 +75,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
         os.mkdir(date_string)
 
     conditions = w.getValues(mjd)
-    f = open("nightstats.dat", "a+")
+    f = open(config.get_path("nightstats.dat"), "a+")
     if conditions['OpenDome']:
         wcondsstr = "1 " + str(conditions['Seeing']) + " " + str(conditions['Transparency']) + " " + str(conditions['Clouds']) + "\n"
         f.write(wcondsstr)
@@ -151,7 +153,9 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                         nt = len(tbase)
                         prihdr['DATE-OBS'] = tbase
                         prihdr['MJD     '] = mjd
-                        filename = date_string + '/desi-exp-' + ocnt.update() + '.fits'
+                        filename = config.get_path(
+                            '{0}/desi-exp-{1}.fits'
+                            .format(date_string, ocnt.update()))
                         prihdu = pyfits.PrimaryHDU(header=prihdr)
                         prihdu.writeto(filename, clobber=True)
                 else:
@@ -167,7 +171,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                 nightOver = True
 
     if tableOutput and len(obsList) > 0:
-        filename = 'obslist' + date_string + '.fits'
+        filename = config.get_path('obslist{0}.fits'.format(date_string))
         cols = np.rec.array(obsList,
                            names = ('TILEID  ',
                                     'RA      ',
@@ -192,12 +196,13 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
         # This file is to facilitate plotting
-        if os.path.exists('obslist_all.fits'):
-            obsListOld = Table.read('obslist_all.fits', format='fits')
+        all_path = config.get_path('obslist_all.fits')
+        if os.path.exists(all_path):
+            obsListOld = Table.read(all_path, format='fits')
             obsListNew = Table.read(filename, format='fits')
             obsListAll = vstack([obsListOld, obsListNew])
-            obsListAll.write('obslist_all.fits', format='fits', overwrite=True)
+            obsListAll.write(all_path, format='fits', overwrite=True)
         else:
-            copyfile(filename, 'obslist_all.fits')
+            copyfile(filename, all_path)
 
     return tilesObserved

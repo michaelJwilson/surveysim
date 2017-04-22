@@ -89,8 +89,9 @@ def main(args):
         log.info('Renamed obslist_all.fits to obslist_all_save.fits')
 
     # Set the output path if requested.
+    config = desisurvey.config.Configuration()
     if args.output_path is not None:
-        desisurvey.config.Configuration().set_output_path(args.output_path)
+        config.set_output_path(args.output_path)
 
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
@@ -103,6 +104,7 @@ def main(args):
         pass
 
     if args.save is not None:
+        args.save = config.get_path(args.save)
         log.info('Saving observed tiles to {0}'.format(args.save))
         simulator.tilesObserved.write(
             args.save, format='fits', overwrite=True)
