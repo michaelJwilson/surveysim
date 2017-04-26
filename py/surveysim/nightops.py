@@ -67,7 +67,8 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
     config = desisurvey.config.Configuration()
 
     nightOver = False
-    mjd = day_stats['MJDsunset']
+    # Start the night during bright twilight.
+    mjd = day_stats['brightdusk']
 
     if tableOutput:
         obsList = []
@@ -92,7 +93,8 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
 
         # Initialize a moon (alt, az) interpolator using the pre-tabulated
         # ephemerides for this night.
-        moon_pos = desisurvey.ephemerides.get_moon_interpolator(day_stats)
+        moon_pos = desisurvey.ephemerides.get_object_interpolator(
+            day_stats, 'moon', altaz=True)
 
         slew = False
         ra_prev = 1.0e99
@@ -109,7 +111,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                 # Compute mean to apparent to observed ra and dec???
                 airmass, tile_alt, tile_az = airMassCalculator(
                     target['RA'], target['DEC'], lst, return_altaz=True)
-                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['MoonFrac'], target['MoonDist'], target['MoonAlt'])
+                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['moon_illum_frac'], target['MoonDist'], target['MoonAlt'])
                 if exposure <= MaxExpLen:
                     status, real_exposure, real_sn2 = observeField(target, exposure)
                     real_exposure += ReadOutTime * np.floor(real_exposure/CRsplit)
@@ -125,7 +127,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                         t = Time(mjd, format = 'mjd')
                         tbase = str(t.isot)
                         obsList.append((target['tileID'],  target['RA'], target['DEC'], target['PASS'], target['Program'], target['Ebmv'],
-                                       target['maxLen'], target['MoonFrac'], target['MoonDist'], target['MoonAlt'], conditions['Seeing'], conditions['Transparency'],
+                                       target['maxLen'], target['moon_illum_frac'], target['MoonDist'], target['MoonAlt'], conditions['Seeing'], conditions['Transparency'],
                                        airmass, target['DESsn2'], target['Status'],
                                        target['Exposure'], target['obsSN2'], tbase, mjd))
                     else:
@@ -138,7 +140,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                         prihdr['PROGRAM '] = target['Program']
                         prihdr['EBMV    '] = target['Ebmv']
                         prihdr['MAXLEN  '] = target['maxLen']
-                        prihdr['MOONFRAC'] = target['MoonFrac']
+                        prihdr['MOONFRAC'] = target['moon_illum_frac']
                         prihdr['MOONDIST'] = target['MoonDist']
                         prihdr['MOONALT '] = target['MoonAlt']
                         prihdr['SEEING  '] = conditions['Seeing']
@@ -167,7 +169,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                 mjd += LSTres
                 slew = False
             # Check time
-            if mjd > day_stats['MJDsunrise']:
+            if mjd > day_stats['brightdawn']:
                 nightOver = True
 
     if tableOutput and len(obsList) > 0:

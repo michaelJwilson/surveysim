@@ -116,7 +116,7 @@ class Simulator(object):
 
             # Lookup today's ephemerides.
             today = self.ephem.get_night(date)
-            sunset = today['MJDsunset']
+            sunset = today['dusk']
             assert sunset > local_noon.mjd and sunset - local_noon.mjd < 1
 
             # Simulate a normal observing night.
