@@ -8,6 +8,8 @@ surveysim change log
 * Adds unit tests
 * removes data/tile-info.fits (not used here; was moved to desisurvey)
 * adds nightops.py (from desisurvey, used here but not there)
+* create surveysim command-line script
+* use new desisurvey config machinery
 
 0.3.1 (2016-12-21)
 ------------------
@@ -36,4 +38,3 @@ surveysim change log
 ---------------
 
 * No changes.rst yet
-
