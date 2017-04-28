@@ -1,4 +1,14 @@
 """Script wrapper for running survey simulations.
+
+To profile this script, use, for example::
+
+    import cProfile
+    import surveysim.scripts.surveysim as ssim
+    cProfile.run("ssim.main(ssim.parse(['--stop', '2019-08-30']))", filename='profile.out')
+
+    import pstats
+    p = pstats.Stats('profile.out')
+    p.sort_stats('time').print_stats(10)
 """
 from __future__ import print_function, division, absolute_import
 
@@ -56,16 +66,16 @@ def parse(options=None):
         try:
             args.start = datetime.datetime.strptime(args.start, '%Y-%m-%d').date()
         except ValueError as e:
-            raise ValueError('Invalid start-date: {0}'.format(e))
+            raise ValueError('Invalid start: {0}'.format(e))
     if args.stop is None:
         args.stop = config.last_day()
     else:
         try:
             args.stop = datetime.datetime.strptime(args.stop, '%Y-%m-%d').date()
         except ValueError as e:
-            raise ValueError('Invalid stop-date: {0}'.format(e))
+            raise ValueError('Invalid stop: {0}'.format(e))
     if args.start >= args.stop:
-        raise ValueError('Expected start-date < stop-date.')
+        raise ValueError('Expected start < stop.')
 
     if args.resume is not None and not os.path.exists(args.resume):
         raise ValueError('No resume file found: {0}'.format(args.resume))
