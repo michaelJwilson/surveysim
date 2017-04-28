@@ -91,11 +91,6 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                  .format(conditions['Seeing'], conditions['Transparency']) +
                  'cloud {0:.1f}%'.format(100 * conditions['Clouds']))
 
-        # Initialize a moon (alt, az) interpolator using the pre-tabulated
-        # ephemerides for this night.
-        moon_pos = desisurvey.ephemerides.get_object_interpolator(
-            day_stats, 'moon', altaz=True)
-
         slew = False
         ra_prev = 1.0e99
         dec_prev = 1.0e99
@@ -103,10 +98,9 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
             conditions = w.updateValues(conditions, mjd)
 
             lst = mjd2lst(mjd)
-            moon_alt, moon_az = moon_pos(mjd)
             target, setup_time = nextFieldSelector(
                 obsplan, mjd, conditions, tilesObserved, slew,
-                ra_prev, dec_prev, moon_alt, moon_az, use_jpl)
+                ra_prev, dec_prev, use_jpl)
             if target != None:
                 # Compute mean to apparent to observed ra and dec???
                 airmass, tile_alt, tile_az = airMassCalculator(

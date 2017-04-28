@@ -1,10 +1,19 @@
-import unittest, os, shutil, uuid
+from __future__ import print_function, division, absolute_import
+
+import datetime
+import unittest
+import os
+import shutil
+import uuid
+
 import numpy as np
+
 from astropy.table import Table
 from astropy import units
 from astropy.time import Time
+
 import desiutil.log
-import datetime
+import desisurvey.config
 
 
 class TestSurveySim(unittest.TestCase):
@@ -15,9 +24,13 @@ class TestSurveySim(unittest.TestCase):
         cls.testdir = os.path.abspath('./test-{}'.format(uuid.uuid4()))
         os.mkdir(cls.testdir)
         os.chdir(cls.testdir)
+        # Write all outputs to our test path.
+        cls.config = desisurvey.config.Configuration()
+        cls.config.set_output_path(cls.testdir)
 
     @classmethod
     def tearDownClass(cls):
+        cls.config.reset()
         os.chdir(cls.origdir)
         if os.path.exists(cls.testdir):
             shutil.rmtree(cls.testdir)
