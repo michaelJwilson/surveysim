@@ -5,7 +5,7 @@ import numpy as np
 
 import astropy.time
 
-from ..weather import Weather
+from ..weather import Weather, sample_gaussian_random_process
 
 
 class TestWeather(unittest.TestCase):
@@ -60,3 +60,33 @@ class TestWeather(unittest.TestCase):
         self.assertTrue(len(rows) == 5)
         for i in range(5):
             self.assertTrue(0. <= rows['transparency'][i] <= 1.)
+
+
+class TestGaussianProcess(unittest.TestCase):
+
+    def test_mean_sigma(self):
+        """A large sample should have close to the specified mean, sigma"""
+        n = 100000
+        gen = np.random.RandomState(seed=123)
+        x = sample_gaussian_random_process(n, mean=-1.5, sigma=2.5, gen=gen)
+        self.assertEqual(len(x), n)
+        self.assertTrue(-1.51 < np.mean(x) < -1.49)
+        self.assertTrue(np.std(x), 2.4 < np.std(x) < 2.6)
+
+    def test_same_seed(self):
+        """Same seed should give same samples"""
+        n = 1000
+        gen1 = np.random.RandomState(seed=123)
+        x1 = sample_gaussian_random_process(n, mean=-1.5, sigma=2.5, gen=gen1)
+        gen2 = np.random.RandomState(seed=123)
+        x2 = sample_gaussian_random_process(n, mean=-1.5, sigma=2.5, gen=gen2)
+        self.assertTrue(np.all(x1 == x2))
+
+    def test_different_seed(self):
+        """Different seeds should give different samples"""
+        n = 1000
+        gen1 = np.random.RandomState(seed=1)
+        x1 = sample_gaussian_random_process(n, mean=-1.5, sigma=2.5, gen=gen1)
+        gen2 = np.random.RandomState(seed=2)
+        x2 = sample_gaussian_random_process(n, mean=-1.5, sigma=2.5, gen=gen2)
+        self.assertTrue(not np.any(x1 == x2))
