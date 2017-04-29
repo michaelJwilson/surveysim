@@ -40,9 +40,6 @@ def parse(options=None):
         '--seed', type=int, default=123, metavar='N',
         help='random number seed for generating observing conditions')
     parser.add_argument(
-        '--use-jpl', action='store_true',
-        help='Use JPL Horizons to calculate ephemerides')
-    parser.add_argument(
         '--save', default='tiles-observed.fits', metavar='FILENAME',
         help='Name of FITS file where simulated observations are saved')
     parser.add_argument(
@@ -106,7 +103,7 @@ def main(args):
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
         args.start, args.stop, args.seed, tilesubset=None,
-        use_jpl=args.use_jpl, tile_file=args.resume)
+        tile_file=args.resume)
 
     # Simulate each night until the survey is complete or the last
     # day is reached.

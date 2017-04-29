@@ -45,7 +45,7 @@ class obsCount:
         return '{:08d}'.format(self.obsNumber)
 
 def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
-             tableOutput=True, use_jpl=False):
+             tableOutput=True):
     """
     Carries out observations during one night and writes the output to disk
 
@@ -100,7 +100,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
             lst = mjd2lst(mjd)
             target, setup_time = nextFieldSelector(
                 obsplan, mjd, conditions, tilesObserved, slew,
-                ra_prev, dec_prev, use_jpl)
+                ra_prev, dec_prev)
             if target != None:
                 # Compute mean to apparent to observed ra and dec???
                 airmass, tile_alt, tile_az = airMassCalculator(

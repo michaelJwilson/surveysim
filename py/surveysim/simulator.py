@@ -32,16 +32,13 @@ class Simulator(object):
     tilesubset : array or None
         Array of integer tileIDs to use while ignoring others
         in the DESI footprint.
-    use_jpl : bool
-        Which avoidobject to use: astropy+jplephem if True, else pyephem.
     tile_file : string or None
         Name of FITS file that specifies previously observed tiles.
         The survey will start from scratch when None.
     """
     def __init__(self, start_date, stop_date, seed=None, tilesubset=None,
-                 use_jpl=False, tile_file=None):
+                 tile_file=None):
         self.log = desiutil.log.get_logger()
-        self.use_jpl = use_jpl
 
         # Validate date range.
         self.num_days = (stop_date - start_date).days
@@ -126,7 +123,7 @@ class Simulator(object):
                 today, date_string, self.tilesObserved)
             self.tilesObserved = nightOps(
                 today, date_string, obsplan, self.w, self.ocnt,
-                self.tilesObserved, use_jpl=self.use_jpl)
+                self.tilesObserved)
             ntiles_tonight = len(self.tilesObserved)-ntodate
             self.tiles_todo -= ntiles_tonight
             self.log.info('Observed {0} tiles tonight, {1} remaining.'

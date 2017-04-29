@@ -45,7 +45,7 @@ class TestSurveySim(unittest.TestCase):
         from surveysim.simulator import Simulator
         start = datetime.date(2019,9,1)
         stop = datetime.date(2019,9,8)
-        sim = Simulator(start, stop, seed=123456, use_jpl=False)
+        sim = Simulator(start, stop, seed=123456)
         while sim.next_day():
             pass
 
