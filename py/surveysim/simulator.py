@@ -1,21 +1,27 @@
 """Top-level survey simulation manager.
 """
 from __future__ import print_function, division, absolute_import
-import numpy as np
+
 import os.path
 from shutil import copyfile
 import datetime
+
+import numpy as np
+
 from astropy.time import Time
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
 import astropy.units as u
 import astropy.time
-from surveysim.weather import weatherModule
+
+import desiutil.log
+
 from desisurvey.ephemerides import Ephemerides
 from desisurvey.afternoonplan import surveyPlan
 from surveysim.nightops import obsCount, nightOps
-import desiutil.log
 import desisurvey.utils
+
+import surveysim.weather
 
 
 class Simulator(object):
@@ -55,7 +61,8 @@ class Simulator(object):
                              self.ephem, tilesubset=tilesubset)
 
         # Initialize the survey weather conditions generator.
-        self.w = weatherModule(self.ephem.start.datetime, seed)
+        self.weather = surveysim.weather.Weather(
+            start_date, stop_date, seed=seed)
 
         # Resume a simulation using previously observed tiles, if requested.
         if tile_file is not None:
@@ -118,11 +125,10 @@ class Simulator(object):
 
             # Simulate a normal observing night.
             ntodate = len(self.tilesObserved)
-            self.w.resetDome(local_noon.datetime)
             obsplan = self.sp.afternoonPlan(
                 today, date_string, self.tilesObserved)
             self.tilesObserved = nightOps(
-                today, date_string, obsplan, self.w, self.ocnt,
+                today, date_string, obsplan, self.weather, self.ocnt,
                 self.tilesObserved)
             ntiles_tonight = len(self.tilesObserved)-ntodate
             self.tiles_todo -= ntiles_tonight

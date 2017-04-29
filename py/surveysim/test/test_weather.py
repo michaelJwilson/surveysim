@@ -28,14 +28,12 @@ class TestWeather(unittest.TestCase):
         """Weather should be identical with same seed"""
         w = Weather(self.w.start_date, self.w.stop_date, seed=123)
         for name in w._table.colnames:
-            print('testing', name)
             self.assertTrue(np.all(self.w._table[name] == w._table[name]))
 
     def test_different_seed(self):
         """Weather should be different with different seed"""
         w = Weather(self.w.start_date, self.w.stop_date, seed=1234)
         for name in w._table.colnames:
-            print('testing', name)
             self.assertTrue(name == 'mjd' or
                             np.any(self.w._table[name] != w._table[name]))
 
@@ -43,7 +41,6 @@ class TestWeather(unittest.TestCase):
         """The get() method should return nearest time in mjd column"""
         table = self.w._table
         t_step = table['mjd'][1] - table['mjd'][0]
-        print(t_step * 24 * 60.)
         dt = np.random.uniform(-0.49 * t_step, 0.49 * t_step, size=len(table))
         when = astropy.time.Time(table['mjd'] + dt, format='mjd')
         for i in range(1, len(table) - 1):
