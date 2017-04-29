@@ -12,3 +12,5 @@ nightstats.dat
 # Ignore all FITS files, except in py/surveysim/data/
 *.fits
 !py/surveysim/data/*.fits
+
+.cache

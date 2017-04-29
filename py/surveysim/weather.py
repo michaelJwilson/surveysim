@@ -139,24 +139,24 @@ class Weather(object):
 
         # Initialize column of MJD timestamps.
         t0 = desisurvey.utils.local_noon_on_date(start_date)
-        times = t0 + np.arange(num_rows) * time_step
-        self._table['mjd'] = times.mjd.astype(np.float32)
+        times = t0 + (np.arange(num_rows) / float(steps_per_day)) * u.day
+        self._table['mjd'] = times.mjd
 
         # Decide whether the dome is opened on each night.
         # We currently assume this is fixed for a whole night, but
         # tabulate the status at each time so that this could be
         # updated in future to simulate partial-night weather outages.
-        self._table['dome'] = np.ones(num_rows, bool)
+        self._table['open'] = np.ones(num_rows, bool)
         for i in range(num_nights):
             ij = i * steps_per_day
             month = times[ij].datetime.month
             if 100 * gen.uniform() < dome_closed_probability[month - 1]:
-                self._table['dome'][ij:ij + steps_per_day] = False
+                self._table['open'][ij:ij + steps_per_day] = False
 
         # Sample random seeing values.
         dt_days = 24 * 3600. / steps_per_day
         self._table['seeing'] = desimodel.seeing.sample(
-            num_rows, dt_days).astype(np.float32)
+            num_rows, dt_days, seed=seed).astype(np.float32)
 
         # Sample transparency as the lognormal transform of a Gaussian
         # random process.  Mean and sigma are copied from the original code.
@@ -169,6 +169,29 @@ class Weather(object):
         self.stop_date = stop_date
         self.num_nights = num_nights
         self.steps_per_day = steps_per_day
+
+    def get(self, time):
+        """Get the weather conditions at the specified time(s).
+
+        Returns the conditions at the closest tabulated time, rather than
+        using interpolation.
+
+        Parameters
+        ----------
+        time : astropy.time.Time
+
+        Returns
+        -------
+        table slice
+            Slice of precomputed table containing row(s) corresponding to the
+            requested time(s).
+        """
+        offset = np.floor(
+            (time.mjd - self._table['mjd'][0]) * self.steps_per_day + 0.5
+            ).astype(int)
+        if np.any(offset < 0) or np.any(offset > len(self._table)):
+            raise ValueError('Cannot get weather beyond tabulated range.')
+        return self._table[offset]
 
 
 class weatherModule:
