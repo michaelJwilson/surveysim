@@ -44,13 +44,13 @@ class obsCount:
         self.obsNumber += 1
         return '{:08d}'.format(self.obsNumber)
 
-def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
+def nightOps(night, date_string, obsplan, w, ocnt, tilesObserved,
              tableOutput=True):
     """
     Carries out observations during one night and writes the output to disk
 
     Args:
-        day_stats: row of tabulated ephmerides data for today
+        night: row of tabulated ephmerides data for this night
         date_string: string of the form YYYYMMDD
         obsplan: string, filename of today's afternoon plan
         w: dictionnary containing the following keys
@@ -68,7 +68,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
 
     nightOver = False
     # Start the night during bright twilight.
-    mjd = day_stats['brightdusk']
+    mjd = night['brightdusk']
 
     if tableOutput:
         obsList = []
@@ -105,7 +105,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                 # Compute mean to apparent to observed ra and dec???
                 airmass, tile_alt, tile_az = airMassCalculator(
                     target['RA'], target['DEC'], lst, return_altaz=True)
-                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['moon_illum_frac'], target['MoonDist'], target['MoonAlt'])
+                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], night['moon_illum_frac'], target['MoonDist'], target['MoonAlt'])
                 if exposure <= MaxExpLen:
                     status, real_exposure, real_sn2 = observeField(target, exposure)
                     real_exposure += ReadOutTime * np.floor(real_exposure/CRsplit)
@@ -163,7 +163,7 @@ def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
                 mjd += LSTres
                 slew = False
             # Check time
-            if mjd > day_stats['brightdawn']:
+            if mjd > night['brightdawn']:
                 nightOver = True
 
     if tableOutput and len(obsList) > 0:
