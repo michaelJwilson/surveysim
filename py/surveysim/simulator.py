@@ -2,25 +2,21 @@
 """
 from __future__ import print_function, division, absolute_import
 
-import os.path
-from shutil import copyfile
 import datetime
 
 import numpy as np
 
-from astropy.time import Time
-from astropy.table import Table, vstack
-import astropy.io.fits as pyfits
-import astropy.units as u
+import astropy.table
 import astropy.time
+import astropy.units as u
 
 import desiutil.log
 
-from desisurvey.ephemerides import Ephemerides
-from desisurvey.afternoonplan import surveyPlan
-from surveysim.nightops import obsCount, nightOps
+import desisurvey.ephemerides
+import desisurvey.afternoonplan
 import desisurvey.utils
 
+import surveysim.nightops
 import surveysim.weather
 
 
@@ -54,11 +50,13 @@ class Simulator(object):
         self.stop_date = stop_date
 
         # Tabulate sun and moon ephemerides for each night of the survey.
-        self.ephem = Ephemerides(start_date, stop_date, use_cache=True)
+        self.ephem = desisurvey.ephemerides.Ephemerides(
+            start_date, stop_date, use_cache=True)
 
         # Build the survey plan.
-        self.sp = surveyPlan(self.ephem.start.mjd, self.ephem.stop.mjd,
-                             self.ephem, tilesubset=tilesubset)
+        self.sp = desisurvey.afternoonplan.surveyPlan(
+            self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem,
+            tilesubset=tilesubset)
 
         # Initialize the survey weather conditions generator.
         self.weather = surveysim.weather.Weather(
@@ -72,12 +70,12 @@ class Simulator(object):
                       .format(len(tilesObserved)))
         else:
             self.log.info('Survey will start from scratch.')
-            tilesObserved = Table(
+            tilesObserved = astropy.table.Table(
                 names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
             tilesObserved.meta['MJDBEGIN'] = self.ephem.start.mjd
             start_val = 0
         self.tilesObserved = tilesObserved
-        self.ocnt = obsCount(start_val)
+        self.ocnt = surveysim.nightops.obsCount(start_val)
 
         self.day_index = 0
         self.survey_done = False
@@ -127,7 +125,7 @@ class Simulator(object):
             ntodate = len(self.tilesObserved)
             obsplan = self.sp.afternoonPlan(
                 today, date_string, self.tilesObserved)
-            self.tilesObserved = nightOps(
+            self.tilesObserved = surveysim.nightops.nightOps(
                 today, date_string, obsplan, self.weather, self.ocnt,
                 self.tilesObserved)
             ntiles_tonight = len(self.tilesObserved)-ntodate
