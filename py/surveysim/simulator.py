@@ -116,17 +116,15 @@ class Simulator(object):
             # Each day of observing starts at local noon.
             local_noon = desisurvey.utils.local_noon_on_date(date)
 
-            # Lookup today's ephemerides.
-            today = self.ephem.get_night(date)
-            sunset = today['dusk']
-            assert sunset > local_noon.mjd and sunset - local_noon.mjd < 1
+            # Lookup tonight's ephemerides.
+            night = self.ephem.get_night(date)
 
             # Simulate a normal observing night.
             ntodate = len(self.tilesObserved)
             obsplan = self.sp.afternoonPlan(
-                today, date_string, self.tilesObserved)
+                night, date_string, self.tilesObserved)
             self.tilesObserved = surveysim.nightops.nightOps(
-                today, date_string, obsplan, self.weather, self.ocnt,
+                night, date_string, obsplan, self.weather, self.ocnt,
                 self.tilesObserved)
             ntiles_tonight = len(self.tilesObserved)-ntodate
             self.tiles_todo -= ntiles_tonight
