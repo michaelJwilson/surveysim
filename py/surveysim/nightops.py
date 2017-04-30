@@ -10,11 +10,11 @@ import numpy as np
 import astropy.time
 import astropy.io.fits as pyfits
 from astropy.table import Table, vstack
+import astropy.units as u
 
 import desiutil.log
 
-from desisurvey.exposurecalc import expTimeEstimator, airMassCalculator
-from desisurvey.utils import mjd2lst
+from desisurvey.exposurecalc import expTimeEstimator
 from desisurvey.nextobservation import nextFieldSelector
 import desisurvey.ephemerides
 import desisurvey.config
@@ -26,6 +26,7 @@ LSTres = 1.0/144.0 # Should be the same as in afternoon planner and next field s
 MaxExpLen = 3600.0 # One hour
 CRsplit = 1200.0   # 20 minutes
 ReadOutTime = 120.0 # Should be the same as in next field selector
+
 
 class obsCount:
     """
@@ -48,6 +49,7 @@ class obsCount:
         """
         self.obsNumber += 1
         return '{:08d}'.format(self.obsNumber)
+
 
 def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
              tableOutput=True):
@@ -75,6 +77,7 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
     nightOver = False
     # Start the night during bright twilight.
     mjd = night['brightdusk']
+    time = astropy.time.Time(mjd, format='mjd')
 
     if tableOutput:
         obsList = []
@@ -82,7 +85,7 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
         os.mkdir(date_string)
 
     # Test if the weather permits the dome to open tonight.
-    if not weather.get(astropy.time.Time(mjd, format='mjd'))['open']:
+    if not weather.get(time)['open']:
         log.info('Bad weather forced the dome to remain shut for the night.')
         return tilesObserved
 
@@ -90,17 +93,17 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
     ra_prev = 1.0e99
     dec_prev = 1.0e99
     while nightOver == False:
-        conditions = weather.get(astropy.time.Time(mjd, format='mjd'))
+        # Get the current weather conditions.
+        conditions = weather.get(time)
         seeing, transparency = conditions['seeing'], conditions['transparency']
-
-        lst = mjd2lst(mjd)
+        # Select the next target to observe.
         target, setup_time = nextFieldSelector(
-            obsplan, mjd, conditions, tilesObserved, slew,
-            ra_prev, dec_prev)
+            obsplan, mjd, conditions, tilesObserved, slew, ra_prev, dec_prev)
         if target != None:
-            # Compute mean to apparent to observed ra and dec???
-            airmass, tile_alt, tile_az = airMassCalculator(
-                target['RA'], target['DEC'], lst, return_altaz=True)
+            # Calculate the target's airmass.
+            airmass = desisurvey.utils.get_airmass(
+                time, target['RA'] * u.deg, target['DEC'] * u.deg)
+            # Calculate the nominal exposure time required for this target.
             exposure = expTimeEstimator(
                 seeing, transparency, airmass, target['Program'], target['Ebmv'],
                 target['DESsn2'], night['moon_illum_frac'], target['MoonDist'],
