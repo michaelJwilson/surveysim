@@ -51,8 +51,7 @@ class obsCount:
         return '{:08d}'.format(self.obsNumber)
 
 
-def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
-             tableOutput=True):
+def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved):
     """
     Carries out observations during one night and writes the output to disk
 
@@ -65,8 +64,6 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
            'Seeing', 'Transparency', 'OpenDome', 'Clouds'
         ocnt: obsCount object
         tilesObserved: table with follwing columns: tileID, status
-        tableOutput: bool, if True writes a table of all the night's observations
-                     instead of one file per observation.
 
     Returns:
         Updated tilesObserved table
@@ -79,10 +76,7 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
     mjd = night['brightdusk']
     time = astropy.time.Time(mjd, format='mjd')
 
-    if tableOutput:
-        obsList = []
-    else:
-        os.mkdir(date_string)
+    obsList = []
 
     # Test if the weather permits the dome to open tonight.
     if not weather.get(time)['open']:
@@ -119,43 +113,13 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
                 slew = True
                 ra_prev = target['RA']
                 dec_prev = target['DEC']
-                if tableOutput:
-                    t = astropy.time.Time(mjd, format = 'mjd')
-                    tbase = str(t.isot)
-                    obsList.append((target['tileID'],  target['RA'], target['DEC'], target['PASS'], target['Program'], target['Ebmv'],
-                                   target['maxLen'], target['moon_illum_frac'], target['MoonDist'], target['MoonAlt'], conditions['seeing'], conditions['transparency'],
-                                   airmass, target['DESsn2'], target['Status'],
-                                   target['Exposure'], target['obsSN2'], tbase, mjd))
-                else:
-                    # Output headers, but no data.
-                    # In the future: GFAs (i, x, y + metadata for i=id, time, postagestampid) and fiber positions.
-                    prihdr = pyfits.Header()
-                    prihdr['TILEID  '] = target['tileID']
-                    prihdr['RA      '] = target['RA']
-                    prihdr['DEC     '] = target['DEC']
-                    prihdr['PROGRAM '] = target['Program']
-                    prihdr['EBMV    '] = target['Ebmv']
-                    prihdr['MAXLEN  '] = target['maxLen']
-                    prihdr['MOONFRAC'] = target['moon_illum_frac']
-                    prihdr['MOONDIST'] = target['MoonDist']
-                    prihdr['MOONALT '] = target['MoonAlt']
-                    prihdr['SEEING  '] = conditions['seeing']
-                    prihdr['LINTRANS'] = conditions['transparency']
-                    prihdr['AIRMASS '] = airmass
-                    prihdr['DESSN2  '] = target['DESsn2']
-                    prihdr['STATUS  '] = target['Status']
-                    prihdr['EXPTIME '] = target['Exposure']
-                    prihdr['OBSSN2  '] = target['obsSN2']
-                    t = astropy.time.Time(mjd, format = 'mjd')
-                    tbase = str(t.isot)
-                    nt = len(tbase)
-                    prihdr['DATE-OBS'] = tbase
-                    prihdr['MJD     '] = mjd
-                    filename = config.get_path(
-                        '{0}/desi-exp-{1}.fits'
-                        .format(date_string, ocnt.update()))
-                    prihdu = pyfits.PrimaryHDU(header=prihdr)
-                    prihdu.writeto(filename, clobber=True)
+                # Prepare output table.
+                t = astropy.time.Time(mjd, format = 'mjd')
+                tbase = str(t.isot)
+                obsList.append((target['tileID'],  target['RA'], target['DEC'], target['PASS'], target['Program'], target['Ebmv'],
+                               target['maxLen'], target['moon_illum_frac'], target['MoonDist'], target['MoonAlt'], conditions['seeing'], conditions['transparency'],
+                               airmass, target['DESsn2'], target['Status'],
+                               target['Exposure'], target['obsSN2'], tbase, mjd))
             else:
                 # Try another target?
                 # Observe longer split into modulo(max_len)
@@ -168,7 +132,7 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved,
         if mjd > night['brightdawn']:
             nightOver = True
 
-    if tableOutput and len(obsList) > 0:
+    if len(obsList) > 0:
         filename = config.get_path('obslist{0}.fits'.format(date_string))
         cols = np.rec.array(obsList,
                            names = ('TILEID  ',
