@@ -19,6 +19,7 @@ import os
 import desiutil.log
 
 import desisurvey.config
+import desisurvey.progress
 
 import surveysim.simulator
 
@@ -40,7 +41,7 @@ def parse(options=None):
         '--seed', type=int, default=123, metavar='N',
         help='random number seed for generating observing conditions')
     parser.add_argument(
-        '--save', default='tiles-observed.fits', metavar='FILENAME',
+        '--save', default='progress.fits', metavar='FILENAME',
         help='Name of FITS file where simulated observations are saved')
     parser.add_argument(
         '--resume', default=None, metavar='FILENAME',
@@ -100,20 +101,20 @@ def main(args):
     if args.output_path is not None:
         config.set_output_path(args.output_path)
 
+    # Initialize the survey progress for this simulation.
+    progress = desisurvey.progress.Progress(args.resume)
+
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
-        args.start, args.stop, args.seed, tilesubset=None,
-        tile_file=args.resume)
+        args.start, args.stop, progress, args.seed)
 
     # Simulate each night until the survey is complete or the last
     # day is reached.
     while simulator.next_day():
         pass
 
-    if args.save is not None:
-        args.save = config.get_path(args.save)
-        log.info('Saving observed tiles to {0}'.format(args.save))
-        simulator.tilesObserved.write(
-            args.save, format='fits', overwrite=True)
+    # Save the survey progress after the simulation.
+    args.save = config.get_path(args.save)
+    progress.save(args.save)
 
     return 0

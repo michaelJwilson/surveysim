@@ -29,17 +29,12 @@ class Simulator(object):
         Survey starts on the evening of this date.
     stop_date : datetime.date
         Survey stops on the morning of this date.
+    progress : desisurvey.progress.Progress
+        Progress of survey at the start of this simulation.
     seed : int or None
         Random number seed used to generate weather conditions.
-    tilesubset : array or None
-        Array of integer tileIDs to use while ignoring others
-        in the DESI footprint.
-    tile_file : string or None
-        Name of FITS file that specifies previously observed tiles.
-        The survey will start from scratch when None.
     """
-    def __init__(self, start_date, stop_date, seed=None, tilesubset=None,
-                 tile_file=None):
+    def __init__(self, start_date, stop_date, progress, seed=20190823):
         self.log = desiutil.log.get_logger()
 
         # Validate date range.
@@ -55,35 +50,19 @@ class Simulator(object):
 
         # Build the survey plan.
         self.sp = desisurvey.afternoonplan.surveyPlan(
-            self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem,
-            tilesubset=tilesubset)
+            self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem)
 
         # Initialize the survey weather conditions generator.
         self.weather = surveysim.weather.Weather(
             start_date, stop_date, seed=seed)
 
-        # Resume a simulation using previously observed tiles, if requested.
-        if tile_file is not None:
-            tilesObserved = Table.read(tile_file)
-            start_val = len(tilesObserved)+1
-            self.log.info('Survey will resume after observing {0} tiles.'
-                      .format(len(tilesObserved)))
-        else:
-            self.log.info('Survey will start from scratch.')
-            tilesObserved = astropy.table.Table(
-                names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
-            tilesObserved.meta['MJDBEGIN'] = self.ephem.start.mjd
-            start_val = 0
-        self.tilesObserved = tilesObserved
-        self.ocnt = surveysim.nightops.obsCount(start_val)
-
         self.day_index = 0
         self.survey_done = False
-        self.tiles_todo = self.sp.numtiles
+        self.completed = progress.completed()
+        self.progress = progress
         self.log.info(
-            'Simulator initialized for {0} to {1} with {2} tiles remaining.'
-            .format(start_date, stop_date, self.tiles_todo))
-
+            'Will simulate {0} to {1} with {2:.1f} / {3} tiles completed.'
+            .format(start_date, stop_date, self.completed, progress.num_tiles))
 
     def next_day(self):
         """Simulate the next day of survey operations.
@@ -119,18 +98,20 @@ class Simulator(object):
             # Lookup tonight's ephemerides.
             night = self.ephem.get_night(date)
 
-            # Simulate a normal observing night.
-            ntodate = len(self.tilesObserved)
-            obsplan = self.sp.afternoonPlan(
-                night, date_string, self.tilesObserved)
+            # Create the afternoon plan.
+            obsplan = self.sp.afternoonPlan(night, date_string, self.progress)
+
+            # Simulate tonight's observing.
             self.tilesObserved = surveysim.nightops.nightOps(
-                night, date_string, obsplan, self.weather, self.ocnt,
-                self.tilesObserved)
-            ntiles_tonight = len(self.tilesObserved)-ntodate
-            self.tiles_todo -= ntiles_tonight
-            self.log.info('Observed {0} tiles tonight, {1} remaining.'
-                          .format(ntiles_tonight, self.tiles_todo))
-            if (self.sp.numtiles - len(self.tilesObserved)) == 0:
+                night, date_string, obsplan, self.weather, self.progress)
+
+            completed = self.progress.completed()
+            self.log.info(
+                'Completed {0:.1f} tiles tonight, {1:.1f} remaining.'
+                .format(completed - self.completed,
+                        self.progress.num_tiles - completed))
+            self.completed = completed
+            if completed == self.progress.num_tiles:
                 self.survey_done = True
 
         self.day_index += 1

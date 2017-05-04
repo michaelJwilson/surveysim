@@ -19,8 +19,6 @@ from desisurvey.nextobservation import nextFieldSelector
 import desisurvey.ephemerides
 import desisurvey.config
 
-from surveysim.observefield import observeField
-
 
 LSTres = 1.0/144.0 # Should be the same as in afternoon planner and next field selector
 MaxExpLen = 3600.0 # One hour
@@ -51,7 +49,7 @@ class obsCount:
         return '{:08d}'.format(self.obsNumber)
 
 
-def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved):
+def nightOps(night, date_string, obsplan, weather, progress):
     """
     Carries out observations during one night and writes the output to disk
 
@@ -60,111 +58,73 @@ def nightOps(night, date_string, obsplan, weather, ocnt, tilesObserved):
         date_string: string of the form YYYYMMDD
         obsplan: string, filename of today's afternoon plan
         weather: surveysim.weather.Weather object
-        w: dictionnary containing the following keys
-           'Seeing', 'Transparency', 'OpenDome', 'Clouds'
-        ocnt: obsCount object
-        tilesObserved: table with follwing columns: tileID, status
-
-    Returns:
-        Updated tilesObserved table
+        progress: survey progress so far, will be updated for any observations
+            taken this night.
     """
     log = desiutil.log.get_logger()
     config = desisurvey.config.Configuration()
 
-    nightOver = False
     # Start the night during bright twilight.
     mjd = night['brightdusk']
     time = astropy.time.Time(mjd, format='mjd')
 
-    obsList = []
-
     # Test if the weather permits the dome to open tonight.
     if not weather.get(time)['open']:
         log.info('Bad weather forced the dome to remain shut for the night.')
-        return tilesObserved
+        return
 
     slew = False
     ra_prev = 1.0e99
     dec_prev = 1.0e99
-    while nightOver == False:
+    while mjd < night['brightdawn']:
         # Get the current weather conditions.
         conditions = weather.get(time)
         seeing, transparency = conditions['seeing'], conditions['transparency']
         # Select the next target to observe.
-        target, setup_time = nextFieldSelector(
-            obsplan, mjd, conditions, tilesObserved, slew, ra_prev, dec_prev)
-        if target != None:
-            # Calculate the target's airmass.
-            airmass = desisurvey.utils.get_airmass(
-                time, target['RA'] * u.deg, target['DEC'] * u.deg)
-            # Calculate the nominal exposure time required for this target.
-            exposure = expTimeEstimator(
-                seeing, transparency, airmass, target['Program'], target['Ebmv'],
-                target['DESsn2'], night['moon_illum_frac'], target['MoonDist'],
-                target['MoonAlt'])
-            if exposure <= MaxExpLen:
-                status, real_exposure, real_sn2 = observeField(target, exposure)
-                real_exposure += ReadOutTime * np.floor(real_exposure/CRsplit)
-                target['Status'] = status
-                target['Exposure'] = real_exposure
-                target['obsSN2'] = real_sn2
-                mjd += (setup_time + real_exposure)/86400.0
-                tilesObserved.add_row([target['tileID'], status])
-                slew = True
-                ra_prev = target['RA']
-                dec_prev = target['DEC']
-                # Prepare output table.
-                t = astropy.time.Time(mjd, format = 'mjd')
-                tbase = str(t.isot)
-                obsList.append((target['tileID'],  target['RA'], target['DEC'], target['PASS'], target['Program'], target['Ebmv'],
-                               target['maxLen'], target['moon_illum_frac'], target['MoonDist'], target['MoonAlt'], conditions['seeing'], conditions['transparency'],
-                               airmass, target['DESsn2'], target['Status'],
-                               target['Exposure'], target['obsSN2'], tbase, mjd))
-            else:
-                # Try another target?
-                # Observe longer split into modulo(max_len)
-                mjd += LSTres
-                slew = False # Can slew to new target while waiting.
-        else:
+        target, overhead = nextFieldSelector(
+            obsplan, mjd, conditions, progress, slew, ra_prev, dec_prev)
+        if target is None:
+            # Wait until a target is available.
             mjd += LSTres
             slew = False
-        # Check time
-        if mjd > night['brightdawn']:
-            nightOver = True
-
-    if len(obsList) > 0:
-        filename = config.get_path('obslist{0}.fits'.format(date_string))
-        cols = np.rec.array(obsList,
-                           names = ('TILEID  ',
-                                    'RA      ',
-                                    'DEC     ',
-                                    'PASS    ',
-                                    'PROGRAM ',
-                                    'EBMV    ',
-                                    'MAXLEN  ',
-                                    'MOONFRAC',
-                                    'MOONDIST',
-                                    'MOONALT ',
-                                    'SEEING  ',
-                                    'LINTRANS',
-                                    'AIRMASS ',
-                                    'DESSN2  ',
-                                    'STATUS  ',
-                                    'EXPTIME ',
-                                    'OBSSN2  ',
-                                    'DATE-OBS',
-                                    'MJD     '),
-                            formats = ['i4', 'f8', 'f8', 'i4', 'a8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24', 'f8'])
-        tbhdu = pyfits.BinTableHDU.from_columns(cols)
-        tbhdu.writeto(filename, clobber=True)
-        # This file is to facilitate plotting
-        all_path = config.get_path('obslist_all.fits')
-        if os.path.exists(all_path):
-            obsListOld = Table.read(all_path, format='fits')
-            obsListNew = Table.read(filename, format='fits')
-            obsListAll = vstack([obsListOld, obsListNew])
-            obsListAll.write(all_path, format='fits', overwrite=True)
-        else:
-            copyfile(filename, all_path)
-
-    return tilesObserved
+            continue
+        log.debug('Selected {0} tile {1} at MJD {2:.5f} with {3:.1f}s overhead.'
+                  .format(target['Program'], target['tileID'], mjd, overhead))
+        # Calculate the target's airmass.
+        airmass = desisurvey.utils.get_airmass(
+            time, target['RA'] * u.deg, target['DEC'] * u.deg)
+        # Calculate the nominal total exposure time required for this
+        # target under the current observing conditions.
+        total_exptime = expTimeEstimator(
+            seeing, transparency, airmass, target['Program'], target['Ebmv'],
+            target['DESsn2'], night['moon_illum_frac'], target['MoonDist'],
+            target['MoonAlt'])
+        # Calculate the target exposure time for this observation.
+        # Should account for previous exposure time of partial targets here.
+        target_exptime = total_exptime
+        # Is this target worth observing now?
+        if target_exptime > MaxExpLen:
+            log.debug('Best target requires {0:.1f}s exposure.  Waiting...'
+                      .format(target_exptime))
+            mjd += LSTres
+            slew = False # Can slew to new target while waiting.
+            continue
+        # Add some random jitter to the actual exposure time. This
+        # should use the same generator as the weather!
+        #exptime = target_exptime + np.random.normal(0.0, 20.0)
+        exptime = target_exptime
+        # Determine what fraction of the SNR target we have reached with
+        # this exposure.
+        snrfrac = exptime / total_exptime
+        # Record this exposure.
+        progress.add_exposure(
+            target['tileID'], mjd, exptime, snrfrac, airmass, seeing)
+        assert progress.get_tile(target['tileID'])['status'] == 2
+        # Add extra readout time for cosmic-ray splits, if necessary.
+        overhead += ReadOutTime * np.floor(exptime / CRsplit)
+        # Prepare for the next exposure.
+        mjd += (overhead + exptime)/86400.0
+        ##tilesObserved.add_row([target['tileID'], status])
+        slew = True
+        ra_prev = target['RA']
+        dec_prev = target['DEC']
