@@ -26,29 +26,6 @@ CRsplit = 1200.0   # 20 minutes
 ReadOutTime = 120.0 # Should be the same as in next field selector
 
 
-class obsCount:
-    """
-    Counter for observation number.  In real operations, each observation
-    will have its own file with its number as part of the filename.
-    """
-
-    def __init__(self, start_val=0):
-        """
-        Initialise the counter to zero
-        """
-        self.obsNumber = start_val
-
-    def update(self):
-        """
-        Adds 1 to the counter
-
-        Returns:
-            string containing the part of the filename with the observation number
-        """
-        self.obsNumber += 1
-        return '{:08d}'.format(self.obsNumber)
-
-
 def nightOps(night, date_string, obsplan, weather, progress):
     """
     Carries out observations during one night and writes the output to disk
