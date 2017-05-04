@@ -92,10 +92,6 @@ class Simulator(object):
             self.log.info('No observing during full moon.')
         else:
 
-            # Prepare a date string YYYYMMDD to use in filenames.
-            date_string = '{y:04d}{m:02d}{d:02d}'.format(
-                y=date.year, m=date.month, d=date.day)
-
             # Each day of observing starts at local noon.
             local_noon = desisurvey.utils.local_noon_on_date(date)
 
@@ -103,11 +99,11 @@ class Simulator(object):
             night = self.ephem.get_night(date)
 
             # Create the afternoon plan.
-            obsplan = self.sp.afternoonPlan(night, date_string, self.progress)
+            obsplan = self.sp.afternoonPlan(night, self.progress)
 
             # Simulate tonight's observing.
             self.tilesObserved = surveysim.nightops.nightOps(
-                night, date_string, obsplan, self.weather, self.progress)
+                night, obsplan, self.weather, self.progress)
 
             completed = self.progress.completed()
             self.log.info(

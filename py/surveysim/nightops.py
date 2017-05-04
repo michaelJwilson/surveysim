@@ -19,7 +19,7 @@ CRsplit = 1200.0   # 20 minutes
 ReadOutTime = 120.0 # Should be the same as in next field selector
 
 
-def nightOps(night, date_string, obsplan, weather, progress):
+def nightOps(night, obsplan, weather, progress):
     """Simulate one night of observing.
 
     Use an afternoon plan, ephemerides, and simulated weather to
@@ -31,8 +31,6 @@ def nightOps(night, date_string, obsplan, weather, progress):
         Row of tabulated ephemerides for this night, normally
         obtained with
         :meth:`desisurvey.ephemerides.Ephemerides.get_night`.
-    date_string : string
-        String of the form YYYYMMDD (unused).
     obsplan : string
         Name of the file containing today's afternoon plan.
     weather : surveysim.weather.Weather
