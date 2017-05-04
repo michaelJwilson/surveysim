@@ -49,7 +49,7 @@ def sample_gaussian_random_process(
     tau2 : float
         Time constant associated with the autocorrelation power spectral
         density, in units of days.
-    gen : numpy.random.RandomState or None
+    gen : numpy.random.RandomState
         Random number generator to use for reproducible samples.
 
     Returns
@@ -59,9 +59,6 @@ def sample_gaussian_random_process(
     """
     if n_sample < 2:
         raise ValueError('n_sample must be at least 2.')
-
-    if gen is None:
-        gen = np.random.RandomState()
 
     # Build a linear grid of frequencies present in the Fourier transform
     # of the requested time series.  Frequency units are 1/day.
@@ -108,14 +105,18 @@ class Weather(object):
         config parameter if None (the default).
     time_step : astropy.units.Quantity
         Time step for calculating updates. Must evenly divide 24 hours.
-    seed : int or None
-        Random number seed to use for simulating random processes.
+    gen : numpy.random.RandomState or None
+        Random number generator to use for reproducible samples. Will be
+        initialized (un-reproducibly) if None.
     """
     def __init__(self, start_date=None, stop_date=None, time_step=5 * u.min,
-                 seed=123):
+                 gen=None):
         self.log = desiutil.log.get_logger()
         config = desisurvey.config.Configuration()
-        gen = np.random.RandomState(seed)
+
+        if gen is None:
+            self.log.warn('Will generate unreproducible random numbers.')
+            gen = np.random.RandomState()
 
         # Use our config to set any unspecified dates.
         if start_date is None:
@@ -155,8 +156,10 @@ class Weather(object):
 
         # Sample random seeing values.
         dt_days = 24 * 3600. / steps_per_day
+        # It would be better if we could pass our gen to seeing.sample().
+        seeing_seed = gen.randint(2 ** 31)
         self._table['seeing'] = desimodel.seeing.sample(
-            num_rows, dt_days, seed=seed).astype(np.float32)
+            num_rows, dt_days, seed=seeing_seed).astype(np.float32)
 
         # Sample transparency as the lognormal transform of a Gaussian
         # random process.  Mean and sigma are copied from the original code.

@@ -52,9 +52,13 @@ class Simulator(object):
         self.sp = desisurvey.afternoonplan.surveyPlan(
             self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem)
 
+        # Initialize the random number generator to use for simulating
+        # the weather and adding jitter to exposure times.
+        self.gen = np.random.RandomState(seed)
+
         # Initialize the survey weather conditions generator.
         self.weather = surveysim.weather.Weather(
-            start_date, stop_date, seed=seed)
+            start_date, stop_date, gen=self.gen)
 
         self.day_index = 0
         self.survey_done = False
