@@ -1,21 +1,14 @@
-#! /usr/bin/python
 from __future__ import print_function, division, absolute_import
-
-from datetime import datetime, timedelta
-import os
-from shutil import copyfile
 
 import numpy as np
 
 import astropy.time
-import astropy.io.fits as pyfits
-from astropy.table import Table, vstack
 import astropy.units as u
 
 import desiutil.log
 
-from desisurvey.exposurecalc import expTimeEstimator
-from desisurvey.nextobservation import nextFieldSelector
+import desisurvey.exposurecalc
+import desisurvey.nextobservation
 import desisurvey.ephemerides
 import desisurvey.config
 
@@ -68,7 +61,7 @@ def nightOps(night, date_string, obsplan, weather, progress):
         conditions = weather.get(time)
         seeing, transparency = conditions['seeing'], conditions['transparency']
         # Select the next target to observe.
-        target, overhead = nextFieldSelector(
+        target, overhead = desisurvey.nextobservation.nextFieldSelector(
             obsplan, mjd, conditions, progress, slew, ra_prev, dec_prev)
         if target is None:
             # Wait until a target is available.
@@ -82,7 +75,7 @@ def nightOps(night, date_string, obsplan, weather, progress):
             time, target['RA'] * u.deg, target['DEC'] * u.deg)
         # Calculate the nominal total exposure time required for this
         # target under the current observing conditions.
-        total_exptime = expTimeEstimator(
+        total_exptime = desisurvey.exposurecalc.expTimeEstimator(
             seeing, transparency, airmass, target['Program'], target['Ebmv'],
             target['DESsn2'], night['moon_illum_frac'], target['MoonDist'],
             target['MoonAlt'])
