@@ -27,16 +27,26 @@ ReadOutTime = 120.0 # Should be the same as in next field selector
 
 
 def nightOps(night, date_string, obsplan, weather, progress):
-    """
-    Carries out observations during one night and writes the output to disk
+    """Simulate one night of observing.
 
-    Args:
-        night: row of tabulated ephmerides data for this night
-        date_string: string of the form YYYYMMDD
-        obsplan: string, filename of today's afternoon plan
-        weather: surveysim.weather.Weather object
-        progress: survey progress so far, will be updated for any observations
-            taken this night.
+    Use an afternoon plan, ephemerides, and simulated weather to
+    schedule the observations and update the survey progress.
+
+    Parameters
+    ----------
+    night : astropy.table.Row
+        Row of tabulated ephemerides for this night, normally
+        obtained with
+        :meth:`desisurvey.ephemerides.Ephemerides.get_night`.
+    date_string : string
+        String of the form YYYYMMDD (unused).
+    obsplan : string
+        Name of the file containing today's afternoon plan.
+    weather : surveysim.weather.Weather
+        Simulated weather conditions to use.
+    progress : desisurvey.progress.Progress
+        Survey progress so far, that will be updated for any
+        observations taken this night.
     """
     log = desiutil.log.get_logger()
     config = desisurvey.config.Configuration()

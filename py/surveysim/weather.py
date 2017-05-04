@@ -179,12 +179,13 @@ class Weather(object):
         Parameters
         ----------
         time : astropy.time.Time
+            Time(s) when the simulated weather is requested.
 
         Returns
         -------
         table slice
-            Slice of precomputed table containing row(s) corresponding to the
-            requested time(s).
+            Slice of precomputed table containing row(s) corresponding
+            to the requested time(s).
         """
         offset = np.floor(
             (time.mjd - self._table['mjd'][0]) * self.steps_per_day + 0.5

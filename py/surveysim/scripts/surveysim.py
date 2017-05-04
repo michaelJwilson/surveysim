@@ -1,5 +1,9 @@
 """Script wrapper for running survey simulations.
 
+To run this script from the command line, use the ``surveysim``
+entry point that is created when this package is installed, and
+should be in your shell command search path.
+
 To profile this script, use, for example::
 
     import cProfile

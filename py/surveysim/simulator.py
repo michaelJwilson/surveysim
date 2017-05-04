@@ -67,9 +67,9 @@ class Simulator(object):
     def next_day(self):
         """Simulate the next day of survey operations.
 
-        A day runs from local noon to local noon. A survey ends, with this
-        method returning False, when either we reach the last scheduled day or
-        else we run out of tiles to observe.
+        A day runs from local noon to local noon. A survey ends, with
+        this method returning False, when either we reach the last
+        scheduled day or else we run out of tiles to observe.
 
         Returns
         -------
