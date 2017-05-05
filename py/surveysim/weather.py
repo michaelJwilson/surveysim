@@ -1,3 +1,5 @@
+"""Simulate weather conditions affecting observations.
+"""
 from __future__ import print_function, division, absolute_import
 
 from datetime import datetime
