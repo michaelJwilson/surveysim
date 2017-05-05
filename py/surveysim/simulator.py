@@ -102,8 +102,8 @@ class Simulator(object):
             obsplan = self.sp.afternoonPlan(night, self.progress)
 
             # Simulate tonight's observing.
-            self.tilesObserved = surveysim.nightops.nightOps(
-                night, obsplan, self.weather, self.progress)
+            surveysim.nightops.nightOps(
+                night, obsplan, self.weather, self.progress, self.gen)
 
             completed = self.progress.completed()
             self.log.info(

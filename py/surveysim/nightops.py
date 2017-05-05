@@ -19,7 +19,7 @@ CRsplit = 1200.0   # 20 minutes
 ReadOutTime = 120.0 # Should be the same as in next field selector
 
 
-def nightOps(night, obsplan, weather, progress):
+def nightOps(night, obsplan, weather, progress, gen):
     """Simulate one night of observing.
 
     Use an afternoon plan, ephemerides, and simulated weather to
@@ -38,6 +38,8 @@ def nightOps(night, obsplan, weather, progress):
     progress : desisurvey.progress.Progress
         Survey progress so far, that will be updated for any
         observations taken this night.
+    gen : numpy.random.RandomState
+        Random number generator to use for reproducible samples.
     """
     log = desiutil.log.get_logger()
     config = desisurvey.config.Configuration()
@@ -87,22 +89,18 @@ def nightOps(night, obsplan, weather, progress):
             mjd += LSTres
             slew = False # Can slew to new target while waiting.
             continue
-        # Add some random jitter to the actual exposure time. This
-        # should use the same generator as the weather!
-        #exptime = target_exptime + np.random.normal(0.0, 20.0)
-        exptime = target_exptime
+        # Add random jitter with 10% RMS to the actual exposure time.
+        exptime = target_exptime * (1 + gen.normal(scale=0.1))
         # Determine what fraction of the SNR target we have reached with
         # this exposure.
         snrfrac = exptime / total_exptime
         # Record this exposure.
         progress.add_exposure(
             target['tileID'], mjd, exptime, snrfrac, airmass, seeing)
-        assert progress.get_tile(target['tileID'])['status'] == 2
         # Add extra readout time for cosmic-ray splits, if necessary.
         overhead += ReadOutTime * np.floor(exptime / CRsplit)
         # Prepare for the next exposure.
         mjd += (overhead + exptime)/86400.0
-        ##tilesObserved.add_row([target['tileID'], status])
         slew = True
         ra_prev = target['RA']
         dec_prev = target['DEC']
