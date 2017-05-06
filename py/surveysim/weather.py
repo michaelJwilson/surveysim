@@ -138,7 +138,9 @@ class Weather(object):
 
         # Calculate the number of times where we will tabulate the weather.
         num_rows = num_nights * steps_per_day
-        self._table = astropy.table.Table()
+        meta = dict(START=str(start_date), STOP=str(stop_date),
+                    NIGHTS=num_nights, STEPS=steps_per_day)
+        self._table = astropy.table.Table(meta=meta)
 
         # Initialize column of MJD timestamps.
         t0 = desisurvey.utils.local_noon_on_date(start_date)
@@ -174,6 +176,26 @@ class Weather(object):
         self.stop_date = stop_date
         self.num_nights = num_nights
         self.steps_per_day = steps_per_day
+
+    def save(self, filename, overwrite=True):
+        """Save the generated weather to a file.
+
+        There is currently no mechanism to restore a saved weather table, so
+        this method is primarily intended for making offline plots.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file where the weather should be saved. A
+            relative path name refers to the :meth:`configuration output path
+            <desisurvey.config.Configuration.get_path>`.
+        overwrite : bool
+            Silently overwrite any existing file when this is True.
+        """
+        config = desisurvey.config.Configuration()
+        filename = config.get_path(filename)
+        self._table.write(filename, overwrite=overwrite)
+        self.log.info('Saved weather to {0}.'.format(filename))
 
     def get(self, time):
         """Get the weather conditions at the specified time(s).

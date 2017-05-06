@@ -117,6 +117,9 @@ def main(args):
     simulator = surveysim.simulator.Simulator(
         args.start, args.stop, progress, args.seed)
 
+    # Save simulated weather conditions.
+    simulator.weather.save(config.get_path('weather.fits'))
+
     # Simulate each night until the survey is complete or the last
     # day is reached.
     while simulator.next_day():
