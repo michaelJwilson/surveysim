@@ -75,10 +75,10 @@ def nightOps(night, obsplan, weather, progress, gen):
             time, target['RA'] * u.deg, target['DEC'] * u.deg)
         # Calculate the nominal total exposure time required for this
         # target under the current observing conditions.
-        total_exptime = desisurvey.exposurecalc.expTimeEstimator(
-            seeing, transparency, airmass, target['Program'], target['Ebmv'],
+        total_exptime = desisurvey.exposurecalc.exposure_time(
+            target['Program'], seeing, transparency, airmass, target['Ebmv'],
             night['moon_illum_frac'], target['MoonDist'],
-            target['MoonAlt']) * u.s
+            target['MoonAlt'])
         # Calculate the target exposure time for this observation.
         # Should account for previous exposure time of partial targets here.
         target_exptime = total_exptime
