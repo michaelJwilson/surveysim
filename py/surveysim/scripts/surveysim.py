@@ -33,8 +33,10 @@ def parse(options=None):
     """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-v', '--verbose', action='store_true',
-        help='provide verbose output on progress')
+    parser.add_argument('--verbose', action='store_true',
+        help='display log messages with severity >= info')
+    parser.add_argument('--debug', action='store_true',
+        help='display log messages with severity >= debug (implies verbose)')
     parser.add_argument(
         '--start', type=str, default=None, metavar='DATE',
         help='survey starts on the evening of this day, formatted as YYYY-MM-DD')
@@ -89,8 +91,11 @@ def main(args):
     """Command-line driver for running survey simulations.
     """
     # Set up the logger
-    if args.verbose:
+    if args.debug:
         log = desiutil.log.get_logger(desiutil.log.DEBUG)
+        args.verbose = True
+    elif args.verbose:
+        log = desiutil.log.get_logger(desiutil.log.INFO)
     else:
         log = desiutil.log.get_logger(desiutil.log.WARNING)
 
