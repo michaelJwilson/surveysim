@@ -2,10 +2,15 @@
 surveysim change log
 ====================
 
-0.4.2 (unreleased)
+0.5.0 (unreleased)
 ------------------
 
-* No changes yet
+* Use desisurvey.config to manage all non-simulation configuration data.
+* Unify different output files with overlapping contents into single output
+  managed by desisurvey.progress.
+* Overhaul of weather simulator to generate continuous stationary time series
+  that are independent of the observing sequence.  Use desimodel.seeing.
+* Clean up of README, docstrings, imports, unit tests, requirements, unused code.
 
 0.4.1 (2017-04-13)
 ------------------
@@ -19,7 +24,7 @@ surveysim change log
 * removes data/tile-info.fits (not used here; was moved to desisurvey)
 * adds nightops.py (from desisurvey, used here but not there)
 * create surveysim command-line script
-* use new desisurvey config machinery
+* use new desisurvey config machinery (first steps, in progress)
 
 0.3.1 (2016-12-21)
 ------------------
