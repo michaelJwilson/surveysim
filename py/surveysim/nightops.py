@@ -60,14 +60,14 @@ def nightOps(night, obsplan, weather, progress, gen):
         conditions = weather.get(time)
         seeing, transparency = conditions['seeing'], conditions['transparency']
         # Select the next target to observe.
-        target, overhead = desisurvey.nextobservation.nextFieldSelector(
-            obsplan, mjd, conditions, progress, slew, ra_prev, dec_prev)
-        overhead = overhead * u.s
+        target = desisurvey.nextobservation.nextFieldSelector(
+            obsplan, mjd, progress, slew, ra_prev, dec_prev)
         if target is None:
             # Wait until a target is available.
             mjd += delay
             slew = False
             continue
+        overhead = target['overhead']
         log.debug('Selected {0} tile {1} at MJD {2:.5f} with {3:.1f} overhead.'
                   .format(target['Program'], target['tileID'], mjd, overhead))
         # Calculate the target's airmass.
