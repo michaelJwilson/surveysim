@@ -40,35 +40,36 @@ def nightOps(night, obsplan, weather, progress, gen):
     log = desiutil.log.get_logger()
     config = desisurvey.config.Configuration()
 
-    # Start the night during bright twilight.
-    mjd = night['brightdusk']
-    time = astropy.time.Time(mjd, format='mjd')
+    # Simulate the night between bright twilights.
+    now = astropy.time.Time(night['brightdusk'], format='mjd')
+    end_night = astropy.time.Time(night['brightdawn'], format='mjd')
 
     # Test if the weather permits the dome to open tonight.
-    if not weather.get(time)['open']:
+    if not weather.get(now)['open']:
         log.info('Bad weather forced the dome to remain shut for the night.')
         return
 
     # How long to delay when we don't have a suitable target to observe.
-    delay = 1. / config.num_lst_bins()
+    delay = 1. * u.day / config.num_lst_bins()
 
-    while mjd < night['brightdawn']:
+    while now < end_night:
         # Get the current weather conditions.
-        conditions = weather.get(time)
+        conditions = weather.get(now)
         seeing, transparency = conditions['seeing'], conditions['transparency']
         # Select the next target to observe.
         target = desisurvey.nextobservation.nextFieldSelector(
-            obsplan, mjd, progress)
+            obsplan, now.mjd, progress)
         if target is None:
             # Wait until a target is available.
-            mjd += delay
+            now += delay
             continue
         overhead = target['overhead']
-        log.debug('Selected {0} tile {1} at MJD {2:.5f} with {3:.1f} overhead.'
-                  .format(target['Program'], target['tileID'], mjd, overhead))
+        log.debug('Selected {0} tile {1} at {2} with {3:.1f} overhead.'
+                  .format(target['Program'], target['tileID'],
+                          now.datetime.time(), overhead))
         # Calculate the target's airmass.
         airmass = desisurvey.utils.get_airmass(
-            time, target['RA'] * u.deg, target['DEC'] * u.deg)
+            now, target['RA'] * u.deg, target['DEC'] * u.deg)
         # Calculate the nominal total exposure time required for this
         # target under the current observing conditions.
         total_exptime = desisurvey.exposurecalc.exposure_time(
@@ -82,7 +83,7 @@ def nightOps(night, obsplan, weather, progress, gen):
         if target_exptime > config.max_exposure_length():
             log.debug('Target {0} requires {1:.1f} exposure.  Waiting...'
                       .format(target['tileID'], target_exptime))
-            mjd += delay
+            now += delay
             continue
         # Calculate the number of exposures needed for cosmic ray splits.
         nexp = int(np.ceil(
@@ -92,15 +93,14 @@ def nightOps(night, obsplan, weather, progress, gen):
         # Simulate the individual exposures.
         for iexp in range(nexp):
             # Advance to the start of the next exposure.
-            mjd += overhead.to(u.day).value
+            now += overhead
             # Add random jitter with 10% RMS to the actual exposure time to
             # account for variability in the online ETC.
             exptime = target_exptime / nexp * (1 + gen.normal(scale=0.1))
             snr2frac = exptime / total_exptime
             # Record this exposure.
             progress.add_exposure(
-                target['tileID'], mjd, exptime.to(u.s).value,
-                snr2frac, airmass, seeing)
-            mjd += exptime.to(u.day).value
+                target['tileID'], now, exptime, snr2frac, airmass, seeing)
+            now += exptime
             # Overhead for a later exposure of this target is only readout time.
             overhead = config.readout_time()
