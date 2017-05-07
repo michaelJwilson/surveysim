@@ -75,26 +75,32 @@ def nightOps(night, obsplan, weather, progress, gen):
             target['Program'], seeing, transparency, airmass, target['Ebmv'],
             night['moon_illum_frac'], target['MoonDist'],
             target['MoonAlt'])
-        # Calculate the target exposure time for this observation.
-        # Should account for previous exposure time of partial targets here.
-        target_exptime = total_exptime
+        # Scale exposure time by the remaining SNR**2 needed for this target.
+        tile = progress.get_tile(target['tileID'])
+        target_exptime = total_exptime * (1 - tile['snr2frac'].sum())
         # Is this target worth observing now?
         if target_exptime > config.max_exposure_length():
-            log.debug('Best target requires {0:.1f} exposure.  Waiting...'
-                      .format(target_exptime))
+            log.debug('Target {0} requires {1:.1f} exposure.  Waiting...'
+                      .format(target['tileID'], target_exptime))
             mjd += delay
             continue
-        # Add random jitter with 10% RMS to the actual exposure time.
-        exptime = target_exptime * (1 + gen.normal(scale=0.1))
-        # Determine what fraction of the SNR target we have reached with
-        # this exposure.
-        snrfrac = (exptime / total_exptime).to(1).value
-        # Record this exposure.
-        progress.add_exposure(
-            target['tileID'], mjd, exptime.to(u.s).value,
-            snrfrac, airmass, seeing)
-        # Add extra readout time for cosmic-ray splits, if necessary.
-        nexp = int(np.floor((exptime / config.cosmic_ray_split()).to(1).value))
-        overhead += nexp * config.readout_time()
-        # Prepare for the next exposure.
-        mjd += (overhead + exptime).to(u.day).value
+        # Calculate the number of exposures needed for cosmic ray splits.
+        nexp = int(np.ceil(
+            (target_exptime / config.cosmic_ray_split()).to(1).value))
+        log.debug('Target {0:.1f} (total {1:.1f}) needs {2} exposures.'
+                  .format(target_exptime, total_exptime, nexp))
+        # Simulate the individual exposures.
+        for iexp in range(nexp):
+            # Advance to the start of the next exposure.
+            mjd += overhead.to(u.day).value
+            # Add random jitter with 10% RMS to the actual exposure time to
+            # account for variability in the online ETC.
+            exptime = target_exptime / nexp * (1 + gen.normal(scale=0.1))
+            snr2frac = exptime / total_exptime
+            # Record this exposure.
+            progress.add_exposure(
+                target['tileID'], mjd, exptime.to(u.s).value,
+                snr2frac, airmass, seeing)
+            mjd += exptime.to(u.day).value
+            # Overhead for a later exposure of this target is only readout time.
+            overhead = config.readout_time()

@@ -10,6 +10,7 @@ surveysim change log
   managed by desisurvey.progress.
 * Overhaul of weather simulator to generate continuous stationary time series
   that are independent of the observing sequence.  Use desimodel.seeing.
+* Simulate multiple exposures for cosmics and more realistic overhead.
 * Clean up of README, docstrings, imports, unit tests, requirements, unused code.
 
 0.4.1 (2017-04-13)
