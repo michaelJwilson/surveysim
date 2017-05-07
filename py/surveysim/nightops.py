@@ -49,9 +49,6 @@ def nightOps(night, obsplan, weather, progress, gen):
         log.info('Bad weather forced the dome to remain shut for the night.')
         return
 
-    slew = False
-    ra_prev = 1.0e99
-    dec_prev = 1.0e99
     # How long to delay when we don't have a suitable target to observe.
     delay = 1. / config.num_lst_bins()
 
@@ -61,11 +58,10 @@ def nightOps(night, obsplan, weather, progress, gen):
         seeing, transparency = conditions['seeing'], conditions['transparency']
         # Select the next target to observe.
         target = desisurvey.nextobservation.nextFieldSelector(
-            obsplan, mjd, progress, slew, ra_prev, dec_prev)
+            obsplan, mjd, progress)
         if target is None:
             # Wait until a target is available.
             mjd += delay
-            slew = False
             continue
         overhead = target['overhead']
         log.debug('Selected {0} tile {1} at MJD {2:.5f} with {3:.1f} overhead.'
@@ -87,7 +83,6 @@ def nightOps(night, obsplan, weather, progress, gen):
             log.debug('Best target requires {0:.1f} exposure.  Waiting...'
                       .format(target_exptime))
             mjd += delay
-            slew = False # Can slew to new target while waiting.
             continue
         # Add random jitter with 10% RMS to the actual exposure time.
         exptime = target_exptime * (1 + gen.normal(scale=0.1))
@@ -103,6 +98,3 @@ def nightOps(night, obsplan, weather, progress, gen):
         overhead += nexp * config.readout_time()
         # Prepare for the next exposure.
         mjd += (overhead + exptime).to(u.day).value
-        slew = True
-        ra_prev = target['RA']
-        dec_prev = target['DEC']
