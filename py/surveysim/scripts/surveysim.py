@@ -19,6 +19,7 @@ from __future__ import print_function, division, absolute_import
 import argparse
 import datetime
 import os
+import warnings
 
 import desiutil.log
 
@@ -98,6 +99,10 @@ def main(args):
         log = desiutil.log.get_logger(desiutil.log.INFO)
     else:
         log = desiutil.log.get_logger(desiutil.log.WARNING)
+
+    # Raise an exception for any warnings (most likely from astropy)
+    # so they can be debugged or explicitly ignored.
+    warnings.simplefilter('error')
 
     # Remove any existing obslist_all.fits file since nightops
     # concatenates to it.

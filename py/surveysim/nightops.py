@@ -9,7 +9,7 @@ import astropy.units as u
 
 import desiutil.log
 
-import desisurvey.exposurecalc
+import desisurvey.etc
 import desisurvey.nextobservation
 import desisurvey.ephemerides
 import desisurvey.config
@@ -72,7 +72,7 @@ def nightOps(night, obsplan, weather, progress, gen):
             now, target['RA'] * u.deg, target['DEC'] * u.deg)
         # Calculate the nominal total exposure time required for this
         # target under the current observing conditions.
-        total_exptime = desisurvey.exposurecalc.exposure_time(
+        total_exptime = desisurvey.etc.exposure_time(
             target['Program'], seeing, transparency, airmass, target['Ebmv'],
             night['moon_illum_frac'], target['MoonDist'],
             target['MoonAlt'])
