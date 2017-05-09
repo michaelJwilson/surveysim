@@ -123,7 +123,7 @@ def main(args):
         args.start, args.stop, progress, args.seed)
 
     # Save simulated weather conditions.
-    simulator.weather.save(config.get_path('weather.fits'))
+    simulator.weather.save('weather.fits')
 
     # Simulate each night until the survey is complete or the last
     # day is reached.
@@ -131,7 +131,6 @@ def main(args):
         pass
 
     # Save the survey progress after the simulation.
-    args.save = config.get_path(args.save)
     progress.save(args.save)
 
     return 0
