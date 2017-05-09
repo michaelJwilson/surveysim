@@ -102,7 +102,7 @@ def main(args):
 
     # Raise an exception for any warnings (most likely from astropy)
     # so they can be debugged or explicitly ignored.
-    warnings.simplefilter('error')
+    ##warnings.simplefilter('error')
 
     # Remove any existing obslist_all.fits file since nightops
     # concatenates to it.
