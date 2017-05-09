@@ -1,21 +1,23 @@
 """Top-level survey simulation manager.
 """
 from __future__ import print_function, division, absolute_import
-import numpy as np
-import os.path
-from shutil import copyfile
+
 import datetime
-from astropy.time import Time
-from astropy.table import Table, vstack
-import astropy.io.fits as pyfits
-import astropy.units as u
+
+import numpy as np
+
+import astropy.table
 import astropy.time
-from surveysim.weather import weatherModule
-from desisurvey.ephemerides import Ephemerides
-from desisurvey.afternoonplan import surveyPlan
-from surveysim.nightops import obsCount, nightOps
+import astropy.units as u
+
 import desiutil.log
+
+import desisurvey.ephemerides
+import desisurvey.afternoonplan
 import desisurvey.utils
+
+import surveysim.nightops
+import surveysim.weather
 
 
 class Simulator(object):
@@ -27,21 +29,13 @@ class Simulator(object):
         Survey starts on the evening of this date.
     stop_date : datetime.date
         Survey stops on the morning of this date.
+    progress : desisurvey.progress.Progress
+        Progress of survey at the start of this simulation.
     seed : int or None
         Random number seed used to generate weather conditions.
-    tilesubset : array or None
-        Array of integer tileIDs to use while ignoring others
-        in the DESI footprint.
-    use_jpl : bool
-        Which avoidobject to use: astropy+jplephem if True, else pyephem.
-    tile_file : string or None
-        Name of FITS file that specifies previously observed tiles.
-        The survey will start from scratch when None.
     """
-    def __init__(self, start_date, stop_date, seed=None, tilesubset=None,
-                 use_jpl=False, tile_file=None):
+    def __init__(self, start_date, stop_date, progress, seed=20190823):
         self.log = desiutil.log.get_logger()
-        self.use_jpl = use_jpl
 
         # Validate date range.
         self.num_days = (stop_date - start_date).days
@@ -51,44 +45,35 @@ class Simulator(object):
         self.stop_date = stop_date
 
         # Tabulate sun and moon ephemerides for each night of the survey.
-        self.ephem = Ephemerides(start_date, stop_date, use_cache=True)
+        self.ephem = desisurvey.ephemerides.Ephemerides(
+            start_date, stop_date, use_cache=True)
 
         # Build the survey plan.
-        self.sp = surveyPlan(self.ephem.start.mjd, self.ephem.stop.mjd,
-                             self.ephem, tilesubset=tilesubset)
+        self.sp = desisurvey.afternoonplan.surveyPlan(
+            self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem)
+
+        # Initialize the random number generator to use for simulating
+        # the weather and adding jitter to exposure times.
+        self.gen = np.random.RandomState(seed)
 
         # Initialize the survey weather conditions generator.
-        self.w = weatherModule(self.ephem.start.datetime, seed)
-
-        # Resume a simulation using previously observed tiles, if requested.
-        if tile_file is not None:
-            tilesObserved = Table.read(tile_file)
-            start_val = len(tilesObserved)+1
-            self.log.info('Survey will resume after observing {0} tiles.'
-                      .format(len(tilesObserved)))
-        else:
-            self.log.info('Survey will start from scratch.')
-            tilesObserved = Table(
-                names=('TILEID', 'STATUS'), dtype=('i8', 'i4'))
-            tilesObserved.meta['MJDBEGIN'] = self.ephem.start.mjd
-            start_val = 0
-        self.tilesObserved = tilesObserved
-        self.ocnt = obsCount(start_val)
+        self.weather = surveysim.weather.Weather(
+            start_date, stop_date, gen=self.gen)
 
         self.day_index = 0
         self.survey_done = False
-        self.tiles_todo = self.sp.numtiles
+        self.completed = progress.completed()
+        self.progress = progress
         self.log.info(
-            'Simulator initialized for {0} to {1} with {2} tiles remaining.'
-            .format(start_date, stop_date, self.tiles_todo))
-
+            'Will simulate {0} to {1} with {2:.1f} / {3} tiles completed.'
+            .format(start_date, stop_date, self.completed, progress.num_tiles))
 
     def next_day(self):
         """Simulate the next day of survey operations.
 
-        A day runs from local noon to local noon. A survey ends, with this
-        method returning False, when either we reach the last scheduled day or
-        else we run out of tiles to observe.
+        A day runs from local noon to local noon. A survey ends, with
+        this method returning False, when either we reach the last
+        scheduled day or else we run out of tiles to observe.
 
         Returns
         -------
@@ -107,31 +92,26 @@ class Simulator(object):
             self.log.info('No observing during full moon.')
         else:
 
-            # Prepare a date string YYYYMMDD to use in filenames.
-            date_string = '{y:04d}{m:02d}{d:02d}'.format(
-                y=date.year, m=date.month, d=date.day)
-
             # Each day of observing starts at local noon.
             local_noon = desisurvey.utils.local_noon_on_date(date)
 
-            # Lookup today's ephemerides.
-            today = self.ephem.get_night(date)
-            sunset = today['dusk']
-            assert sunset > local_noon.mjd and sunset - local_noon.mjd < 1
+            # Lookup tonight's ephemerides.
+            night = self.ephem.get_night(date)
 
-            # Simulate a normal observing night.
-            ntodate = len(self.tilesObserved)
-            self.w.resetDome(local_noon.datetime)
-            obsplan = self.sp.afternoonPlan(
-                today, date_string, self.tilesObserved)
-            self.tilesObserved = nightOps(
-                today, date_string, obsplan, self.w, self.ocnt,
-                self.tilesObserved, use_jpl=self.use_jpl)
-            ntiles_tonight = len(self.tilesObserved)-ntodate
-            self.tiles_todo -= ntiles_tonight
-            self.log.info('Observed {0} tiles tonight, {1} remaining.'
-                          .format(ntiles_tonight, self.tiles_todo))
-            if (self.sp.numtiles - len(self.tilesObserved)) == 0:
+            # Create the afternoon plan.
+            obsplan = self.sp.afternoonPlan(night, self.progress)
+
+            # Simulate tonight's observing.
+            surveysim.nightops.nightOps(
+                night, obsplan, self.weather, self.progress, self.gen)
+
+            completed = self.progress.completed()
+            self.log.info(
+                'Completed {0:.1f} tiles tonight, {1:.1f} remaining.'
+                .format(completed - self.completed,
+                        self.progress.num_tiles - completed))
+            self.completed = completed
+            if completed == self.progress.num_tiles:
                 self.survey_done = True
 
         self.day_index += 1

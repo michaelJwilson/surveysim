@@ -1,210 +1,106 @@
-#! /usr/bin/python
+"""Simulate one night of observing.
+"""
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
-from datetime import datetime, timedelta
-import os
-from shutil import copyfile
-from astropy.time import Time
-import astropy.io.fits as pyfits
-from astropy.table import Table, vstack
-from desisurvey.exposurecalc import expTimeEstimator, airMassCalculator
-from desisurvey.utils import mjd2lst
-from desisurvey.nextobservation import nextFieldSelector
-from surveysim.observefield import observeField
-import desisurvey.ephemerides
-import desisurvey.config
+
+import astropy.time
+import astropy.units as u
+
 import desiutil.log
 
+import desisurvey.etc
+import desisurvey.nextobservation
+import desisurvey.ephemerides
+import desisurvey.config
 
-LSTres = 1.0/144.0 # Should be the same as in afternoon planner and next field selector
-MaxExpLen = 3600.0 # One hour
-CRsplit = 1200.0   # 20 minutes
-ReadOutTime = 120.0 # Should be the same as in next field selector
 
-class obsCount:
-    """
-    Counter for observation number.  In real operations, each observation
-    will have its own file with its number as part of the filename.
-    """
+def nightOps(night, obsplan, weather, progress, gen):
+    """Simulate one night of observing.
 
-    def __init__(self, start_val=0):
-        """
-        Initialise the counter to zero
-        """
-        self.obsNumber = start_val
+    Use an afternoon plan, ephemerides, and simulated weather to
+    schedule the observations and update the survey progress.
 
-    def update(self):
-        """
-        Adds 1 to the counter
-
-        Returns:
-            string containing the part of the filename with the observation number
-        """
-        self.obsNumber += 1
-        return '{:08d}'.format(self.obsNumber)
-
-def nightOps(day_stats, date_string, obsplan, w, ocnt, tilesObserved,
-             tableOutput=True, use_jpl=False):
-    """
-    Carries out observations during one night and writes the output to disk
-
-    Args:
-        day_stats: row of tabulated ephmerides data for today
-        date_string: string of the form YYYYMMDD
-        obsplan: string, filename of today's afternoon plan
-        w: dictionnary containing the following keys
-           'Seeing', 'Transparency', 'OpenDome', 'Clouds'
-        ocnt: obsCount object
-        tilesObserved: table with follwing columns: tileID, status
-        tableOutput: bool, if True writes a table of all the night's observations
-                     instead of one file per observation.
-
-    Returns:
-        Updated tilesObserved table
+    Parameters
+    ----------
+    night : astropy.table.Row
+        Row of tabulated ephemerides for this night, normally
+        obtained with
+        :meth:`desisurvey.ephemerides.Ephemerides.get_night`.
+    obsplan : string
+        Name of the file containing today's afternoon plan.
+    weather : surveysim.weather.Weather
+        Simulated weather conditions to use.
+    progress : desisurvey.progress.Progress
+        Survey progress so far, that will be updated for any
+        observations taken this night.
+    gen : numpy.random.RandomState
+        Random number generator to use for reproducible samples.
     """
     log = desiutil.log.get_logger()
     config = desisurvey.config.Configuration()
 
-    nightOver = False
-    # Start the night during bright twilight.
-    mjd = day_stats['brightdusk']
+    # Simulate the night between bright twilights.
+    now = astropy.time.Time(night['brightdusk'], format='mjd')
+    end_night = astropy.time.Time(night['brightdawn'], format='mjd')
 
-    if tableOutput:
-        obsList = []
-    else:
-        os.mkdir(date_string)
+    # Test if the weather permits the dome to open tonight.
+    if not weather.get(now)['open']:
+        log.info('Bad weather forced the dome to remain shut for the night.')
+        return
 
-    conditions = w.getValues(mjd)
-    f = open(config.get_path("nightstats.dat"), "a+")
-    if conditions['OpenDome']:
-        wcondsstr = "1 " + str(conditions['Seeing']) + " " + str(conditions['Transparency']) + " " + str(conditions['Clouds']) + "\n"
-        f.write(wcondsstr)
-    else:
-        wcondsstr = "0 " + str(conditions['Seeing']) + " " + str(conditions['Transparency']) + " " + str(conditions['Clouds']) + "\n"
-        f.write(wcondsstr)
-    f.close()
-    if conditions['OpenDome'] == False:
-        log.info("Bad weather forced the dome to remain shut for the night.")
-    else:
-        log.info('Dome open conditions: seeing {0:.3f}", transparency {1:.3f}, '
-                 .format(conditions['Seeing'], conditions['Transparency']) +
-                 'cloud {0:.1f}%'.format(100 * conditions['Clouds']))
+    # How long to delay when we don't have a suitable target to observe.
+    delay = 1. * u.day / config.num_lst_bins()
 
-        # Initialize a moon (alt, az) interpolator using the pre-tabulated
-        # ephemerides for this night.
-        moon_pos = desisurvey.ephemerides.get_object_interpolator(
-            day_stats, 'moon', altaz=True)
-
-        slew = False
-        ra_prev = 1.0e99
-        dec_prev = 1.0e99
-        while nightOver == False:
-            conditions = w.updateValues(conditions, mjd)
-
-            lst = mjd2lst(mjd)
-            moon_alt, moon_az = moon_pos(mjd)
-            target, setup_time = nextFieldSelector(
-                obsplan, mjd, conditions, tilesObserved, slew,
-                ra_prev, dec_prev, moon_alt, moon_az, use_jpl)
-            if target != None:
-                # Compute mean to apparent to observed ra and dec???
-                airmass, tile_alt, tile_az = airMassCalculator(
-                    target['RA'], target['DEC'], lst, return_altaz=True)
-                exposure = expTimeEstimator(conditions, airmass, target['Program'], target['Ebmv'], target['DESsn2'], day_stats['moon_illum_frac'], target['MoonDist'], target['MoonAlt'])
-                if exposure <= MaxExpLen:
-                    status, real_exposure, real_sn2 = observeField(target, exposure)
-                    real_exposure += ReadOutTime * np.floor(real_exposure/CRsplit)
-                    target['Status'] = status
-                    target['Exposure'] = real_exposure
-                    target['obsSN2'] = real_sn2
-                    mjd += (setup_time + real_exposure)/86400.0
-                    tilesObserved.add_row([target['tileID'], status])
-                    slew = True
-                    ra_prev = target['RA']
-                    dec_prev = target['DEC']
-                    if tableOutput:
-                        t = Time(mjd, format = 'mjd')
-                        tbase = str(t.isot)
-                        obsList.append((target['tileID'],  target['RA'], target['DEC'], target['PASS'], target['Program'], target['Ebmv'],
-                                       target['maxLen'], target['moon_illum_frac'], target['MoonDist'], target['MoonAlt'], conditions['Seeing'], conditions['Transparency'],
-                                       airmass, target['DESsn2'], target['Status'],
-                                       target['Exposure'], target['obsSN2'], tbase, mjd))
-                    else:
-                        # Output headers, but no data.
-                        # In the future: GFAs (i, x, y + metadata for i=id, time, postagestampid) and fiber positions.
-                        prihdr = pyfits.Header()
-                        prihdr['TILEID  '] = target['tileID']
-                        prihdr['RA      '] = target['RA']
-                        prihdr['DEC     '] = target['DEC']
-                        prihdr['PROGRAM '] = target['Program']
-                        prihdr['EBMV    '] = target['Ebmv']
-                        prihdr['MAXLEN  '] = target['maxLen']
-                        prihdr['MOONFRAC'] = target['moon_illum_frac']
-                        prihdr['MOONDIST'] = target['MoonDist']
-                        prihdr['MOONALT '] = target['MoonAlt']
-                        prihdr['SEEING  '] = conditions['Seeing']
-                        prihdr['LINTRANS'] = conditions['Transparency']
-                        prihdr['AIRMASS '] = airmass
-                        prihdr['DESSN2  '] = target['DESsn2']
-                        prihdr['STATUS  '] = target['Status']
-                        prihdr['EXPTIME '] = target['Exposure']
-                        prihdr['OBSSN2  '] = target['obsSN2']
-                        t = Time(mjd, format = 'mjd')
-                        tbase = str(t.isot)
-                        nt = len(tbase)
-                        prihdr['DATE-OBS'] = tbase
-                        prihdr['MJD     '] = mjd
-                        filename = config.get_path(
-                            '{0}/desi-exp-{1}.fits'
-                            .format(date_string, ocnt.update()))
-                        prihdu = pyfits.PrimaryHDU(header=prihdr)
-                        prihdu.writeto(filename, clobber=True)
-                else:
-                    # Try another target?
-                    # Observe longer split into modulo(max_len)
-                    mjd += LSTres
-                    slew = False # Can slew to new target while waiting.
-            else:
-                mjd += LSTres
-                slew = False
-            # Check time
-            if mjd > day_stats['brightdawn']:
-                nightOver = True
-
-    if tableOutput and len(obsList) > 0:
-        filename = config.get_path('obslist{0}.fits'.format(date_string))
-        cols = np.rec.array(obsList,
-                           names = ('TILEID  ',
-                                    'RA      ',
-                                    'DEC     ',
-                                    'PASS    ',
-                                    'PROGRAM ',
-                                    'EBMV    ',
-                                    'MAXLEN  ',
-                                    'MOONFRAC',
-                                    'MOONDIST',
-                                    'MOONALT ',
-                                    'SEEING  ',
-                                    'LINTRANS',
-                                    'AIRMASS ',
-                                    'DESSN2  ',
-                                    'STATUS  ',
-                                    'EXPTIME ',
-                                    'OBSSN2  ',
-                                    'DATE-OBS',
-                                    'MJD     '),
-                            formats = ['i4', 'f8', 'f8', 'i4', 'a8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'i4', 'f8', 'f8', 'a24', 'f8'])
-        tbhdu = pyfits.BinTableHDU.from_columns(cols)
-        tbhdu.writeto(filename, clobber=True)
-        # This file is to facilitate plotting
-        all_path = config.get_path('obslist_all.fits')
-        if os.path.exists(all_path):
-            obsListOld = Table.read(all_path, format='fits')
-            obsListNew = Table.read(filename, format='fits')
-            obsListAll = vstack([obsListOld, obsListNew])
-            obsListAll.write(all_path, format='fits', overwrite=True)
-        else:
-            copyfile(filename, all_path)
-
-    return tilesObserved
+    while now < end_night:
+        # Get the current weather conditions.
+        conditions = weather.get(now)
+        seeing, transparency = conditions['seeing'], conditions['transparency']
+        # Select the next target to observe.
+        target = desisurvey.nextobservation.nextFieldSelector(
+            obsplan, now.mjd, progress)
+        if target is None:
+            # Wait until a target is available.
+            now += delay
+            continue
+        overhead = target['overhead']
+        log.debug('Selected {0} tile {1} at {2} with {3:.1f} overhead.'
+                  .format(target['Program'], target['tileID'],
+                          now.datetime.time(), overhead))
+        # Calculate the target's airmass.
+        airmass = desisurvey.utils.get_airmass(
+            now, target['RA'] * u.deg, target['DEC'] * u.deg)
+        # Calculate the nominal total exposure time required for this
+        # target under the current observing conditions.
+        total_exptime = desisurvey.etc.exposure_time(
+            target['Program'], seeing, transparency, airmass, target['Ebmv'],
+            night['moon_illum_frac'], target['MoonDist'],
+            target['MoonAlt'])
+        # Scale exposure time by the remaining SNR**2 needed for this target.
+        tile = progress.get_tile(target['tileID'])
+        target_exptime = total_exptime * (1 - tile['snr2frac'].sum())
+        # Is this target worth observing now?
+        if target_exptime > config.max_exposure_length():
+            log.debug('Target {0} requires {1:.1f} exposure.  Waiting...'
+                      .format(target['tileID'], target_exptime))
+            now += delay
+            continue
+        # Calculate the number of exposures needed for cosmic ray splits.
+        nexp = int(np.ceil(
+            (target_exptime / config.cosmic_ray_split()).to(1).value))
+        log.debug('Target {0:.1f} (total {1:.1f}) needs {2} exposures.'
+                  .format(target_exptime, total_exptime, nexp))
+        # Simulate the individual exposures.
+        for iexp in range(nexp):
+            # Advance to the start of the next exposure.
+            now += overhead
+            # Add random jitter with 10% RMS to the actual exposure time to
+            # account for variability in the online ETC.
+            exptime = target_exptime / nexp * (1 + gen.normal(scale=0.1))
+            snr2frac = exptime / total_exptime
+            # Record this exposure.
+            progress.add_exposure(
+                target['tileID'], now, exptime, snr2frac, airmass, seeing)
+            now += exptime
+            # Overhead for a later exposure of this target is only readout time.
+            overhead = config.readout_time()
