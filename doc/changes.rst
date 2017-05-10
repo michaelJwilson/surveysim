@@ -2,7 +2,7 @@
 surveysim change log
 ====================
 
-0.5.0 (unreleased)
+0.5.0 (2017-05-10)
 ------------------
 
 * Use desisurvey.config to manage all non-simulation configuration data.
