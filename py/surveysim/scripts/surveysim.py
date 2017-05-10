@@ -100,15 +100,8 @@ def main(args):
     else:
         log = desiutil.log.get_logger(desiutil.log.WARNING)
 
-    # Raise an exception for any warnings (most likely from astropy)
-    # so they can be debugged or explicitly ignored.
-    ##warnings.simplefilter('error')
-
-    # Remove any existing obslist_all.fits file since nightops
-    # concatenates to it.
-    if os.path.exists('obslist_all.fits'):
-        os.rename('obslist_all.fits', 'obslist_all_save.fits')
-        log.info('Renamed obslist_all.fits to obslist_all_save.fits')
+    # Freeze IERS table for consistent results.
+    desisurvey.utils.freeze_iers()
 
     # Set the output path if requested.
     config = desisurvey.config.Configuration()
