@@ -78,7 +78,7 @@ def nightOps(night, obsplan, weather, progress, gen):
             target['MoonAlt'])
         # Scale exposure time by the remaining SNR**2 needed for this target.
         tile = progress.get_tile(target['tileID'])
-        target_exptime = total_exptime * (1 - tile['snr2frac'].sum())
+        target_exptime = total_exptime * max(0, 1 - tile['snr2frac'].sum())
         # Is this target worth observing now?
         if target_exptime > config.max_exposure_length():
             log.debug('Target {0} requires {1:.1f} exposure.  Waiting...'
@@ -94,6 +94,9 @@ def nightOps(night, obsplan, weather, progress, gen):
         for iexp in range(nexp):
             # Advance to the start of the next exposure.
             now += overhead
+            # End the night if this exposure would run beyond twilight.
+            if now + target_exptime >= end_night:
+                break
             # Add random jitter with 10% RMS to the actual exposure time to
             # account for variability in the online ETC.
             exptime = target_exptime / nexp * (1 + gen.normal(scale=0.1))
