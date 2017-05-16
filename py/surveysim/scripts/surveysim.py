@@ -54,6 +54,12 @@ def parse(options=None):
         '--resume', default=None, metavar='FILENAME',
         help='Name of saved observations for resuming a simulation')
     parser.add_argument(
+        '--strategy', default='baseline',
+        help='Next tile selector strategy to use')
+    parser.add_argument(
+        '--weights', default=None,
+        help='Name of file with initial tile weights to use')
+    parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
 
@@ -100,15 +106,8 @@ def main(args):
     else:
         log = desiutil.log.get_logger(desiutil.log.WARNING)
 
-    # Raise an exception for any warnings (most likely from astropy)
-    # so they can be debugged or explicitly ignored.
-    ##warnings.simplefilter('error')
-
-    # Remove any existing obslist_all.fits file since nightops
-    # concatenates to it.
-    if os.path.exists('obslist_all.fits'):
-        os.rename('obslist_all.fits', 'obslist_all_save.fits')
-        log.info('Renamed obslist_all.fits to obslist_all_save.fits')
+    # Freeze IERS table for consistent results.
+    desisurvey.utils.freeze_iers()
 
     # Set the output path if requested.
     config = desisurvey.config.Configuration()
@@ -120,7 +119,7 @@ def main(args):
 
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
-        args.start, args.stop, progress, args.seed)
+        args.start, args.stop, progress, args.strategy, args.weights, args.seed)
 
     # Save simulated weather conditions.
     simulator.weather.save('weather.fits')
