@@ -5,7 +5,7 @@ surveysim change log
 0.5.1 (unreleased)
 ------------------
 
-* No changes yet.
+* Add strategy, weights options to surveysim script.
 
 0.5.0 (2017-05-10)
 ------------------
