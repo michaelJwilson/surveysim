@@ -15,7 +15,7 @@ import desisurvey.ephemerides
 import desisurvey.config
 
 
-def nightOps(night, obsplan, weather, progress, gen):
+def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
     """Simulate one night of observing.
 
     Use an afternoon plan, ephemerides, and simulated weather to
@@ -27,13 +27,19 @@ def nightOps(night, obsplan, weather, progress, gen):
         Row of tabulated ephemerides for this night, normally
         obtained with
         :meth:`desisurvey.ephemerides.Ephemerides.get_night`.
-    obsplan : string
-        Name of the file containing today's afternoon plan.
+    obsplan : string or desisurvey.plan.Planner
+        Name of the file containing today's afternoon plan or a global
+        planner object to use.
     weather : surveysim.weather.Weather
         Simulated weather conditions to use.
     progress : desisurvey.progress.Progress
         Survey progress so far, that will be updated for any
         observations taken this night.
+    strategy : str
+        Strategy to use for scheduling tiles during each night.
+    weights : array or None
+        Array of per-tile weights that multiply the scores used to select
+        the best tile.  All weights assumed to be one when None.
     gen : numpy.random.RandomState
         Random number generator to use for reproducible samples.
     """
@@ -57,8 +63,12 @@ def nightOps(night, obsplan, weather, progress, gen):
         conditions = weather.get(now)
         seeing, transparency = conditions['seeing'], conditions['transparency']
         # Select the next target to observe.
-        target = desisurvey.nextobservation.nextFieldSelector(
-            obsplan, now.mjd, progress)
+        if strategy == 'baseline':
+            target = desisurvey.nextobservation.nextFieldSelector(
+                obsplan, now.mjd, progress)
+        else:
+            target = obsplan.next_tile(
+                now, seeing, transparency, progress, strategy, weights)
         if target is None:
             # Wait until a target is available.
             now += delay
@@ -90,6 +100,11 @@ def nightOps(night, obsplan, weather, progress, gen):
             (target_exptime / config.cosmic_ray_split()).to(1).value))
         log.debug('Target {0:.1f} (total {1:.1f}) needs {2} exposures.'
                   .format(target_exptime, total_exptime, nexp))
+        if nexp <= 0:
+            log.info('Got nexp={0} for tile {1} at {2}.'
+                     .format(nexp, tile['tileID'], now.datetime))
+            now += delay
+            continue
         # Simulate the individual exposures.
         for iexp in range(nexp):
             # Advance to the start of the next exposure.

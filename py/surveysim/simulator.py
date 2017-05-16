@@ -14,7 +14,9 @@ import desiutil.log
 
 import desisurvey.ephemerides
 import desisurvey.afternoonplan
+import desisurvey.plan
 import desisurvey.utils
+import desisurvey.config
 
 import surveysim.nightops
 import surveysim.weather
@@ -31,10 +33,15 @@ class Simulator(object):
         Survey stops on the morning of this date.
     progress : desisurvey.progress.Progress
         Progress of survey at the start of this simulation.
+    strategy : str
+        Strategy to use for scheduling tiles during each night.
+    weights : str or None
+        Name of file with initial tile weights to use.
     seed : int or None
         Random number seed used to generate weather conditions.
     """
-    def __init__(self, start_date, stop_date, progress, seed=20190823):
+    def __init__(self, start_date, stop_date, progress, strategy='baseline',
+                 weights=None, seed=20190823):
         self.log = desiutil.log.get_logger()
 
         # Validate date range.
@@ -48,9 +55,14 @@ class Simulator(object):
         self.ephem = desisurvey.ephemerides.Ephemerides(
             start_date, stop_date, use_cache=True)
 
-        # Build the survey plan.
-        self.sp = desisurvey.afternoonplan.surveyPlan(
-            self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem)
+        if strategy == 'baseline':
+            # Build the survey plan.
+            self.sp = desisurvey.afternoonplan.surveyPlan(
+                self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem)
+        else:
+            # Load the survey planner.
+            self.sp = desisurvey.plan.Planner()
+        self.strategy = strategy
 
         # Initialize the random number generator to use for simulating
         # the weather and adding jitter to exposure times.
@@ -59,6 +71,15 @@ class Simulator(object):
         # Initialize the survey weather conditions generator.
         self.weather = surveysim.weather.Weather(
             start_date, stop_date, gen=self.gen)
+
+        if weights is not None:
+            # Load initial policy weights. These should eventually be
+            # dynamically updated to coordinate with fiber assignment, etc.
+            config = desisurvey.config.Configuration()
+            wtable = astropy.table.Table.read(config.get_path('weights.fits'))
+            self.weights = wtable['weight']
+        else:
+            self.weights = None
 
         self.day_index = 0
         self.survey_done = False
@@ -98,12 +119,17 @@ class Simulator(object):
             # Lookup tonight's ephemerides.
             night = self.ephem.get_night(date)
 
-            # Create the afternoon plan.
-            obsplan = self.sp.afternoonPlan(night, self.progress)
+            if self.strategy == 'baseline':
+                # Create the afternoon plan.
+                obsplan = self.sp.afternoonPlan(night, self.progress)
+            else:
+                # Use the global planner.
+                obsplan = self.sp
 
             # Simulate tonight's observing.
             surveysim.nightops.nightOps(
-                night, obsplan, self.weather, self.progress, self.gen)
+                night, obsplan, self.weather, self.progress, self.strategy,
+                self.weights, self.gen)
 
             completed = self.progress.completed()
             self.log.info(

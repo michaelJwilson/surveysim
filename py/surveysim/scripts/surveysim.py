@@ -54,6 +54,12 @@ def parse(options=None):
         '--resume', default=None, metavar='FILENAME',
         help='Name of saved observations for resuming a simulation')
     parser.add_argument(
+        '--strategy', default='baseline',
+        help='Next tile selector strategy to use')
+    parser.add_argument(
+        '--weights', default=None,
+        help='Name of file with initial tile weights to use')
+    parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
 
@@ -113,7 +119,7 @@ def main(args):
 
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
-        args.start, args.stop, progress, args.seed)
+        args.start, args.stop, progress, args.strategy, args.weights, args.seed)
 
     # Save simulated weather conditions.
     simulator.weather.save('weather.fits')
