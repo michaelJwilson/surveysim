@@ -81,6 +81,13 @@ class Simulator(object):
         else:
             self.weights = None
 
+        # Initialize a table for efficiency tracking.
+        self.etrack = astropy.table.Table()
+        self.etrack['available'] = np.zeros(self.num_days)
+        self.etrack['overhead'] = np.zeros(self.num_days)
+        self.etrack['delay'] = np.zeros(self.num_days)
+        self.etrack['live'] = np.zeros(self.num_days)
+
         self.day_index = 0
         self.survey_done = False
         self.completed = progress.completed()
@@ -127,9 +134,13 @@ class Simulator(object):
                 obsplan = self.sp
 
             # Simulate tonight's observing.
-            surveysim.nightops.nightOps(
+            totals = surveysim.nightops.nightOps(
                 night, obsplan, self.weather, self.progress, self.strategy,
                 self.weights, self.gen)
+
+            # Update our efficiency tracker.
+            for mode in totals:
+                self.etrack[mode][self.day_index] = totals[mode].to(u.day).value
 
             completed = self.progress.completed()
             self.log.info(

@@ -129,6 +129,9 @@ def main(args):
     while simulator.next_day():
         pass
 
+    # Save the per-night efficiency.
+    simulator.etrack.write(config.get_path('efficiency.fits'), overwrite=True)
+
     # Save the survey progress after the simulation.
     progress.save(args.save)
 
