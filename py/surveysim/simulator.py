@@ -76,7 +76,7 @@ class Simulator(object):
             # Load initial policy weights. These should eventually be
             # dynamically updated to coordinate with fiber assignment, etc.
             config = desisurvey.config.Configuration()
-            wtable = astropy.table.Table.read(config.get_path('weights.fits'))
+            wtable = astropy.table.Table.read(config.get_path(weights))
             self.weights = wtable['weight']
         else:
             self.weights = None
