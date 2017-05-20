@@ -56,7 +56,7 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
     end_night = astropy.time.Time(night['brightdawn'], format='mjd')
 
     # Initialize efficiency tracking for the night.
-    totals = dict(overhead=0*u.day, delay=0*u.day, live=0*u.day,
+    totals = dict(overhead=0*u.day, delay=0*u.day, live=0*u.day, dawn=0*u.day,
                   available=(end_night - now).to(u.day))
 
     # Test if the weather permits the dome to open tonight.
@@ -78,14 +78,14 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
         else:
             done = False
         totals[mode] += dt
-        log.info('{0} {1:8s} {2:6.2f} {3}'
-                 .format(now.datetime.time(), mode, dt.to(u.min), done))
+        log.debug('{0} {1:8s} {2:6.2f} {3}'
+                  .format(now.datetime.time(), mode, dt.to(u.min), done))
         if done:
             raise StopIteration()
         return now + dt
 
-    while True:
-        try:
+    try:
+        while True:
             # Get the current weather conditions.
             conditions = weather.get(now)
             seeing, transparency = conditions['seeing'], conditions['transparency']
@@ -135,26 +135,28 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
                 continue
             # Simulate the individual exposures.
             for iexp in range(nexp):
-                # Advance to the start of the next exposure.
-                now = advance('overhead', overhead)
-                # Add random jitter with 10% RMS to the actual exposure time to
+                # Add random jitter with 10% RMS to the target exposure time to
                 # account for variability in the online ETC.
                 exptime = target_exptime / nexp * (1 + gen.normal(scale=0.1))
-                shutter_open = now
-                shutter_close = advance('live', exptime)
-                # Exposure might be cut short by dawn.
-                exptime = (shutter_close - shutter_open).to(u.s)
-                now = shutter_close
+                # Always stop by dawn.
+                if now + overhead + exptime > end_night:
+                    log.info('Canceling exposure {0}/{1} too close to dawn.'
+                             .format(iexp + 1, nexp))
+                    advance('dawn', overhead + exptime)
+                # Advance to the shutter open time.
+                now = advance('overhead', overhead)
                 # Record this exposure.
                 snr2frac = exptime / total_exptime
                 progress.add_exposure(
                     target['tileID'], now, exptime, snr2frac, airmass, seeing)
+                # Advance to the shutter close time.
+                now = advance('live', exptime)
                 # Overhead for a later exposure is only readout time.
                 overhead = config.readout_time()
-        except StopIteration:
-            # Reached the end of the night.
-            break
+    except StopIteration:
+        # Reached the end of the night.
+        pass
 
-    assert abs((totals['overhead'] + totals['delay'] + totals['live'] -
-               totals['available']).to(u.day).value) < 1e-6
+    assert abs((totals['overhead'] + totals['delay'] + totals['live'] +
+                totals['dawn'] - totals['available']).to(u.day).value) < 1e-6
     return totals

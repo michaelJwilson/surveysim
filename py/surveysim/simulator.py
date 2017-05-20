@@ -86,6 +86,7 @@ class Simulator(object):
         self.etrack['available'] = np.zeros(self.num_days)
         self.etrack['overhead'] = np.zeros(self.num_days)
         self.etrack['delay'] = np.zeros(self.num_days)
+        self.etrack['dawn'] = np.zeros(self.num_days)
         self.etrack['live'] = np.zeros(self.num_days)
 
         self.day_index = 0
