@@ -95,15 +95,15 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
                     obsplan, now.mjd, progress)
             else:
                 target = obsplan.next_tile(
-                    now, seeing, transparency, progress, strategy, weights)
+                    now, end_night, seeing, transparency, progress, strategy, weights)
             if target is None:
-                log.debug('No target available at {0}. Waiting...'
-                          .format(now.datetime.time()))
+                log.info('No target available at {0}. Waiting...'
+                         .format(now.datetime.time()))
                 now = advance('delay', delay_time)
                 continue
             overhead = target['overhead']
-            log.debug('Selected {0} tile {1} at {2} with {3:.1f} overhead.'
-                      .format(target['Program'], target['tileID'],
+            log.info('Selected {0} tile {1} at {2} with {3:.1f} overhead.'
+                     .format(target['Program'], target['tileID'],
                               now.datetime.time(), overhead))
             # Calculate the target's airmass.
             airmass = desisurvey.utils.get_airmass(
@@ -117,12 +117,12 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
             # Scale exposure time by the remaining SNR needed for this target.
             tile = progress.get_tile(target['tileID'])
             target_exptime = total_exptime * max(0, 1 - tile['snr2frac'].sum())
-            # Is this target worth observing now?
+            # Clip the exposure time if necessary.
             if target_exptime > config.max_exposure_length():
-                log.debug('Target {0} requires {1:.1f} exposure.  Waiting...'
-                          .format(target['tileID'], target_exptime))
-                now = advance('delay', delay_time)
-                continue
+                log.info('Clip exposure time {0:.1f} -> {1:.1f} for tile {2}.'
+                         .format(target_exptime, config.max_exposure_length(),
+                                 target['tileID']))
+                target_exptime = config.max_exposure_length()
             # Calculate the number of exposures needed for cosmic ray splits.
             nexp = int(np.ceil(
                 (target_exptime / config.cosmic_ray_split()).to(1).value))
