@@ -149,7 +149,7 @@ class Simulator(object):
                 .format(completed - self.completed,
                         self.progress.num_tiles - completed))
             self.completed = completed
-            if completed == self.progress.num_tiles:
+            if self.progress.num_tiles - completed < 0.1:
                 self.survey_done = True
 
         self.day_index += 1

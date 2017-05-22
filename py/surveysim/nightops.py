@@ -66,7 +66,7 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
         return totals
 
     # How long to delay when we don't have a suitable target to observe.
-    delay_time = 1. * u.day / config.num_lst_bins()
+    delay_time = 1. * u.min
 
     # Define a helper function that updates the efficiency tracking totals,
     # raises StopIteration if we reach the end of the night or else returns
