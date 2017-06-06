@@ -62,6 +62,8 @@ def parse(options=None):
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
+    parser.add_argument('--computeHA', action='store_true',
+        help='compute or re-compute design HA')
 
     if options is None:
         args = parser.parse_args()
@@ -119,7 +121,8 @@ def main(args):
 
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
-        args.start, args.stop, progress, args.strategy, args.weights, args.seed)
+        args.start, args.stop, progress, args.strategy, args.weights, args.seed,
+        args.computeHA)
 
     # Save simulated weather conditions.
     simulator.weather.save('weather.fits')

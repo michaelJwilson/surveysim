@@ -41,8 +41,11 @@ class Simulator(object):
         Random number seed used to generate weather conditions.
     """
     def __init__(self, start_date, stop_date, progress, strategy='baseline',
-                 weights=None, seed=20190823):
+                 weights=None, seed=20190823, computeHA=False):
         self.log = desiutil.log.get_logger()
+
+        config = desisurvey.config.Configuration()
+        nominal_stop_date = config.last_day()
 
         # Validate date range.
         self.num_days = (stop_date - start_date).days
@@ -52,13 +55,18 @@ class Simulator(object):
         self.stop_date = stop_date
 
         # Tabulate sun and moon ephemerides for each night of the survey.
-        self.ephem = desisurvey.ephemerides.Ephemerides(
-            start_date, stop_date, use_cache=True)
+        if computeHA and stop_date < nominal_stop_date:
+            self.ephem = desisurvey.ephemerides.Ephemerides(
+                start_date, nominal_stop_date, use_cache=True)
+        else:
+            self.ephem = desisurvey.ephemerides.Ephemerides(
+                start_date, stop_date, use_cache=True)
 
         if strategy == 'baseline':
             # Build the survey plan.
             self.sp = desisurvey.afternoonplan.surveyPlan(
-                self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem)
+                self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem,
+                computeHA)
         else:
             # Load the survey planner.
             self.sp = desisurvey.plan.Planner()
