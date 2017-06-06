@@ -35,13 +35,13 @@ class Simulator(object):
         Progress of survey at the start of this simulation.
     strategy : str
         Strategy to use for scheduling tiles during each night.
-    weights : str or None
-        Name of file with initial tile weights to use.
+    plan : str or None
+        Name of plan file to use. Required unless strategy is 'baseline'.
     seed : int or None
         Random number seed used to generate weather conditions.
     """
     def __init__(self, start_date, stop_date, progress, strategy='baseline',
-                 weights=None, seed=20190823):
+                 plan=None, seed=20190823):
         self.log = desiutil.log.get_logger()
 
         # Validate date range.
@@ -72,14 +72,13 @@ class Simulator(object):
         self.weather = surveysim.weather.Weather(
             start_date, stop_date, gen=self.gen)
 
-        if weights is not None:
-            # Load initial policy weights. These should eventually be
-            # dynamically updated to coordinate with fiber assignment, etc.
+        if plan is not None:
+            # Load the plan to use.
             config = desisurvey.config.Configuration()
-            wtable = astropy.table.Table.read(config.get_path(weights))
-            self.weights = wtable['weight']
+            self.plan = astropy.table.Table.read(config.get_path(plan))
+            assert np.all(self.sp.tiles['tileid'] == self.plan['tileid'])
         else:
-            self.weights = None
+            self.plan = None
 
         # Initialize a table for efficiency tracking.
         self.etrack = astropy.table.Table()
@@ -137,7 +136,7 @@ class Simulator(object):
             # Simulate tonight's observing.
             totals = surveysim.nightops.nightOps(
                 night, obsplan, self.weather, self.progress, self.strategy,
-                self.weights, self.gen)
+                self.plan, self.gen)
 
             # Update our efficiency tracker.
             for mode in totals:

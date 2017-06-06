@@ -15,7 +15,7 @@ import desisurvey.ephemerides
 import desisurvey.config
 
 
-def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
+def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
     """Simulate one night of observing.
 
     Use an afternoon plan, ephemerides, and simulated weather to
@@ -37,9 +37,8 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
         observations taken this night.
     strategy : str
         Strategy to use for scheduling tiles during each night.
-    weights : array or None
-        Array of per-tile weights that multiply the scores used to select
-        the best tile.  All weights assumed to be one when None.
+    plan : astropy.table.Table or None
+        Table that specifies active tiles and design hour angles.
     gen : numpy.random.RandomState
         Random number generator to use for reproducible samples.
 
@@ -95,7 +94,8 @@ def nightOps(night, obsplan, weather, progress, strategy, weights, gen):
                     obsplan, now.mjd, progress)
             else:
                 target = obsplan.next_tile(
-                    now, end_night, seeing, transparency, progress, strategy, weights)
+                    now, end_night, seeing, transparency, progress,
+                    strategy, plan)
             if target is None:
                 log.info('No target available at {0}. Waiting...'
                          .format(now.datetime.time()))
