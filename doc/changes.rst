@@ -6,6 +6,7 @@ surveysim change log
 ------------------
 
 * Add strategy, weights options to surveysim script.
+* First implementation of fiber-assignment groups and priorities.
 
 0.5.0 (2017-05-10)
 ------------------
