@@ -35,13 +35,13 @@ class Simulator(object):
         Progress of survey at the start of this simulation.
     strategy : str
         Strategy to use for scheduling tiles during each night.
-    weights : str or None
-        Name of file with initial tile weights to use.
+    plan : str or None
+        Name of plan file to use. Required unless strategy is 'baseline'.
     seed : int or None
         Random number seed used to generate weather conditions.
     """
     def __init__(self, start_date, stop_date, progress, strategy='baseline',
-                 weights=None, seed=20190823, computeHA=False):
+                 plan=None, seed=20190823, computeHA=False):
         self.log = desiutil.log.get_logger()
 
         config = desisurvey.config.Configuration()
@@ -80,14 +80,21 @@ class Simulator(object):
         self.weather = surveysim.weather.Weather(
             start_date, stop_date, gen=self.gen)
 
-        if weights is not None:
-            # Load initial policy weights. These should eventually be
-            # dynamically updated to coordinate with fiber assignment, etc.
+        if plan is not None:
+            # Load the plan to use.
             config = desisurvey.config.Configuration()
-            wtable = astropy.table.Table.read(config.get_path('weights.fits'))
-            self.weights = wtable['weight']
+            self.plan = astropy.table.Table.read(config.get_path(plan))
+            assert np.all(self.sp.tiles['tileid'] == self.plan['tileid'])
         else:
-            self.weights = None
+            self.plan = None
+
+        # Initialize a table for efficiency tracking.
+        self.etrack = astropy.table.Table()
+        self.etrack['available'] = np.zeros(self.num_days)
+        self.etrack['overhead'] = np.zeros(self.num_days)
+        self.etrack['delay'] = np.zeros(self.num_days)
+        self.etrack['dawn'] = np.zeros(self.num_days)
+        self.etrack['live'] = np.zeros(self.num_days)
 
         self.day_index = 0
         self.survey_done = False
@@ -135,9 +142,13 @@ class Simulator(object):
                 obsplan = self.sp
 
             # Simulate tonight's observing.
-            surveysim.nightops.nightOps(
+            totals = surveysim.nightops.nightOps(
                 night, obsplan, self.weather, self.progress, self.strategy,
-                self.weights, self.gen)
+                self.plan, self.gen)
+
+            # Update our efficiency tracker.
+            for mode in totals:
+                self.etrack[mode][self.day_index] = totals[mode].to(u.day).value
 
             completed = self.progress.completed()
             self.log.info(
@@ -145,7 +156,7 @@ class Simulator(object):
                 .format(completed - self.completed,
                         self.progress.num_tiles - completed))
             self.completed = completed
-            if completed == self.progress.num_tiles:
+            if self.progress.num_tiles - completed < 0.1:
                 self.survey_done = True
 
         self.day_index += 1

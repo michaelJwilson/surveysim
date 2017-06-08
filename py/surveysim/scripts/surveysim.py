@@ -57,8 +57,8 @@ def parse(options=None):
         '--strategy', default='baseline',
         help='Next tile selector strategy to use')
     parser.add_argument(
-        '--weights', default=None,
-        help='Name of file with initial tile weights to use')
+        '--plan', default=None,
+        help='Name of plan file to use')
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
@@ -121,7 +121,7 @@ def main(args):
 
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
-        args.start, args.stop, progress, args.strategy, args.weights, args.seed,
+        args.start, args.stop, progress, args.strategy, args.plan, args.seed,
         args.computeHA)
 
     # Save simulated weather conditions.
@@ -131,6 +131,9 @@ def main(args):
     # day is reached.
     while simulator.next_day():
         pass
+
+    # Save the per-night efficiency.
+    simulator.etrack.write(config.get_path('efficiency.fits'), overwrite=True)
 
     # Save the survey progress after the simulation.
     progress.save(args.save)
