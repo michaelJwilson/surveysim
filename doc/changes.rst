@@ -5,7 +5,7 @@ surveysim change log
 0.6.1 (unreleased)
 ------------------
 
-* No changes yet
+* First implementation of fiber-assignment groups and priorities.
 
 0.6.0 (2017-06-05)
 ------------------
