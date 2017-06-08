@@ -2,11 +2,17 @@
 surveysim change log
 ====================
 
-0.5.1 (unreleased)
+0.6.1 (unreleased)
+------------------
+
+* First implementation of fiber-assignment groups and priorities.
+
+0.6.0 (2017-06-05)
 ------------------
 
 * Add strategy, weights options to surveysim script.
-* First implementation of fiber-assignment groups and priorities.
+* Add hooks for using greedy scheduler
+* Terminate exposures at sunset
 
 0.5.0 (2017-05-10)
 ------------------
