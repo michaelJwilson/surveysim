@@ -117,6 +117,12 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
             # Scale exposure time by the remaining SNR needed for this target.
             tile = progress.get_tile(target['tileID'])
             target_exptime = total_exptime * max(0, 1 - tile['snr2frac'].sum())
+            # Do not re-observe a target that has already been completed.
+            if target_exptime == 0:
+                log.info('Tile {0} already completed at {1}.'
+                         .format(tile['tileid'], now.datetime.time()))
+                now = advance('delay', delay_time)
+                continue
             # Clip the exposure time if necessary.
             if target_exptime > config.max_exposure_length():
                 log.info('Clip exposure time {0:.1f} -> {1:.1f} for tile {2}.'
@@ -128,11 +134,6 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                 (target_exptime / config.cosmic_ray_split()).to(1).value))
             log.debug('Target {0:.1f} (total {1:.1f}) needs {2} exposures.'
                       .format(target_exptime, total_exptime, nexp))
-            if nexp <= 0:
-                log.info('Got nexp={0} for tile {1} at {2}.'
-                         .format(nexp, tile['tileID'], now.datetime.time()))
-                now = advance('delay', delay_time)
-                continue
             # Simulate the individual exposures.
             for iexp in range(nexp):
                 # Add random jitter with 10% RMS to the target exposure time to
