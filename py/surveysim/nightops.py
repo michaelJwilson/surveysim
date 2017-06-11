@@ -110,10 +110,12 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                 now, target['RA'] * u.deg, target['DEC'] * u.deg)
             # Calculate the nominal total exposure time required for this
             # target under the current observing conditions.
+            moonfrac = night['moon_illum_frac']
+            moonsep = target['MoonDist']
+            moonalt = target['MoonAlt']
             total_exptime = desisurvey.etc.exposure_time(
                 target['Program'], seeing, transparency, airmass,
-                target['Ebmv'], night['moon_illum_frac'], target['MoonDist'],
-                target['MoonAlt'])
+                target['Ebmv'], moonfrac, moonsep, moonalt)
             # Scale exposure time by the remaining SNR needed for this target.
             tile = progress.get_tile(target['tileID'])
             target_exptime = total_exptime * max(0, 1 - tile['snr2frac'].sum())
@@ -149,7 +151,8 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                 # Record this exposure.
                 snr2frac = exptime / total_exptime
                 progress.add_exposure(
-                    target['tileID'], now, exptime, snr2frac, airmass, seeing)
+                    target['tileID'], now, exptime, snr2frac, airmass, seeing,
+                    moonfrac, moonalt, moonsep)
                 # Advance to the shutter close time.
                 now = advance('live', exptime)
                 # Overhead for a later exposure is only readout time.
