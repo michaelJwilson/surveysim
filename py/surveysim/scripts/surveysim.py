@@ -48,9 +48,6 @@ def parse(options=None):
         '--seed', type=int, default=123, metavar='N',
         help='random number seed for generating observing conditions')
     parser.add_argument(
-        '--save', default='progress.fits', metavar='FILENAME',
-        help='Name of FITS file where simulated observations are saved')
-    parser.add_argument(
         '--resume', default=None, metavar='FILENAME',
         help='Name of saved observations for resuming a simulation')
     parser.add_argument(
@@ -136,6 +133,8 @@ def main(args):
     simulator.etrack.write(config.get_path('efficiency.fits'), overwrite=True)
 
     # Save the survey progress after the simulation.
-    progress.save(args.save)
+    progress.save('progress.fits')
+    exposures = progress.get_exposures()
+    exposures.write(config.get_path('exposures.fits'), overwrite=True)
 
     return 0
