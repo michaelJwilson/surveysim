@@ -14,6 +14,7 @@ import desiutil.log
 
 import desisurvey.ephemerides
 import desisurvey.afternoonplan
+import desisurvey.schedule
 import desisurvey.plan
 import desisurvey.utils
 import desisurvey.config
@@ -68,8 +69,8 @@ class Simulator(object):
                 self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem,
                 computeHA)
         else:
-            # Load the survey planner.
-            self.sp = desisurvey.plan.Planner()
+            # Load the survey scheduler to use.
+            self.sp = desisurvey.schedule.Scheduler()
         self.strategy = strategy
 
         # Initialize the random number generator to use for simulating
@@ -150,14 +151,21 @@ class Simulator(object):
             for mode in totals:
                 self.etrack[mode][self.day_index] = totals[mode].to(u.day).value
 
+            # Progress report.
             completed = self.progress.completed()
-            self.log.info(
-                'Completed {0:.1f} tiles tonight, {1:.1f} remaining.'
-                .format(completed - self.completed,
-                        self.progress.num_tiles - completed))
+            self.log.info('Completed {0:.1f} tiles tonight.'
+                          .format(completed - self.completed))
             self.completed = completed
-            if self.progress.num_tiles - completed < 0.1:
-                self.survey_done = True
+
+            # Are we done yet?
+            if self.plan:
+                # Have we completed a group so that we need to update the plan?
+                self.survey_done = desisurvey.plan.update_required(
+                    self.plan, self.progress)
+            else:
+                # With no plan, keep going until all tiles are observed.
+                if self.progress.num_tiles - completed < 0.1:
+                    self.survey_done = True
 
         self.day_index += 1
         if self.day_index == self.num_days:
