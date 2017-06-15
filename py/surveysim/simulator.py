@@ -34,15 +34,21 @@ class Simulator(object):
         Survey stops on the morning of this date.
     progress : desisurvey.progress.Progress
         Progress of survey at the start of this simulation.
+    weather : surveysim.weather.Weather
+        Simulated weather conditions use use.
     strategy : str
         Strategy to use for scheduling tiles during each night.
     plan : str or None
         Name of plan file to use. Required unless strategy is 'baseline'.
-    seed : int or None
-        Random number seed used to generate weather conditions.
+    gen : numpy.random.RandomState or None
+        Random number generator to use for reproducible samples. Will be
+        initialized (un-reproducibly) if None.
+    computeHA : bool
+        ?
     """
-    def __init__(self, start_date, stop_date, progress, strategy='baseline',
-                 plan=None, seed=20190823, computeHA=False):
+    def __init__(self, start_date, stop_date, progress, weather,
+                 strategy='baseline', plan=None, gen=None,
+                 computeHA=False):
         self.log = desiutil.log.get_logger()
 
         config = desisurvey.config.Configuration()
@@ -70,13 +76,8 @@ class Simulator(object):
             self.sp = desisurvey.schedule.Scheduler()
         self.strategy = strategy
 
-        # Initialize the random number generator to use for simulating
-        # the weather and adding jitter to exposure times.
-        self.gen = np.random.RandomState(seed)
-
-        # Initialize the survey weather conditions generator.
-        self.weather = surveysim.weather.Weather(
-            start_date, stop_date, gen=self.gen)
+        self.gen = gen
+        self.weather = weather
 
         if plan is not None:
             # Load the plan to use.

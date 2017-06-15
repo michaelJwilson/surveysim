@@ -21,11 +21,14 @@ import datetime
 import os
 import warnings
 
+import numpy as np
+
 import desiutil.log
 
 import desisurvey.config
 import desisurvey.progress
 
+import surveysim.weather
 import surveysim.simulator
 
 
@@ -48,8 +51,8 @@ def parse(options=None):
         '--seed', type=int, default=123, metavar='N',
         help='random number seed for generating observing conditions')
     parser.add_argument(
-        '--resume', default=None, metavar='FILENAME',
-        help='Name of saved observations for resuming a simulation')
+        '--resume', action='store_true',
+        help='resuming a previous simulation from its saved progress')
     parser.add_argument(
         '--strategy', default='baseline',
         help='Next tile selector strategy to use')
@@ -87,9 +90,6 @@ def parse(options=None):
     if args.start >= args.stop:
         raise ValueError('Expected start < stop.')
 
-    if args.resume is not None and not os.path.exists(args.resume):
-        raise ValueError('No resume file found: {0}'.format(args.resume))
-
     return args
 
 
@@ -113,16 +113,25 @@ def main(args):
     if args.output_path is not None:
         config.set_output_path(args.output_path)
 
-    # Initialize the survey progress for this simulation.
-    progress = desisurvey.progress.Progress(args.resume)
+    # Initialize random numbers.
+    gen = np.random.RandomState(args.seed)
+    weather_name = 'weather_{0}.fits'.format(args.seed)
+
+    if args.resume:
+        weather = surveysim.weather.Weather(restore=weather_name)
+        progress = desisurvey.progress.Progress(restore='progress.fits')
+        if progress.last_mjd > 0:
+            args.start = desisurvey.utils.get_date(progress.last_mjd + 1)
+        args.stop = config.last_day()
+    else:
+        weather = surveysim.weather.Weather(gen=gen)
+        weather.save(weather_name)
+        progress = desisurvey.progress.Progress()
 
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
-        args.start, args.stop, progress, args.strategy, args.plan, args.seed,
-        args.computeHA)
-
-    # Save simulated weather conditions.
-    simulator.weather.save('weather.fits')
+        args.start, args.stop, progress, weather,
+        args.strategy, args.plan, gen, args.computeHA)
 
     # Simulate each night until the survey is complete or the last
     # day is reached.

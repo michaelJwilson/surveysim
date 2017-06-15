@@ -110,11 +110,26 @@ class Weather(object):
     gen : numpy.random.RandomState or None
         Random number generator to use for reproducible samples. Will be
         initialized (un-reproducibly) if None.
+    restore : filename or None
+        Restore an existing weather simulation from the specified file name.
+        All other parameters are ignored when this is provided. A relative path
+        name refers to the :meth:`configuration output path
+        <desisurvey.config.Configuration.get_path>`.
     """
     def __init__(self, start_date=None, stop_date=None, time_step=5 * u.min,
-                 gen=None):
+                 gen=None, restore=None):
         self.log = desiutil.log.get_logger()
         config = desisurvey.config.Configuration()
+
+        if restore is not None:
+            self._table = astropy.table.Table.read(config.get_path(restore))
+            self.start_date = desisurvey.utils.get_date(
+                self._table.meta['START'])
+            self.stop_date = desisurvey.utils.get_date(
+                self._table.meta['STOP'])
+            self.num_nights = self._table.meta['NIGHTS']
+            self.steps_per_day = self._table.meta['STEPS']
+            return
 
         if gen is None:
             self.log.warn('Will generate unreproducible random numbers.')
@@ -180,8 +195,8 @@ class Weather(object):
     def save(self, filename, overwrite=True):
         """Save the generated weather to a file.
 
-        There is currently no mechanism to restore a saved weather table, so
-        this method is primarily intended for making offline plots.
+        The saved file can be restored using the constructor `restore`
+        parameter.
 
         Parameters
         ----------

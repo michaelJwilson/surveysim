@@ -96,8 +96,8 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                     now, end_night, seeing, transparency, progress,
                     strategy, plan)
             if target is None:
-                log.info('No target available at {0}. Waiting...'
-                         .format(now.datetime.time()))
+                log.debug('No target available at {0}. Waiting...'
+                          .format(now.datetime.time()))
                 now = advance('delay', delay_time)
                 continue
             overhead = target['overhead']
