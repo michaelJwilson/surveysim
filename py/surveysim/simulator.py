@@ -52,16 +52,13 @@ class Simulator(object):
         self.num_days = (stop_date - start_date).days
         if self.num_days <= 0:
             raise ValueError('Expected start_date < stop_date.')
+        if start_date < config.first_day() or stop_date > config.last_day():
+            raise ValueError('Cannot simulate beyond nominal survey dates.')
         self.start_date = start_date
         self.stop_date = stop_date
 
         # Tabulate sun and moon ephemerides for each night of the survey.
-        if computeHA and stop_date < nominal_stop_date:
-            self.ephem = desisurvey.ephemerides.Ephemerides(
-                start_date, nominal_stop_date, use_cache=True)
-        else:
-            self.ephem = desisurvey.ephemerides.Ephemerides(
-                start_date, stop_date, use_cache=True)
+        self.ephem = desisurvey.ephemerides.Ephemerides(use_cache=True)
 
         if strategy == 'baseline':
             # Build the survey plan.

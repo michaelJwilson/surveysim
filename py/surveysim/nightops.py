@@ -11,7 +11,6 @@ import desiutil.log
 
 import desisurvey.etc
 import desisurvey.nextobservation
-import desisurvey.ephemerides
 import desisurvey.config
 
 
