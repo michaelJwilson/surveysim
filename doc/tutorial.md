@@ -93,13 +93,16 @@ been completely observed, which requires an updated plan. This is also when
 fiber assignment would normally be run before starting to observe a new group
 of tiles, but we are not considering that step here.
 
-If you used the random seed above, the survey should stop on 2019-12-01 when
-"Group 2 Priority 9" (DARK SCG) completes, but this is dependent on the
-simulated weather so different seeds will generally give different results.
+If you used the random seed above, the survey should stop after simulating
+2019-11-30 when "Group 2 Priority 9" (DARK SCG) completes, but this is dependent
+on the simulated weather so different seeds will generally give different results.
 
 The generated exposures.fits contains a list of the simulated exposures with
 all parameters necessary to simulate spectra (exposure time, airmass, seeing,
 moon brightness, etc).
+
+Note to experts: if you followed the recipe above, this step will generate
+harmless warnings about not having installed the `specter` package.
 
 ## Iterate Planning and Observing
 
@@ -108,8 +111,8 @@ surveyplan --duration 100 --verbose --plots
 surveysim --resume --seed 123 --strategy HA+fallback --plan plan.fits --verbose
 ```
 
-Each pass of `surveyplan` will write the following files to output/
-where YYYY-MM-DD is the next planned night of observing:
+Each pass of `surveyplan` takes ~3 minutes and will write the following files
+into output/ where YYYY-MM-DD is the next planned night of observing:
 - plan.fits
 - plan_YYYY-MM-DD.fits (backup of plan.fits)
 - plan_YYYY-MM-DD_DARK.png
@@ -117,8 +120,7 @@ where YYYY-MM-DD is the next planned night of observing:
 - plan_YYYY-MM-DD_BRIGHT.png
 - progress_YYYY-MM-DD.fits (backup of progress.fits)
 
-Each pass of `surveysim` will write the following files to output/, updating and
-overwriting the existing files:
+Each pass of `surveysim` runs until the survey completes or a fiber-assignment trigger condition is met, which takes a variable amount of time.  Jobs will write the following files to output/, updating and overwriting the existing files:
 - stats.fits
 - exposures.fits
 - progress.fits
