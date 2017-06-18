@@ -36,6 +36,8 @@ class Simulator(object):
         Progress of survey at the start of this simulation.
     weather : surveysim.weather.Weather
         Simulated weather conditions use use.
+    stats : astropy.table.Table
+        Table of per-night efficiency statistics to update.
     strategy : str
         Strategy to use for scheduling tiles during each night.
     plan : str or None
@@ -46,22 +48,21 @@ class Simulator(object):
     computeHA : bool
         ?
     """
-    def __init__(self, start_date, stop_date, progress, weather,
+    def __init__(self, start_date, stop_date, progress, weather, stats,
                  strategy='baseline', plan=None, gen=None,
                  computeHA=False):
         self.log = desiutil.log.get_logger()
-
-        config = desisurvey.config.Configuration()
-        nominal_stop_date = config.last_day()
+        self.config = desisurvey.config.Configuration()
 
         # Validate date range.
-        self.num_days = (stop_date - start_date).days
-        if self.num_days <= 0:
+        if start_date >= stop_date:
             raise ValueError('Expected start_date < stop_date.')
-        if start_date < config.first_day() or stop_date > config.last_day():
+        if (start_date < self.config.first_day() or
+            stop_date > self.config.last_day()):
             raise ValueError('Cannot simulate beyond nominal survey dates.')
         self.start_date = start_date
         self.stop_date = stop_date
+        self.last_index = (self.stop_date - self.config.first_day()).days
 
         # Tabulate sun and moon ephemerides for each night of the survey.
         self.ephem = desisurvey.ephemerides.Ephemerides(use_cache=True)
@@ -81,27 +82,28 @@ class Simulator(object):
 
         if plan is not None:
             # Load the plan to use.
-            config = desisurvey.config.Configuration()
-            self.plan = astropy.table.Table.read(config.get_path(plan))
+            self.plan = astropy.table.Table.read(self.config.get_path(plan))
             assert np.all(self.sp.tiles['tileid'] == self.plan['tileid'])
         else:
             self.plan = None
 
-        # Initialize a table for efficiency tracking.
-        self.etrack = astropy.table.Table()
-        self.etrack['available'] = np.zeros(self.num_days)
-        self.etrack['overhead'] = np.zeros(self.num_days)
-        self.etrack['delay'] = np.zeros(self.num_days)
-        self.etrack['dawn'] = np.zeros(self.num_days)
-        self.etrack['live'] = np.zeros(self.num_days)
+        if len(stats) != (self.config.last_day() - self.config.first_day()).days:
+            raise ValueError('Input stats table has wrong length.')
+        self.stats = stats
 
-        self.day_index = 0
+        self.day_index = (self.start_date - self.config.first_day()).days
         self.survey_done = False
         self.completed = progress.completed()
         self.progress = progress
         self.log.info(
             'Will simulate {0} to {1} with {2:.1f} / {3} tiles completed.'
             .format(start_date, stop_date, self.completed, progress.num_tiles))
+
+    @property
+    def date(self):
+        """The current simulation date as a datetime object.
+        """
+        return self.config.first_day() + datetime.timedelta(days=self.day_index)
 
     def next_day(self):
         """Simulate the next day of survey operations.
@@ -115,10 +117,10 @@ class Simulator(object):
         bool
             True if there are more days to simulate.
         """
-        if self.day_index >= self.num_days or self.survey_done:
+        if self.day_index >= self.last_index or self.survey_done:
             return False
 
-        date = self.start_date + datetime.timedelta(days=self.day_index)
+        date = self.date
         self.log.info('Simulating {0}'.format(date))
 
         if desisurvey.utils.is_monsoon(date):
@@ -147,7 +149,7 @@ class Simulator(object):
 
             # Update our efficiency tracker.
             for mode in totals:
-                self.etrack[mode][self.day_index] = totals[mode].to(u.day).value
+                self.stats[mode][self.day_index] = totals[mode].to(u.day).value
 
             # Progress report.
             completed = self.progress.completed()
@@ -166,7 +168,7 @@ class Simulator(object):
                     self.survey_done = True
 
         self.day_index += 1
-        if self.day_index == self.num_days:
+        if self.day_index == self.last_index:
             self.survey_done = True
 
         return not self.survey_done
