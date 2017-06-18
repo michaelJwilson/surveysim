@@ -22,8 +22,7 @@ If you are not sure about how to do this or just want a specific recipe, the fol
 ```
 conda create --name desi --yes python=3.5 numpy scipy astropy pyyaml requests ipython h5py scikit-learn matplotlib
 source activate desi
-pip install fitsio
-pip install speclite
+pip install fitsio speclite ephem healpy
 for package in specsim desiutil desimodel desisurvey surveysim:
     git clone https://github.com/desihub/$package
     cd $package
