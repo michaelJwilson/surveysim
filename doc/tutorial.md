@@ -42,6 +42,14 @@ Create an output directory to hold all survey planning and simulation outputs:
 mkdir output
 export DESISURVEY=$PWD/output
 ```
+If you followed the installation recipe above then make sure you have activated your `desi` environment with:
+```
+source activate desi
+```
+Ensure that your `$DESIMODEL` environment variable points to a valid data directory:
+```
+ls $DESIMODEL/data
+```
 
 ## Create Initial Plan
 
@@ -64,6 +72,9 @@ regenerated after the first time you run this command.
 
 Omit the `--plots` option if you do not have matplotlib installed, in which
 case the three png files listed above will not be generated.
+
+The significance of the date 2019-08-28 appearing in the file names above is that this is the nominal start date of the five-year survey.  This is one of many parameters defined in the [survey configuration](https://github.com/desihub/desisurvey/blob/master/py/desisurvey/data/config.yaml),
+which is well commented and provides a good overview of the assumptions used when scheduling observations.
 
 ## Simulate Initial Observing
 
@@ -113,6 +124,8 @@ overwriting the existing files:
 - exposures.fits
 - progress.fits
 - last_date.txt
+
+Note that the simulated weather is only generated the first time `surveysim` is called and then read by subsequent passes, to ensure a consistent and continuous weather model.
 
 ## Automation
 
