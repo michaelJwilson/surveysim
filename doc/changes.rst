@@ -2,10 +2,12 @@
 surveysim change log
 ====================
 
-0.6.1 (unreleased)
+0.7.0 (unreleased)
 ------------------
 
 * First implementation of fiber-assignment groups and priorities.
+* Integration with the new desisurvey surveyplan script.
+* Create tutorial document and sample automation script.
 
 0.6.0 (2017-06-05)
 ------------------

@@ -1,14 +1,34 @@
 import unittest
 import datetime
+import tempfile
+import shutil
+import os
 
 import numpy as np
 
 import astropy.time
 
+import desisurvey.config
+
 from ..weather import Weather, sample_gaussian_random_process
 
 
 class TestWeather(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Create a temporary directory.
+        cls.tmpdir = tempfile.mkdtemp()
+        # Write output files to this temporary directory.
+        config = desisurvey.config.Configuration()
+        config.set_output_path(cls.tmpdir)
+
+    @classmethod
+    def tearDownClass(cls):
+        # Remove the directory after the test.
+        shutil.rmtree(cls.tmpdir)
+        # Reset our configuration.
+        desisurvey.config.Configuration.reset()
 
     def setUp(self):
         start = datetime.date(2020, 1, 1)
@@ -60,6 +80,17 @@ class TestWeather(unittest.TestCase):
         self.assertTrue(len(rows) == 5)
         for i in range(5):
             self.assertTrue(0. <= rows['transparency'][i] <= 1.)
+
+    def test_save_restore(self):
+        """Save and restore a weather file"""
+        self.w.save('weather.fits')
+        w = Weather(restore='weather.fits')
+        for name in w._table.colnames:
+            self.assertTrue(np.all(self.w._table[name] == w._table[name]))
+        self.assertEqual(self.w._table.meta['START'], w._table.meta['START'])
+        self.assertEqual(self.w._table.meta['STOP'], w._table.meta['STOP'])
+        self.assertEqual(self.w._table.meta['NIGHTS'], w._table.meta['NIGHTS'])
+        self.assertEqual(self.w._table.meta['STEPS'], w._table.meta['STEPS'])
 
 
 class TestGaussianProcess(unittest.TestCase):

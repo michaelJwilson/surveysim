@@ -11,7 +11,6 @@ import desiutil.log
 
 import desisurvey.etc
 import desisurvey.nextobservation
-import desisurvey.ephemerides
 import desisurvey.config
 
 
@@ -97,8 +96,8 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                     now, end_night, seeing, transparency, progress,
                     strategy, plan)
             if target is None:
-                log.info('No target available at {0}. Waiting...'
-                         .format(now.datetime.time()))
+                log.debug('No target available at {0}. Waiting...'
+                          .format(now.datetime.time()))
                 now = advance('delay', delay_time)
                 continue
             overhead = target['overhead']
@@ -110,13 +109,21 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                 now, target['RA'] * u.deg, target['DEC'] * u.deg)
             # Calculate the nominal total exposure time required for this
             # target under the current observing conditions.
+            moonfrac = night['moon_illum_frac']
+            moonsep = target['MoonDist']
+            moonalt = target['MoonAlt']
             total_exptime = desisurvey.etc.exposure_time(
                 target['Program'], seeing, transparency, airmass,
-                target['Ebmv'], night['moon_illum_frac'], target['MoonDist'],
-                target['MoonAlt'])
+                target['Ebmv'], moonfrac, moonsep, moonalt)
             # Scale exposure time by the remaining SNR needed for this target.
             tile = progress.get_tile(target['tileID'])
             target_exptime = total_exptime * max(0, 1 - tile['snr2frac'].sum())
+            # Do not re-observe a target that has already been completed.
+            if target_exptime == 0:
+                log.info('Tile {0} already completed at {1}.'
+                         .format(tile['tileid'], now.datetime.time()))
+                now = advance('delay', delay_time)
+                continue
             # Clip the exposure time if necessary.
             if target_exptime > config.max_exposure_length():
                 log.info('Clip exposure time {0:.1f} -> {1:.1f} for tile {2}.'
@@ -128,11 +135,6 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                 (target_exptime / config.cosmic_ray_split()).to(1).value))
             log.debug('Target {0:.1f} (total {1:.1f}) needs {2} exposures.'
                       .format(target_exptime, total_exptime, nexp))
-            if nexp <= 0:
-                log.info('Got nexp={0} for tile {1} at {2}.'
-                         .format(nexp, tile['tileID'], now.datetime.time()))
-                now = advance('delay', delay_time)
-                continue
             # Simulate the individual exposures.
             for iexp in range(nexp):
                 # Add random jitter with 10% RMS to the target exposure time to
@@ -148,7 +150,8 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
                 # Record this exposure.
                 snr2frac = exptime / total_exptime
                 progress.add_exposure(
-                    target['tileID'], now, exptime, snr2frac, airmass, seeing)
+                    target['tileID'], now, exptime, snr2frac, airmass, seeing,
+                    moonfrac, moonalt, moonsep)
                 # Advance to the shutter close time.
                 now = advance('live', exptime)
                 # Overhead for a later exposure is only readout time.
