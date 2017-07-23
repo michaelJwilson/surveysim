@@ -18,13 +18,6 @@ import desisurvey.config
 import desisurvey.utils
 
 
-# Percentage probability of the dome being closed due to weather
-# during each calendar month.
-dome_closed_probability = [
-    35.24, 44.14, 27.68, 26.73, 14.22, 15.78,
-    55.92, 48.75, 29.45, 24.44, 24.86, 34.74]
-
-
 class Weather(object):
     """Simulate weather conditions affecting observations.
 
@@ -100,11 +93,12 @@ class Weather(object):
         # We currently assume this is fixed for a whole night, but
         # tabulate the status at each time so that this could be
         # updated in future to simulate partial-night weather outages.
+        dome_closed_prob = desisurvey.utils.dome_closed_probabilities()
         self._table['open'] = np.ones(num_rows, bool)
         for i in range(num_nights):
             ij = i * steps_per_day
             month = times[ij].datetime.month
-            if 100 * gen.uniform() < dome_closed_probability[month - 1]:
+            if gen.uniform() < dome_closed_prob[month - 1]:
                 self._table['open'][ij:ij + steps_per_day] = False
 
         # Generate a random atmospheric seeing time series.
