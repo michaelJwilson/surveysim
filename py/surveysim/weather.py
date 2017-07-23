@@ -12,7 +12,7 @@ import astropy.units as u
 
 import desiutil.log
 
-import desimodel.seeing
+import desimodel.weather
 
 import desisurvey.config
 import desisurvey.utils
@@ -173,19 +173,14 @@ class Weather(object):
             if 100 * gen.uniform() < dome_closed_probability[month - 1]:
                 self._table['open'][ij:ij + steps_per_day] = False
 
-        # Sample random seeing values.
-        dt_days = 24 * 3600. / steps_per_day
-        # It would be better if we could pass our gen to seeing.sample().
-        seeing_seed = gen.randint(2 ** 31)
-        self._table['seeing'] = desimodel.seeing.sample(
-            num_rows, dt_days, seed=seeing_seed).astype(np.float32)
+        # Generate a random atmospheric seeing time series.
+        dt_sec = 24 * 3600. / steps_per_day
+        self._table['seeing'] = desimodel.weather.sample_seeing(
+            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
 
-        # Sample transparency as the lognormal transform of a Gaussian
-        # random process.  Mean and sigma are copied from the original code.
-        self._table['transparency'] = np.clip(
-            np.exp(sample_gaussian_random_process(
-                num_rows, dt_days, mean=0.11111, sigma=0.33333, gen=gen)),
-            0., 1.).astype(np.float32)
+        # Generate a random atmospheric transparency time series.
+        self._table['transparency'] = desimodel.weather.sample_transp(
+            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
 
         self.start_date = start_date
         self.stop_date = stop_date
