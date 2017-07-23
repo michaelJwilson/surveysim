@@ -50,30 +50,36 @@ Ensure that your `$DESIMODEL` environment variable points to a valid data direct
 ls $DESIMODEL/data
 ```
 
-## Create Initial Plan
+## Assign Design Hour Angles
+
+```
+surveyinit
+```
+
+This step takes ~35 minutes and writes the following files into output/:
+- ephem_2019-08-28_2024-07-13.fits  (~1 min)
+- scheduler.fits (~10 mins, ~1.3Gb)
+- surveyinit.fits
+
+The first two files take some time to generate, but are cached and not regenerated after the first time you run this command. The last file contains optimized hour angle (HA) assignments for each tile and an estimated exposure time.
+
+The dates appearing in the ephemerides filename are the nominal start and stop dates of the five-year survey.  These parameters and many others are defined in the [survey configuration](https://github.com/desihub/desisurvey/blob/master/py/desisurvey/data/config.yaml),
+which is well commented and provides a good overview of the assumptions used when planning and scheduling observations.
+
+## Plan Initial Observing
 
 ```
 surveyplan --create --duration 100 --verbose --plots
 ```
 
-This step takes ~14 minutes and writes the following files into output/:
-- ephem_2019-08-28_2024-07-13.fits  (~1 min)
-- scheduler.fits (~10 mins, ~1.3Gb)
+This step takes ?? minutes and writes the following files into output/:
 - plan.fits (~3 mins)
 - plan_2019-08-28.fits (backup of plan.fits)
-- plan_2019-08-28_DARK.png
-- plan_2019-08-28_GRAY.png
-- plan_2019-08-28_BRIGHT.png
 - progress_2019-08-28.fits (empty progress record)
-
-The first two files take some time to generate, but are cached and not
-regenerated after the first time you run this command.
 
 Omit the `--plots` option if you do not have matplotlib installed, in which
 case the three png files listed above will not be generated.
 
-The significance of the date 2019-08-28 appearing in the file names above is that this is the nominal start date of the five-year survey.  This is one of many parameters defined in the [survey configuration](https://github.com/desihub/desisurvey/blob/master/py/desisurvey/data/config.yaml),
-which is well commented and provides a good overview of the assumptions used when scheduling observations.
 
 ## Simulate Initial Observing
 
