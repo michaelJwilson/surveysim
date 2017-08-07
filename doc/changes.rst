@@ -2,10 +2,11 @@
 surveysim change log
 ====================
 
-0.7.1 (unreleased)
+0.7.1 (2017-08-07)
 ------------------
 
-* No changes yet.
+* Use new desimodel.weather to randomly sample seeing and transparency.
+  Requires desimodel >= 0.8.0.
 
 0.7.0 (2017-06-18)
 ------------------

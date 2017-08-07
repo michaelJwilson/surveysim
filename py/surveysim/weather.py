@@ -12,83 +12,10 @@ import astropy.units as u
 
 import desiutil.log
 
-import desimodel.seeing
+import desimodel.weather
 
 import desisurvey.config
 import desisurvey.utils
-
-
-# Percentage probability of the dome being closed due to weather
-# during each calendar month.
-dome_closed_probability = [
-    35.24, 44.14, 27.68, 26.73, 14.22, 15.78,
-    55.92, 48.75, 29.45, 24.44, 24.86, 34.74]
-
-
-def sample_gaussian_random_process(
-    n_sample, dt_sec=300., mean= 0., sigma=1., tau1=0.025, tau2=5., gen=None):
-    """Generate samples of a Gaussian random process.
-
-    Samples are correlated in time according to the value of two
-    time constants.
-
-    This is a simplified version of desimodel.seeing.sample() and should
-    probably go into desiutils somewhere.
-
-    Parameters
-    ----------
-    n_sample : int
-        Number of samples to generate. Must be at least 2.
-    dt_sec : float
-        Elapsed time in seconds between generated samples.
-    mean : float
-        Mean value of the generated samples.
-    sigma : float
-        Standard deviation of the generated samples.
-    tau1 : float
-        Time constant associated with the autocorrelation power spectral
-        density, in units of days.
-    tau2 : float
-        Time constant associated with the autocorrelation power spectral
-        density, in units of days.
-    gen : numpy.random.RandomState
-        Random number generator to use for reproducible samples.
-
-    Returns
-    -------
-    array:
-        Array of sampled values on a uniform time grid.
-    """
-    if n_sample < 2:
-        raise ValueError('n_sample must be at least 2.')
-
-    # Build a linear grid of frequencies present in the Fourier transform
-    # of the requested time series.  Frequency units are 1/day.
-    dt_day = dt_sec / (24. * 3600.)
-    df_day = 1. / (n_sample * dt_day)
-    f_grid = np.arange(1 + (n_sample // 2)) * df_day
-
-    # Tabulate the power spectral density at each frequency.
-    omega = 2 * np.pi * f_grid
-    psd = 1. / (1. + omega * tau1) / (1. + omega * tau2)
-    # Force the mean to zero.
-    psd[0] = 0.
-    # Force the variance to one.
-    psd[1:] /= psd[1:].sum() * df_day ** 2
-
-    # Sample the Gaussian random process.
-    n_psd = len(psd)
-    x_fft = np.ones(n_psd, dtype=complex)
-    x_fft[1:-1].real = gen.normal(size=n_psd - 2)
-    x_fft[1:-1].imag = gen.normal(size=n_psd - 2)
-    x_fft *= np.sqrt(psd) / (2 * dt_day)
-    x_fft[0] *= np.sqrt(2)
-    x = np.fft.irfft(x_fft, n_sample)
-
-    # Transform samples to the requested mean and sigma.
-    x = mean + sigma * x
-
-    return x
 
 
 class Weather(object):
@@ -166,26 +93,22 @@ class Weather(object):
         # We currently assume this is fixed for a whole night, but
         # tabulate the status at each time so that this could be
         # updated in future to simulate partial-night weather outages.
+        dome_closed_prob = desisurvey.utils.dome_closed_probabilities()
         self._table['open'] = np.ones(num_rows, bool)
         for i in range(num_nights):
             ij = i * steps_per_day
             month = times[ij].datetime.month
-            if 100 * gen.uniform() < dome_closed_probability[month - 1]:
+            if gen.uniform() < dome_closed_prob[month - 1]:
                 self._table['open'][ij:ij + steps_per_day] = False
 
-        # Sample random seeing values.
-        dt_days = 24 * 3600. / steps_per_day
-        # It would be better if we could pass our gen to seeing.sample().
-        seeing_seed = gen.randint(2 ** 31)
-        self._table['seeing'] = desimodel.seeing.sample(
-            num_rows, dt_days, seed=seeing_seed).astype(np.float32)
+        # Generate a random atmospheric seeing time series.
+        dt_sec = 24 * 3600. / steps_per_day
+        self._table['seeing'] = desimodel.weather.sample_seeing(
+            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
 
-        # Sample transparency as the lognormal transform of a Gaussian
-        # random process.  Mean and sigma are copied from the original code.
-        self._table['transparency'] = np.clip(
-            np.exp(sample_gaussian_random_process(
-                num_rows, dt_days, mean=0.11111, sigma=0.33333, gen=gen)),
-            0., 1.).astype(np.float32)
+        # Generate a random atmospheric transparency time series.
+        self._table['transparency'] = desimodel.weather.sample_transp(
+            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
 
         self.start_date = start_date
         self.stop_date = stop_date
