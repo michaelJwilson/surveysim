@@ -20,7 +20,7 @@ The instructions below assume that you have already installed recent versions of
 
 If you are not sure about how to do this or just want a specific recipe, the following instructions assume that you have installed the [anaconda scientific python distribution](https://docs.continuum.io/anaconda/install) and will create a new python environment for your DESI work. Start from the directory you wish to install software into, then:
 ```
-conda create --name desi --yes python=3.5 numpy scipy astropy pyyaml requests ipython h5py scikit-learn matplotlib
+conda create --name desi pip ipython jupyter numpy scipy astropy pyyaml requests h5py scikit-learn matplotlib
 source activate desi
 pip install fitsio speclite ephem healpy
 for package in specsim desiutil desimodel desisurvey surveysim:
@@ -32,7 +32,9 @@ export DESIMODEL=$PWD/desimodel
 install_desimodel_data -d $DESIMODEL
 ```
 
-Note to experts: the matplotlib requirement is unnecessary if you remove the `--plots` option in the instructions below.
+Notes to experts:
+- The instructions above assume that you are using the bash shell, and need to be modified slightly for (t)csh.
+- The matplotlib requirement is unnecessary if you remove the `--plots` option in the instructions below.
 
 ## Setup Environment
 
