@@ -23,11 +23,12 @@ If you are not sure about how to do this or just want a specific recipe, the fol
 conda create --name desi pip ipython jupyter numpy scipy astropy pyyaml requests h5py scikit-learn matplotlib
 source activate desi
 pip install fitsio speclite ephem healpy
-for package in specsim desiutil desimodel desisurvey surveysim:
+for package in specsim desiutil desimodel desisurvey surveysim; do
     git clone https://github.com/desihub/$package
     cd $package
     python setup.py install
     cd ..
+done
 export DESIMODEL=$PWD/desimodel
 install_desimodel_data -d $DESIMODEL
 ```
