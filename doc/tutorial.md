@@ -20,13 +20,13 @@ The instructions below assume that you have already installed recent versions of
 
 If you are not sure about how to do this or just want a specific recipe, the following instructions assume that you have installed the [anaconda scientific python distribution](https://docs.continuum.io/anaconda/install) and will create a new python environment for your DESI work. Start from the directory you wish to install software into, then:
 ```
-conda create --name desi pip ipython jupyter numpy scipy astropy pyyaml requests h5py scikit-learn matplotlib
+conda create --name desi pip ipython jupyter numpy scipy astropy pyyaml requests h5py scikit-learn matplotlib basemap
 source activate desi
 pip install fitsio speclite ephem healpy
 for package in specsim desiutil desimodel desisurvey surveysim; do
     git clone https://github.com/desihub/$package
     cd $package
-    python setup.py install
+    pip install .
     cd ..
 done
 export DESIMODEL=$PWD/desimodel
@@ -35,7 +35,7 @@ install_desimodel_data -d $DESIMODEL
 
 Notes to experts:
 - The instructions above assume that you are using the bash shell, and need to be modified slightly for (t)csh.
-- The matplotlib requirement is unnecessary if you remove the `--plots` option in the instructions below.
+- The matplotlib and basemap packages are not required to follow the instructions below but are useful for plotting the outputs.
 
 ## Setup Environment
 
@@ -53,10 +53,11 @@ Ensure that your `$DESIMODEL` environment variable points to a valid data direct
 ls $DESIMODEL/data
 ```
 
-## Assign Design Hour Angles
+## Initialize Survey Planning
 
+Before starting the survey, we precompute some tabulated planning data and assign design hour angles to each tile using:
 ```
-surveyinit
+surveyinit --verbose
 ```
 
 This step takes ~35 minutes and writes the following files into output/:
@@ -69,25 +70,28 @@ The first two files take some time to generate, but are cached and not regenerat
 The dates appearing in the ephemerides filename are the nominal start and stop dates of the five-year survey.  These parameters and many others are defined in the [survey configuration](https://github.com/desihub/desisurvey/blob/master/py/desisurvey/data/config.yaml),
 which is well commented and provides a good overview of the assumptions used when planning and scheduling observations.
 
-## Plan Initial Observing
+## Create Initial Observing Plan
 
+Next, we assign targets to each first-layer tile and determine the initial observing priorities of each tile using:
 ```
-surveyplan --create --duration 100 --verbose --plots
+surveyplan --create --verbose
 ```
+Note that this step does not currently run fiber assignment, but does keep track of which tiles would have been assigned and are available for scheduling.
 
-This step takes ?? minutes and writes the following files into output/:
+This step runs quickly and writes the following files into output/:
 - plan.fits (~3 mins)
 - plan_2019-08-28.fits (backup of plan.fits)
 - progress_2019-08-28.fits (empty progress record)
 
-Omit the `--plots` option if you do not have matplotlib installed, in which
-case the three png files listed above will not be generated.
-
+The plan is based on the initial hour-angle assignments computed by `surveyinit` and the observing priority rules specified in `data/rules.yaml` of the `desisurvey` package.  To experiment with different priority rules use, for example:
+```
+surveyplan --create --verbose --rules $PWD/myrules.yaml
+```
 
 ## Simulate Initial Observing
 
 ```
-surveysim --seed 123 --strategy HA+fallback --plan plan.fits --verbose
+surveysim --seed 123 --strategy HA+fallback --verbose
 ```
 
 This step takes ~2 minutes and writes the following files into output/:
@@ -109,9 +113,6 @@ on the simulated weather so different seeds will generally give different result
 The generated exposures.fits contains a list of the simulated exposures with
 all parameters necessary to simulate spectra (exposure time, airmass, seeing,
 moon brightness, etc).
-
-Note to experts: if you followed the recipe above, this step will generate
-harmless warnings about not having installed the `specter` package.
 
 ## Iterate Planning and Observing
 
