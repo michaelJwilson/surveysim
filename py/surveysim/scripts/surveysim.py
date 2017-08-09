@@ -63,16 +63,14 @@ def parse(options=None):
         '--resume', action='store_true',
         help='resuming a previous simulation from its saved progress')
     parser.add_argument(
-        '--strategy', default='baseline',
+        '--strategy', default='HA+fallback',
         help='Next tile selector strategy to use')
     parser.add_argument(
-        '--plan', default=None,
+        '--plan', default='plan.fits',
         help='Name of plan file to use')
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
-    parser.add_argument('--computeHA', action='store_true',
-        help='compute or re-compute design HA')
 
     if options is None:
         args = parser.parse_args()
@@ -155,12 +153,12 @@ def main(args):
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
         args.start, args.stop, progress, weather, stats,
-        args.strategy, args.plan, gen, args.computeHA)
+        args.strategy, args.plan, gen)
 
     # Simulate each night until the survey is complete or the last
     # day is reached.
     while simulator.next_day():
-        pass
+        break
 
     # Save the current date.
     with open(config.get_path('last_date.txt'), 'w') as f:

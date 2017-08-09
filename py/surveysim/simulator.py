@@ -40,17 +40,14 @@ class Simulator(object):
         Table of per-night efficiency statistics to update.
     strategy : str
         Strategy to use for scheduling tiles during each night.
-    plan : str or None
-        Name of plan file to use. Required unless strategy is 'baseline'.
+    plan : str
+        Name of plan file to use.
     gen : numpy.random.RandomState or None
         Random number generator to use for reproducible samples. Will be
         initialized (un-reproducibly) if None.
-    computeHA : bool
-        ?
     """
     def __init__(self, start_date, stop_date, progress, weather, stats,
-                 strategy='baseline', plan=None, gen=None,
-                 computeHA=False):
+                 strategy, plan, gen=None):
         self.log = desiutil.log.get_logger()
         self.config = desisurvey.config.Configuration()
 
@@ -64,28 +61,19 @@ class Simulator(object):
         self.stop_date = stop_date
         self.last_index = (self.stop_date - self.config.first_day()).days
 
-        # Tabulate sun and moon ephemerides for each night of the survey.
+        # Load the cached empherides to use.
         self.ephem = desisurvey.ephemerides.Ephemerides(use_cache=True)
 
-        if strategy == 'baseline':
-            # Build the survey plan.
-            self.sp = desisurvey.afternoonplan.surveyPlan(
-                self.ephem.start.mjd, self.ephem.stop.mjd, self.ephem,
-                computeHA)
-        else:
-            # Load the survey scheduler to use.
-            self.sp = desisurvey.schedule.Scheduler()
-        self.strategy = strategy
+        # Load the survey scheduler to use.
+        self.sp = desisurvey.schedule.Scheduler()
 
+        self.strategy = strategy
         self.gen = gen
         self.weather = weather
 
-        if plan is not None:
-            # Load the plan to use.
-            self.plan = astropy.table.Table.read(self.config.get_path(plan))
-            assert np.all(self.sp.tiles['tileid'] == self.plan['tileid'])
-        else:
-            self.plan = None
+        # Load the plan to use.
+        self.plan = astropy.table.Table.read(self.config.get_path(plan))
+        assert np.all(self.sp.tiles['tileid'] == self.plan['tileid'])
 
         if len(stats) != (self.config.last_day() - self.config.first_day()).days:
             raise ValueError('Input stats table has wrong length.')
@@ -157,15 +145,8 @@ class Simulator(object):
                           .format(completed - self.completed))
             self.completed = completed
 
-            # Are we done yet?
-            if self.plan:
-                # Have we completed a group so that we need to update the plan?
-                self.survey_done = desisurvey.plan.update_required(
-                    self.plan, self.progress)
-            else:
-                # With no plan, keep going until all tiles are observed.
-                if self.progress.num_tiles - completed < 0.1:
-                    self.survey_done = True
+            if self.progress.num_tiles - completed < 0.1:
+                self.survey_done = True
 
         self.day_index += 1
         if self.day_index == self.last_index:
