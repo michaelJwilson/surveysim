@@ -14,7 +14,7 @@ import desisurvey.nextobservation
 import desisurvey.config
 
 
-def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
+def nightOps(night, scheduler, weather, progress, strategy, plan, gen):
     """Simulate one night of observing.
 
     Use an afternoon plan, ephemerides, and simulated weather to
@@ -26,9 +26,8 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
         Row of tabulated ephemerides for this night, normally
         obtained with
         :meth:`desisurvey.ephemerides.Ephemerides.get_night`.
-    obsplan : string or desisurvey.plan.Planner
-        Name of the file containing today's afternoon plan or a global
-        planner object to use.
+    scheduler : desisurvey.schedule.Scheduler
+        Scheduler object to use for selecting next tiles.
     weather : surveysim.weather.Weather
         Simulated weather conditions to use.
     progress : desisurvey.progress.Progress
@@ -36,8 +35,8 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
         observations taken this night.
     strategy : str
         Strategy to use for scheduling tiles during each night.
-    plan : astropy.table.Table or None
-        Table that specifies active tiles and design hour angles.
+    plan : astropy.table.Table
+        Table that specifies tile priorities and design hour angles.
     gen : numpy.random.RandomState
         Random number generator to use for reproducible samples.
 
@@ -88,13 +87,8 @@ def nightOps(night, obsplan, weather, progress, strategy, plan, gen):
             conditions = weather.get(now)
             seeing, transparency = conditions['seeing'], conditions['transparency']
             # Select the next target to observe.
-            if strategy == 'baseline':
-                target = desisurvey.nextobservation.nextFieldSelector(
-                    obsplan, now.mjd, progress)
-            else:
-                target = obsplan.next_tile(
-                    now, end_night, seeing, transparency, progress,
-                    strategy, plan)
+            target = scheduler.next_tile(
+                now, end_night, seeing, transparency, progress, strategy, plan)
             if target is None:
                 log.debug('No target available at {0}. Waiting...'
                           .format(now.datetime.time()))

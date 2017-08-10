@@ -63,7 +63,7 @@ def parse(options=None):
         '--resume', action='store_true',
         help='resuming a previous simulation from its saved progress')
     parser.add_argument(
-        '--strategy', default='HA+fallback',
+        '--strategy', default='HA',
         help='Next tile selector strategy to use')
     parser.add_argument(
         '--plan', default='plan.fits',
