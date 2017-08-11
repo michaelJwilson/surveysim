@@ -91,7 +91,7 @@ surveyplan --create --verbose --rules $PWD/myrules.yaml
 ## Simulate Initial Observing
 
 ```
-surveysim --seed 123 --strategy HA+fallback --verbose
+surveysim --seed 123 --verbose
 ```
 
 This step takes ~2 minutes and writes the following files into output/:
@@ -100,11 +100,6 @@ This step takes ~2 minutes and writes the following files into output/:
 - exposures.fits
 - progress.fits
 - last_date.txt
-
-The simulation automatically stops once the first fiber-assignment group has
-been completely observed, which requires an updated plan. This is also when
-fiber assignment would normally be run before starting to observe a new group
-of tiles, but we are not considering that step here.
 
 If you used the random seed above, the survey should stop after simulating
 2019-11-30 when "Group 2 Priority 9" (DARK SCG) completes, but this is dependent
@@ -117,20 +112,17 @@ moon brightness, etc).
 ## Iterate Planning and Observing
 
 ```
-surveyplan --duration 100 --verbose --plots
-surveysim --resume --seed 123 --strategy HA+fallback --plan plan.fits --verbose
+#surveyplan --verbose
+surveysim --resume --verbose
 ```
 
-Each pass of `surveyplan` takes ~3 minutes and will write the following files
+Each pass of `surveyplan` takes ?? minutes and will write the following files
 into output/ where YYYY-MM-DD is the next planned night of observing:
 - plan.fits
 - plan_YYYY-MM-DD.fits (backup of plan.fits)
-- plan_YYYY-MM-DD_DARK.png
-- plan_YYYY-MM-DD_GRAY.png
-- plan_YYYY-MM-DD_BRIGHT.png
 - progress_YYYY-MM-DD.fits (backup of progress.fits)
 
-Each pass of `surveysim` runs until the survey completes or a fiber-assignment trigger condition is met, which takes a variable amount of time.  Jobs will write the following files to output/, updating and overwriting the existing files:
+Each pass of `surveysim` simulates one night's observing.  Jobs will write the following files to output/, updating and overwriting the existing files:
 - stats.fits
 - exposures.fits
 - progress.fits
