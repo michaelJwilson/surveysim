@@ -27,6 +27,7 @@ import argparse
 import datetime
 import os
 import warnings
+import sys
 
 import numpy as np
 
@@ -84,14 +85,14 @@ def parse(options=None):
         args.start = config.first_day()
     else:
         try:
-            args.start = datetime.datetime.strptime(args.start, '%Y-%m-%d').date()
+            args.start = desisurvey.utils.get_date(args.start)
         except ValueError as e:
             raise ValueError('Invalid start: {0}'.format(e))
     if args.stop is None:
         args.stop = config.last_day()
     else:
         try:
-            args.stop = datetime.datetime.strptime(args.stop, '%Y-%m-%d').date()
+            args.stop = desisurvey.utils.get_date(args.stop)
         except ValueError as e:
             raise ValueError('Invalid stop: {0}'.format(e))
     if args.start >= args.stop:
@@ -134,7 +135,10 @@ def main(args):
         # Resume from the last simulated date.
         with open(config.get_path('last_date.txt'), 'r') as f:
             args.start = desisurvey.utils.get_date(f.read().rstrip())
-        args.stop = config.last_day()
+        if args.start >= args.stop:
+            log.info('Reached stop date.')
+            # Return a shell exit code so scripts can detect this condition.
+            sys.exit(9)
     else:
         # Generate and save random weather.
         weather = surveysim.weather.Weather(gen=gen)
@@ -155,10 +159,8 @@ def main(args):
         args.start, args.stop, progress, weather, stats,
         args.strategy, args.plan, gen)
 
-    # Simulate each night until the survey is complete or the last
-    # day is reached.
-    while simulator.next_day():
-        break
+    # Simulate one night of observing.
+    simulator.next_day()
 
     # Save the current date.
     with open(config.get_path('last_date.txt'), 'w') as f:
