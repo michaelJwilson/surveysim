@@ -55,7 +55,7 @@ ls $DESIMODEL/data
 
 ## Initialize Survey Planning
 
-Before starting the survey, we precompute some tabulated planning data and assign design hour angles to each tile using:
+Before starting the survey, we precompute some tabulated planning data using:
 ```
 surveyinit --verbose
 ```
@@ -65,7 +65,9 @@ This step takes ~35 minutes and writes the following files into output/:
 - scheduler.fits (~10 mins, ~1.3Gb)
 - surveyinit.fits
 
-The first two files take some time to generate, but are cached and not regenerated after the first time you run this command. The last file contains optimized hour angle (HA) assignments for each tile and an estimated exposure time.
+The first file tabulates ephemerides of the sun, moon and planets.  The second file tabulates the observing efficiency over the footprint and survey duration.  The last file contains optimized hour angle (HA) assignments for each tile and an estimated exposure time.
+
+These files take some time to generate, but are cached and not regenerated after the first time you run this command. If you want to force these files to be recalculated, add the `--recalc` option.
 
 The dates appearing in the ephemerides filename are the nominal start and stop dates of the five-year survey.  These parameters and many others are defined in the [survey configuration](https://github.com/desihub/desisurvey/blob/master/py/desisurvey/data/config.yaml),
 which is well commented and provides a good overview of the assumptions used when planning and scheduling observations.
@@ -136,6 +138,7 @@ You can wrap the commands above into a simple shell script, using the fact
 that surveyplan exits with a non-zero error code when it detects that the
 simulation has either run of out time or observed all tiles.  For example:
 ```
+surveyinit --verbose
 surveyplan --create ${PLAN_ARGS}
 surveysim ${SIM_ARGS}
 
@@ -156,6 +159,7 @@ mkdir output2
 cd output2
 ln ../output/ephem_2019-08-28_2024-07-13.fits .
 ln ../output/scheduler.fits .
+ln ../output/surveyinit.fits .
 cd ..
 export DESISURVEY=$PWD/output2
 ```
