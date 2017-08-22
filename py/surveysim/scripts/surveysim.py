@@ -70,6 +70,9 @@ def parse(options=None):
         '--plan', default='plan.fits',
         help='Name of plan file to use')
     parser.add_argument(
+        '--scores', action='store_true',
+        help='Save scheduler scores for each exposure')
+    parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
 
@@ -159,8 +162,19 @@ def main(args):
         args.start, args.stop, progress, weather, stats,
         args.strategy, args.plan, gen)
 
+    if args.scores:
+        scores = []
+        scores_name = config.get_path('scores_{0}.fits'.format(simulator.date))
+    else:
+        scores = None
+
     # Simulate one night of observing.
-    simulator.next_day()
+    simulator.next_day(scores=scores)
+
+    if args.scores:
+        # Save scores as a FITS image.
+        hdu = astropy.io.fits.PrimaryHDU(scores)
+        hdu.writeto(scores_name, overwrite=True)
 
     # Save the current date.
     with open(config.get_path('last_date.txt'), 'w') as f:

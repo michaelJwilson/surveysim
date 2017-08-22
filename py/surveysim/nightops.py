@@ -14,7 +14,7 @@ import desisurvey.nextobservation
 import desisurvey.config
 
 
-def nightOps(night, scheduler, weather, progress, strategy, plan, gen):
+def nightOps(night, scheduler, weather, progress, strategy, plan, scores, gen):
     """Simulate one night of observing.
 
     Use an afternoon plan, ephemerides, and simulated weather to
@@ -37,6 +37,9 @@ def nightOps(night, scheduler, weather, progress, strategy, plan, gen):
         Strategy to use for scheduling tiles during each night.
     plan : astropy.table.Table
         Table that specifies tile priorities and design hour angles.
+    scores : list or None
+        Append an array of per-tile scheduler scores to this list for each
+        exposure unless None. Scores are saved as float32 values.
     gen : numpy.random.RandomState
         Random number generator to use for reproducible samples.
 
@@ -146,6 +149,8 @@ def nightOps(night, scheduler, weather, progress, strategy, plan, gen):
                 progress.add_exposure(
                     target['tileID'], now, exptime, snr2frac, airmass, seeing,
                     moonfrac, moonalt, moonsep)
+                if scores is not None:
+                    scores.append(target['score'].astype(np.float32))
                 # Advance to the shutter close time.
                 now = advance('live', exptime)
                 # Overhead for a later exposure is only readout time.

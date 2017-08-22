@@ -93,7 +93,7 @@ class Simulator(object):
         """
         return self.config.first_day() + datetime.timedelta(days=self.day_index)
 
-    def next_day(self):
+    def next_day(self, scores=None):
         """Simulate the next day of survey operations.
 
         A day runs from local noon to local noon. A survey ends, with
@@ -133,7 +133,7 @@ class Simulator(object):
             # Simulate tonight's observing.
             totals = surveysim.nightops.nightOps(
                 night, obsplan, self.weather, self.progress, self.strategy,
-                self.plan, self.gen)
+                self.plan, scores, self.gen)
 
             # Update our efficiency tracker.
             for mode in totals:
