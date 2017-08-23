@@ -64,6 +64,9 @@ def parse(options=None):
         '--resume', action='store_true',
         help='resuming a previous simulation from its saved progress')
     parser.add_argument(
+        '--night', type=str, default=None, metavar='YYYY-MM-DD',
+        help='simulate the specified night')
+    parser.add_argument(
         '--strategy', default='HA',
         help='Next tile selector strategy to use')
     parser.add_argument(
@@ -128,7 +131,17 @@ def main(args):
     gen = np.random.RandomState(args.seed)
     weather_name = 'weather_{0}.fits'.format(args.seed)
 
-    if args.resume:
+    if args.night is not None:
+        args.start = desisurvey.utils.get_date(args.night)
+        args.stop = args.start + datetime.timedelta(days=1)
+        # Load the previously generated random weather.
+        weather = surveysim.weather.Weather(restore=weather_name)
+        # Load the progress record for the start of this night.
+        progress = desisurvey.progress.Progress(
+            restore='progress_{0}.fits'.format(args.start))
+        # We will not update stats in this mode.
+        stats = None
+    elif args.resume:
         # Load the previously generated random weather.
         weather = surveysim.weather.Weather(restore=weather_name)
         # Load the progress record to resume writing.
@@ -181,7 +194,8 @@ def main(args):
         print(str(simulator.date), file=f)
 
     # Save the per-night efficiency stats.
-    stats.write(config.get_path('stats.fits'), overwrite=True)
+    if stats is not None:
+        stats.write(config.get_path('stats.fits'), overwrite=True)
 
     # Save the survey progress after the simulation.
     progress.save('progress.fits')

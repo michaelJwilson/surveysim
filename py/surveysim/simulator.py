@@ -36,7 +36,7 @@ class Simulator(object):
         Progress of survey at the start of this simulation.
     weather : surveysim.weather.Weather
         Simulated weather conditions use use.
-    stats : astropy.table.Table
+    stats : astropy.table.Table or None
         Table of per-night efficiency statistics to update.
     strategy : str
         Strategy to use for scheduling tiles during each night.
@@ -75,7 +75,9 @@ class Simulator(object):
         self.plan = astropy.table.Table.read(self.config.get_path(plan))
         assert np.all(self.sp.tiles['tileid'] == self.plan['tileid'])
 
-        if len(stats) != (self.config.last_day() - self.config.first_day()).days:
+        if (stats is not None) and (
+            len(stats) !=
+            (self.config.last_day() - self.config.first_day()).days):
             raise ValueError('Input stats table has wrong length.')
         self.stats = stats
 
@@ -136,8 +138,10 @@ class Simulator(object):
                 self.plan, scores, self.gen)
 
             # Update our efficiency tracker.
-            for mode in totals:
-                self.stats[mode][self.day_index] = totals[mode].to(u.day).value
+            if self.stats is not None:
+                for mode in totals:
+                    self.stats[mode][self.day_index] = (
+                        totals[mode].to(u.day).value)
 
             # Progress report.
             completed = self.progress.completed()
