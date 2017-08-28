@@ -110,32 +110,18 @@ class Simulator(object):
         if self.day_index >= self.last_index or self.survey_done:
             return False
 
-        date = self.date
-        self.log.info('Simulating {0}'.format(date))
+        self.log.info('Simulating {0}'.format(self.date))
 
-        if desisurvey.utils.is_monsoon(date):
+        if desisurvey.utils.is_monsoon(self.date):
             self.log.info('No observing during monsoon.')
-        elif self.ephem.is_full_moon(date):
+        elif self.ephem.is_full_moon(self.date):
             self.log.info('No observing during full moon.')
         else:
 
-            # Each day of observing starts at local noon.
-            local_noon = desisurvey.utils.local_noon_on_date(date)
-
-            # Lookup tonight's ephemerides.
-            night = self.ephem.get_night(date)
-
-            if self.strategy == 'baseline':
-                # Create the afternoon plan.
-                obsplan = self.sp.afternoonPlan(night, self.progress)
-            else:
-                # Use the global planner.
-                obsplan = self.sp
-
             # Simulate tonight's observing.
             totals = surveysim.nightops.nightOps(
-                night, obsplan, self.weather, self.progress, self.strategy,
-                self.plan, scores, self.gen)
+                self.date, self.ephem, self.sp, self.weather, self.progress,
+                self.strategy, self.plan, scores, self.gen)
 
             # Update our efficiency tracker.
             if self.stats is not None:

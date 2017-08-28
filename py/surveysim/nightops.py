@@ -14,7 +14,8 @@ import desisurvey.nextobservation
 import desisurvey.config
 
 
-def nightOps(night, scheduler, weather, progress, strategy, plan, scores, gen):
+def nightOps(date, ephem, scheduler, weather, progress, strategy, plan, scores,
+             gen):
     """Simulate one night of observing.
 
     Use an afternoon plan, ephemerides, and simulated weather to
@@ -22,10 +23,10 @@ def nightOps(night, scheduler, weather, progress, strategy, plan, scores, gen):
 
     Parameters
     ----------
-    night : astropy.table.Row
-        Row of tabulated ephemerides for this night, normally
-        obtained with
-        :meth:`desisurvey.ephemerides.Ephemerides.get_night`.
+    date : datetime.date
+        Date when this night starts.
+    ephem : desisurvey.ephemerides.Ephemerides
+        Tabulated ephemerides data to use for simulating this night.
     scheduler : desisurvey.schedule.Scheduler
         Scheduler object to use for selecting next tiles.
     weather : surveysim.weather.Weather
@@ -50,6 +51,9 @@ def nightOps(night, scheduler, weather, progress, strategy, plan, scores, gen):
     """
     log = desiutil.log.get_logger()
     config = desisurvey.config.Configuration()
+
+    # Lookup tonight's ephemerides.
+    night = ephem.get_night(date)
 
     # Simulate the night between bright twilights.
     now = astropy.time.Time(night['brightdusk'], format='mjd')
@@ -88,10 +92,11 @@ def nightOps(night, scheduler, weather, progress, strategy, plan, scores, gen):
         while True:
             # Get the current weather conditions.
             conditions = weather.get(now)
-            seeing, transparency = conditions['seeing'], conditions['transparency']
+            seeing, transparency = (
+                conditions['seeing'], conditions['transparency'])
             # Select the next target to observe.
             target = scheduler.next_tile(
-                now, end_night, seeing, transparency, progress, strategy, plan)
+                now, ephem, seeing, transparency, progress, strategy, plan)
             if target is None:
                 log.debug('No target available at {0}. Waiting...'
                           .format(now.datetime.time()))
