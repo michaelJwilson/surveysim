@@ -126,6 +126,8 @@ def nightOps(date, ephem, scheduler, weather, progress, strategy, plan, scores,
                          .format(tile['tileid'], now.datetime.time()))
                 now = advance('delay', delay_time)
                 continue
+            log.info('Target exposure time {0:.1f} = {1:.1f}.'
+                     .format(target_exptime.to(u.s), target_exptime.to(u.min)))
             # Clip the exposure time if necessary.
             if target_exptime > config.max_exposure_length():
                 log.info('Clip exposure time {0:.1f} -> {1:.1f} for tile {2}.'
@@ -153,7 +155,7 @@ def nightOps(date, ephem, scheduler, weather, progress, strategy, plan, scores,
                 snr2frac = exptime / total_exptime
                 progress.add_exposure(
                     target['tileID'], now, exptime, snr2frac, airmass, seeing,
-                    moonfrac, moonalt, moonsep)
+                    transparency, moonfrac, moonalt, moonsep)
                 if scores is not None:
                     scores.append(target['score'].astype(np.float32))
                 # Advance to the shutter close time.

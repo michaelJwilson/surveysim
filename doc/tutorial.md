@@ -163,3 +163,8 @@ ln ../output/surveyinit.fits .
 cd ..
 export DESISURVEY=$PWD/output2
 ```
+
+To clean up an output directory before re-running a simulation use:
+```
+rm -f $DESISURVEY/progress*.fits $DESISURVEY/plan*.fits $DESISURVEY/scores*.fits exposures.fits stats.fits last_date.txt
+```
