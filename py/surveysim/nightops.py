@@ -10,7 +10,6 @@ import astropy.units as u
 import desiutil.log
 
 import desisurvey.etc
-import desisurvey.nextobservation
 import desisurvey.config
 
 

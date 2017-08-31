@@ -13,9 +13,7 @@ import astropy.units as u
 import desiutil.log
 
 import desisurvey.ephemerides
-import desisurvey.afternoonplan
 import desisurvey.schedule
-import desisurvey.plan
 import desisurvey.utils
 import desisurvey.config
 
