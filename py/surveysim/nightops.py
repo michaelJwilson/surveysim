@@ -93,6 +93,10 @@ def nightOps(date, ephem, scheduler, weather, progress, strategy, plan, scores,
             conditions = weather.get(now)
             seeing, transparency = (
                 conditions['seeing'], conditions['transparency'])
+            if transparency < 0.05:
+                log.warn('Clipping transparency {0:.6f} to 0.05'
+                         .format(transparency))
+                transparency = 0.05
             # Select the next target to observe.
             target = scheduler.next_tile(
                 now, ephem, seeing, transparency, progress, strategy, plan)
