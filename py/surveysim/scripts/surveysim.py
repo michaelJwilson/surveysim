@@ -201,7 +201,7 @@ def main(args):
     progress.save('progress.fits')
 
     # Save the corresponding exposure sequence.
-    exposures = progress.get_exposures()
-    exposures.write(config.get_path('exposures.fits'), overwrite=True)
+    ##exposures = progress.get_exposures()
+    ##exposures.write(config.get_path('exposures.fits'), overwrite=True)
 
     return 0
