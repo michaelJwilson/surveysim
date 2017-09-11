@@ -61,7 +61,7 @@ surveyinit --verbose
 ```
 
 This step takes ~35 minutes and writes the following files into output/:
-- ephem_2019-08-28_2024-07-13.fits  (~1 min)
+- ephem_2019-12-01_2024-11-30.fits  (~1 min)
 - scheduler.fits (~10 mins, ~1.3Gb)
 - surveyinit.fits
 
@@ -81,9 +81,9 @@ surveyplan --create --verbose
 Note that this step does not currently run fiber assignment, but does keep track of which tiles would have been assigned and are available for scheduling.
 
 This step runs quickly and writes the following files into output/:
+- progress.fits (empty initial progress record)
 - plan.fits (~3 mins)
-- plan_2019-08-28.fits (backup of plan.fits)
-- progress_2019-08-28.fits (empty progress record)
+- plan_2019-12-01.fits (backup of plan.fits)
 
 The plan is based on the initial hour-angle assignments computed by `surveyinit` and the observing priority rules specified in `data/rules.yaml` of the `desisurvey` package.  To experiment with different priority rules use, for example:
 ```
@@ -99,17 +99,15 @@ surveysim --seed 123 --verbose
 This step takes ~2 minutes and writes the following files into output/:
 - weather_123.fits
 - stats.fits
-- exposures.fits
 - progress.fits
 - last_date.txt
 
-If you used the random seed above, the survey should stop after simulating
-2019-11-30 when "Group 2 Priority 9" (DARK SCG) completes, but this is dependent
-on the simulated weather so different seeds will generally give different results.
-
-The generated exposures.fits contains a list of the simulated exposures with
-all parameters necessary to simulate spectra (exposure time, airmass, seeing,
-moon brightness, etc).
+The generated progress.fits records the simulated exposures with all parameters necessary to simulate spectra (exposure time, airmass, seeing, moon brightness, etc). It is organized as a per-tile table, but can be converted to a per-exposure table (which is more convenient for simulation) using:
+```
+from desisurvey.progress import Progress
+Progress().get_exposures().write('exposures.fits')
+```
+Refer to the `get_exposures` documentation to customize the per-exposure data that is saved.
 
 ## Iterate Planning and Observing
 
@@ -122,11 +120,12 @@ Each pass of `surveyplan` takes ?? minutes and will write the following files
 into output/ where YYYY-MM-DD is the next planned night of observing:
 - plan.fits
 - plan_YYYY-MM-DD.fits (backup of plan.fits)
-- progress_YYYY-MM-DD.fits (backup of progress.fits)
+
+Whenever the priorities change due to a change in the rules state machine, the corresponding plan is also bookmarked with a symbolic link:
+- plan_YYYY-MM-DD_bookmark.fits (symbolic link to plan_YYYY-MM-DD.fits)
 
 Each pass of `surveysim` simulates one night's observing.  Jobs will write the following files to output/, updating and overwriting the existing files:
 - stats.fits
-- exposures.fits
 - progress.fits
 - last_date.txt
 
@@ -157,14 +156,15 @@ If you run simulations with different weather (random seed) or scheduling strate
 ```
 mkdir output2
 cd output2
-ln ../output/ephem_2019-08-28_2024-07-13.fits .
-ln ../output/scheduler.fits .
-ln ../output/surveyinit.fits .
+ln $DESISURVEY/ephem_2019-12-01_2024-11-30.fits .
+ln $DESISURVEY/scheduler.fits .
+ln $DESISURVEY/surveyinit.fits .
 cd ..
 export DESISURVEY=$PWD/output2
 ```
+Replace the soft links (`ln`) with copies (`cp`) above unless you will be keeping the original $DESISURVEY directory around.
 
 To clean up an output directory before re-running a simulation use:
 ```
-rm -f $DESISURVEY/progress*.fits $DESISURVEY/plan*.fits $DESISURVEY/scores*.fits exposures.fits stats.fits last_date.txt
+rm -f $DESISURVEY/plan*.fits $DESISURVEY/scores*.fits $DESISURVEY/progress.fits $DESISURVEY/stats.fits $DESISURVEY/last_date.txt $DESISURVEY/weather_*.fits
 ```
