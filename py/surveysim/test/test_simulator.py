@@ -22,7 +22,7 @@ import desisurvey.schedule
 import surveysim.weather
 import surveysim.simulator
 
-class TestSurveySim(unittest.TestCase):
+class TestSimulator(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
