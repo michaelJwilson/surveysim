@@ -203,9 +203,11 @@ The `surveymovie` script reads simulation outputs and generates a movie with one
 ```
 surveymovie --verbose
 ```
-For an example, see [here](https://www.youtube.com/watch?v=vO1QZD_aCIo).
-
-TODO: write a guide to interpreting the visualization and link to it from here.
+For an example, see [here](https://www.youtube.com/watch?v=vO1QZD_aCIo). A key describing the information displayed in each frame is [here](https://github.com/desihub/desisurvey/blob/master/doc/img/surveymovie-key.png). To generate a PNG of a single frame, use:
+```
+surveymovie --expid 123 --save exposure123
+```
+to create `exposure123.png`.
 
 ## Directory Organization
 
