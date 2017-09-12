@@ -2,10 +2,14 @@
 surveysim change log
 ====================
 
-0.7.2 (unreleased)
+0.8.0 (2017-09-11)
 ------------------
 
-* No changes yet.
+* Track API changes in desisurvey 0.8.0.
+* The surveysim script is now called once per night, alternating with a
+  surveyplan script that lives in the desisurvey package.
+* See https://www.youtube.com/watch?v=vO1QZD_aCIo for a visualization of the
+  full 5-year survey simulation that matches DESI-doc-1767-v3.
 
 0.7.1 (2017-08-07)
 ------------------
