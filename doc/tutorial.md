@@ -9,16 +9,44 @@ Please [create an issue](https://github.com/desihub/surveysim/issues/new) with a
 ## Install Software
 
 If this is your first exposure to DESI software, [start here](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted). We use [git for source control](https://desi.lbl.gov/trac/wiki/Computing/UsingGit) and you will need to install the base DESI packages [on your laptop](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted/Laptop)
-or else [work at NERSC](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted/NERSC).  The instructions below have not yet been tested at NERSC.
+or else [work at NERSC](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted/NERSC).
 
-The instructions below assume that you have already installed recent versions of the following DESI packages:
+The following DESI packages must be installed to run this tutorial:
 - specsim
 - desiutil
 - desimodel
 - desisurvey
 - surveysim
 
-If you are not sure about how to do this or just want a specific recipe, the following instructions assume that you have installed the [anaconda scientific python distribution](https://docs.continuum.io/anaconda/install) and will create a new python environment for your DESI work. Start from the directory you wish to install software into, then:
+In addition, the following non-DESI packages must be installed via pip since they are not included with the anaconda distribution:
+- fitsio
+- speclite
+- ephem
+- healpy
+
+Note that these packages are already included in the custom DESI anaconda distribution installed at NERSC, so only need to be installed when running on your laptop or if you need to use non-default versions.
+
+### NESRC Installation
+
+The instructions below were tested on cori in Sep 2017:
+```
+source /project/projectdirs/desi/software/desi_environment.sh
+mkdir -p $SCRATCH/desi/lib/python3.5/site-packages $SCRATCH/desi/bin $SCRATCH/desi/code
+export PYTHONPATH=$SCRATCH/desi/lib/python3.5/site-packages:$PYTHONPATH
+export PATH=$SCRATCH/desi/bin:$PATH
+cd $SCRATCH/desi/code
+for package in desimodel desisurvey surveysim; do
+    git clone https://github.com/desihub/$package
+    cd $package
+    python setup.py develop --prefix $SCRATCH/desi/
+    cd ..
+done
+```
+Only the first line should be necessary once the desimodel, desisurvey and surveysim packages have been updated at NERSC. Note that we use `$SCRATCH` for faster I/O but files are periodically removed.  See [here](https://www.nersc.gov/users/data-analytics/data-analytics-2/python/best-practices/#toc-anchor-3) for details.
+
+### Laptop Installation
+
+The following instructions assume that you have installed the [anaconda scientific python distribution](https://docs.continuum.io/anaconda/install) and will create a new python environment for your DESI work. Start from the directory you wish to install software into, then:
 ```
 conda create --name desi pip ipython jupyter numpy scipy astropy pyyaml requests h5py scikit-learn matplotlib basemap
 source activate desi
@@ -39,7 +67,31 @@ Notes to experts:
 
 ## Setup Environment
 
-Create an output directory to hold all survey planning and simulation outputs:
+Create an output directory to hold all survey planning and simulation outputs and create an environment variable pointing to it.
+
+Ensure that your `$DESIMODEL` environment variable points to a valid data directory:
+```
+ls $DESIMODEL/data
+```
+Also check that the relevant command-line scripts are in your path:
+```
+surveyinit --help
+surveyplan --help
+surveysim --help
+```
+Note that all output from these commands goes into `$DESISURVEY` so they can be run from any directory and will not write anything to `$PWD`.
+
+### NERSC Environment
+
+Save the output to the `$SCRATCH` volume:
+```
+mkdir -p $SCRATCH/desi/output
+export DESISURVEY=$SCRATCH/desi/output
+```
+
+## Laptop Environment
+
+Enter the parent directory where you will save outputs, then:
 ```
 mkdir output
 export DESISURVEY=$PWD/output
@@ -47,10 +99,6 @@ export DESISURVEY=$PWD/output
 If you followed the installation recipe above then make sure you have activated your `desi` environment with:
 ```
 source activate desi
-```
-Ensure that your `$DESIMODEL` environment variable points to a valid data directory:
-```
-ls $DESIMODEL/data
 ```
 
 ## Initialize Survey Planning
@@ -148,6 +196,16 @@ do
 done
 ```
 Look for complete examples of automation scripts in the `surveysim/bin/` directory.
+
+## Visualization
+
+The `surveymovie` script reads simulation outputs and generates a movie with one frame per exposure to visualize the scheduler algorithm and survey progress:
+```
+surveymovie --verbose
+```
+For an example, see [here](https://www.youtube.com/watch?v=vO1QZD_aCIo).
+
+TODO: write a guide to interpreting the visualization and link to it from here.
 
 ## Directory Organization
 
