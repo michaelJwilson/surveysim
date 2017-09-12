@@ -147,12 +147,11 @@ do
     (surveysim --resume ${SIM_ARGS}) || break
 done
 ```
-Look for complete examples of automation scripts using different scheduling
-strategies in the `surveysim/bin/` directory.
+Look for complete examples of automation scripts in the `surveysim/bin/` directory.
 
 ## Directory Organization
 
-If you run simulations with different weather (random seed) or scheduling strategies, it is a good idea to keep the outputs separate by redefining the `$DESISURVEY` environment variable. To save some time, you can reuse the ephemerides and scheduler files generated when `surveyplan` is run for the first time in a new output directory, since these do depend on the random seed or survey strategy. For example:
+If you run simulations with different weather (random seed) or scheduling strategies, it is a good idea to keep the outputs separate by redefining the `$DESISURVEY` environment variable. To save some time, you can reuse the ephemerides and scheduler files generated when `surveyinit` is run for the first time in a new output directory, since these do depend on the random seed or survey strategy. For example:
 ```
 mkdir output2
 cd output2
