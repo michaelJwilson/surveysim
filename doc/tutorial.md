@@ -9,35 +9,89 @@ Please [create an issue](https://github.com/desihub/surveysim/issues/new) with a
 ## Install Software
 
 If this is your first exposure to DESI software, [start here](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted). We use [git for source control](https://desi.lbl.gov/trac/wiki/Computing/UsingGit) and you will need to install the base DESI packages [on your laptop](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted/Laptop)
-or else [work at NERSC](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted/NERSC).  The instructions below have not yet been tested at NERSC.
+or else [work at NERSC](https://desi.lbl.gov/trac/wiki/Pipeline/GettingStarted/NERSC).
 
-The instructions below assume that you have already installed recent versions of the following DESI packages:
+The following DESI packages must be installed to run this tutorial:
 - specsim
 - desiutil
 - desimodel
 - desisurvey
 - surveysim
 
-If you are not sure about how to do this or just want a specific recipe, the following instructions assume that you have installed the [anaconda scientific python distribution](https://docs.continuum.io/anaconda/install) and will create a new python environment for your DESI work. Start from the directory you wish to install software into, then:
+In addition, the following non-DESI packages must be installed via pip since they are not included with the anaconda distribution:
+- fitsio
+- speclite
+- ephem
+- healpy
+
+Note that these packages are already included in the custom DESI anaconda distribution installed at NERSC, so only need to be installed when running on your laptop or if you need to use non-default versions.
+
+### NESRC Installation
+
+The instructions below were tested on cori in Sep 2017:
 ```
-conda create --name desi --yes python=3.5 numpy scipy astropy pyyaml requests ipython h5py scikit-learn matplotlib
+source /project/projectdirs/desi/software/desi_environment.sh
+mkdir -p $SCRATCH/desi/lib/python3.5/site-packages $SCRATCH/desi/bin $SCRATCH/desi/code
+export PYTHONPATH=$SCRATCH/desi/lib/python3.5/site-packages:$PYTHONPATH
+export PATH=$SCRATCH/desi/bin:$PATH
+cd $SCRATCH/desi/code
+for package in desimodel desisurvey surveysim; do
+    git clone https://github.com/desihub/$package
+    cd $package
+    python setup.py develop --prefix $SCRATCH/desi/
+    cd ..
+done
+```
+Only the first line should be necessary once the desimodel, desisurvey and surveysim packages have been updated at NERSC. Note that we use `$SCRATCH` for faster I/O but files are periodically removed.  See [here](https://www.nersc.gov/users/data-analytics/data-analytics-2/python/best-practices/#toc-anchor-3) for details.
+
+### Laptop Installation
+
+The following instructions assume that you have installed the [anaconda scientific python distribution](https://docs.continuum.io/anaconda/install) and will create a new python environment for your DESI work. Start from the directory you wish to install software into, then:
+```
+conda create --name desi pip ipython jupyter numpy scipy astropy pyyaml requests h5py scikit-learn matplotlib basemap
 source activate desi
 pip install fitsio speclite ephem healpy
 for package in specsim desiutil desimodel desisurvey surveysim; do
     git clone https://github.com/desihub/$package
     cd $package
-    python setup.py install
+    pip install .
     cd ..
 done
 export DESIMODEL=$PWD/desimodel
 install_desimodel_data -d $DESIMODEL
 ```
 
-Note to experts: the matplotlib requirement is unnecessary if you remove the `--plots` option in the instructions below.
+Notes to experts:
+- The instructions above assume that you are using the bash shell, and need to be modified slightly for (t)csh.
+- The matplotlib and basemap packages are not required to follow the instructions below but are useful for plotting the outputs.
 
 ## Setup Environment
 
-Create an output directory to hold all survey planning and simulation outputs:
+Create an output directory to hold all survey planning and simulation outputs and create an environment variable pointing to it.
+
+Ensure that your `$DESIMODEL` environment variable points to a valid data directory:
+```
+ls $DESIMODEL/data
+```
+Also check that the relevant command-line scripts are in your path:
+```
+surveyinit --help
+surveyplan --help
+surveysim --help
+```
+Note that all output from these commands goes into `$DESISURVEY` so they can be run from any directory and will not write anything to `$PWD`.
+
+### NERSC Environment
+
+Save the output to the `$SCRATCH` volume:
+```
+mkdir -p $SCRATCH/desi/output
+export DESISURVEY=$SCRATCH/desi/output
+```
+
+## Laptop Environment
+
+Enter the parent directory where you will save outputs, then:
 ```
 mkdir output
 export DESISURVEY=$PWD/output
@@ -46,84 +100,80 @@ If you followed the installation recipe above then make sure you have activated 
 ```
 source activate desi
 ```
-Ensure that your `$DESIMODEL` environment variable points to a valid data directory:
+
+## Initialize Survey Planning
+
+Before starting the survey, we precompute some tabulated planning data using:
 ```
-ls $DESIMODEL/data
+surveyinit --verbose
 ```
 
-## Create Initial Plan
-
-```
-surveyplan --create --duration 100 --verbose --plots
-```
-
-This step takes ~14 minutes and writes the following files into output/:
-- ephem_2019-08-28_2024-07-13.fits  (~1 min)
+This step takes ~35 minutes and writes the following files into output/:
+- ephem_2019-12-01_2024-11-30.fits  (~1 min)
 - scheduler.fits (~10 mins, ~1.3Gb)
+- surveyinit.fits
+
+The first file tabulates ephemerides of the sun, moon and planets.  The second file tabulates the observing efficiency over the footprint and survey duration.  The last file contains optimized hour angle (HA) assignments for each tile and an estimated exposure time.
+
+These files take some time to generate, but are cached and not regenerated after the first time you run this command. If you want to force these files to be recalculated, add the `--recalc` option.
+
+The dates appearing in the ephemerides filename are the nominal start and stop dates of the five-year survey.  These parameters and many others are defined in the [survey configuration](https://github.com/desihub/desisurvey/blob/master/py/desisurvey/data/config.yaml),
+which is well commented and provides a good overview of the assumptions used when planning and scheduling observations.
+
+## Create Initial Observing Plan
+
+Next, we assign targets to each first-layer tile and determine the initial observing priorities of each tile using:
+```
+surveyplan --create --verbose
+```
+Note that this step does not currently run fiber assignment, but does keep track of which tiles would have been assigned and are available for scheduling.
+
+This step runs quickly and writes the following files into output/:
+- progress.fits (empty initial progress record)
 - plan.fits (~3 mins)
-- plan_2019-08-28.fits (backup of plan.fits)
-- plan_2019-08-28_DARK.png
-- plan_2019-08-28_GRAY.png
-- plan_2019-08-28_BRIGHT.png
-- progress_2019-08-28.fits (empty progress record)
+- plan_2019-12-01.fits (backup of plan.fits)
 
-The first two files take some time to generate, but are cached and not
-regenerated after the first time you run this command.
-
-Omit the `--plots` option if you do not have matplotlib installed, in which
-case the three png files listed above will not be generated.
-
-The significance of the date 2019-08-28 appearing in the file names above is that this is the nominal start date of the five-year survey.  This is one of many parameters defined in the [survey configuration](https://github.com/desihub/desisurvey/blob/master/py/desisurvey/data/config.yaml),
-which is well commented and provides a good overview of the assumptions used when scheduling observations.
+The plan is based on the initial hour-angle assignments computed by `surveyinit` and the observing priority rules specified in `data/rules.yaml` of the `desisurvey` package.  To experiment with different priority rules use, for example:
+```
+surveyplan --create --verbose --rules $PWD/myrules.yaml
+```
 
 ## Simulate Initial Observing
 
 ```
-surveysim --seed 123 --strategy HA+fallback --plan plan.fits --verbose
+surveysim --seed 123 --verbose
 ```
 
 This step takes ~2 minutes and writes the following files into output/:
 - weather_123.fits
 - stats.fits
-- exposures.fits
 - progress.fits
 - last_date.txt
 
-The simulation automatically stops once the first fiber-assignment group has
-been completely observed, which requires an updated plan. This is also when
-fiber assignment would normally be run before starting to observe a new group
-of tiles, but we are not considering that step here.
-
-If you used the random seed above, the survey should stop after simulating
-2019-11-30 when "Group 2 Priority 9" (DARK SCG) completes, but this is dependent
-on the simulated weather so different seeds will generally give different results.
-
-The generated exposures.fits contains a list of the simulated exposures with
-all parameters necessary to simulate spectra (exposure time, airmass, seeing,
-moon brightness, etc).
-
-Note to experts: if you followed the recipe above, this step will generate
-harmless warnings about not having installed the `specter` package.
+The generated progress.fits records the simulated exposures with all parameters necessary to simulate spectra (exposure time, airmass, seeing, moon brightness, etc). It is organized as a per-tile table, but can be converted to a per-exposure table (which is more convenient for simulation) using:
+```
+from desisurvey.progress import Progress
+Progress().get_exposures().write('exposures.fits')
+```
+Refer to the `get_exposures` documentation to customize the per-exposure data that is saved.
 
 ## Iterate Planning and Observing
 
 ```
-surveyplan --duration 100 --verbose --plots
-surveysim --resume --seed 123 --strategy HA+fallback --plan plan.fits --verbose
+#surveyplan --verbose
+surveysim --resume --verbose
 ```
 
-Each pass of `surveyplan` takes ~3 minutes and will write the following files
+Each pass of `surveyplan` takes ?? minutes and will write the following files
 into output/ where YYYY-MM-DD is the next planned night of observing:
 - plan.fits
 - plan_YYYY-MM-DD.fits (backup of plan.fits)
-- plan_YYYY-MM-DD_DARK.png
-- plan_YYYY-MM-DD_GRAY.png
-- plan_YYYY-MM-DD_BRIGHT.png
-- progress_YYYY-MM-DD.fits (backup of progress.fits)
 
-Each pass of `surveysim` runs until the survey completes or a fiber-assignment trigger condition is met, which takes a variable amount of time.  Jobs will write the following files to output/, updating and overwriting the existing files:
+Whenever the priorities change due to a change in the rules state machine, the corresponding plan is also bookmarked with a symbolic link:
+- plan_YYYY-MM-DD_bookmark.fits (symbolic link to plan_YYYY-MM-DD.fits)
+
+Each pass of `surveysim` simulates one night's observing.  Jobs will write the following files to output/, updating and overwriting the existing files:
 - stats.fits
-- exposures.fits
 - progress.fits
 - last_date.txt
 
@@ -135,6 +185,7 @@ You can wrap the commands above into a simple shell script, using the fact
 that surveyplan exits with a non-zero error code when it detects that the
 simulation has either run of out time or observed all tiles.  For example:
 ```
+surveyinit --verbose
 surveyplan --create ${PLAN_ARGS}
 surveysim ${SIM_ARGS}
 
@@ -144,17 +195,35 @@ do
     (surveysim --resume ${SIM_ARGS}) || break
 done
 ```
-Look for complete examples of automation scripts using different scheduling
-strategies in the `surveysim/bin/` directory.
+Look for complete examples of automation scripts in the `surveysim/bin/` directory.
+
+## Visualization
+
+The `surveymovie` script reads simulation outputs and generates a movie with one frame per exposure to visualize the scheduler algorithm and survey progress:
+```
+surveymovie --verbose
+```
+For an example, see [here](https://www.youtube.com/watch?v=vO1QZD_aCIo). A key describing the information displayed in each frame is [here](https://github.com/desihub/desisurvey/blob/master/doc/img/surveymovie-key.png). To generate a PNG of a single frame, use:
+```
+surveymovie --expid 123 --save exposure123
+```
+to create `exposure123.png`.
 
 ## Directory Organization
 
-If you run simulations with different weather (random seed) or scheduling strategies, it is a good idea to keep the outputs separate by redefining the `$DESISURVEY` environment variable. To save some time, you can reuse the ephemerides and scheduler files generated when `surveyplan` is run for the first time in a new output directory, since these do depend on the random seed or survey strategy. For example:
+If you run simulations with different weather (random seed) or scheduling strategies, it is a good idea to keep the outputs separate by redefining the `$DESISURVEY` environment variable. To save some time, you can reuse the ephemerides and scheduler files generated when `surveyinit` is run for the first time in a new output directory, since these do depend on the random seed or survey strategy. For example:
 ```
 mkdir output2
 cd output2
-ln ../output/ephem_2019-08-28_2024-07-13.fits .
-ln ../output/scheduler.fits .
+ln $DESISURVEY/ephem_2019-12-01_2024-11-30.fits .
+ln $DESISURVEY/scheduler.fits .
+ln $DESISURVEY/surveyinit.fits .
 cd ..
 export DESISURVEY=$PWD/output2
+```
+Replace the soft links (`ln`) with copies (`cp`) above unless you will be keeping the original $DESISURVEY directory around.
+
+To clean up an output directory before re-running a simulation use:
+```
+rm -f $DESISURVEY/plan*.fits $DESISURVEY/scores*.fits $DESISURVEY/progress.fits $DESISURVEY/stats.fits $DESISURVEY/last_date.txt $DESISURVEY/weather_*.fits
 ```

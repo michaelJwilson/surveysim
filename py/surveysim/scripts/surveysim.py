@@ -27,6 +27,7 @@ import argparse
 import datetime
 import os
 import warnings
+import sys
 
 import numpy as np
 
@@ -63,16 +64,20 @@ def parse(options=None):
         '--resume', action='store_true',
         help='resuming a previous simulation from its saved progress')
     parser.add_argument(
-        '--strategy', default='baseline',
+        '--night', type=str, default=None, metavar='YYYY-MM-DD',
+        help='simulate the specified night')
+    parser.add_argument(
+        '--strategy', default='HA',
         help='Next tile selector strategy to use')
     parser.add_argument(
-        '--plan', default=None,
+        '--plan', default='plan.fits',
         help='Name of plan file to use')
+    parser.add_argument(
+        '--scores', action='store_true',
+        help='Save scheduler scores for each exposure')
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
-    parser.add_argument('--computeHA', action='store_true',
-        help='compute or re-compute design HA')
 
     if options is None:
         args = parser.parse_args()
@@ -86,14 +91,14 @@ def parse(options=None):
         args.start = config.first_day()
     else:
         try:
-            args.start = datetime.datetime.strptime(args.start, '%Y-%m-%d').date()
+            args.start = desisurvey.utils.get_date(args.start)
         except ValueError as e:
             raise ValueError('Invalid start: {0}'.format(e))
     if args.stop is None:
         args.stop = config.last_day()
     else:
         try:
-            args.stop = datetime.datetime.strptime(args.stop, '%Y-%m-%d').date()
+            args.stop = desisurvey.utils.get_date(args.stop)
         except ValueError as e:
             raise ValueError('Invalid stop: {0}'.format(e))
     if args.start >= args.stop:
@@ -126,7 +131,17 @@ def main(args):
     gen = np.random.RandomState(args.seed)
     weather_name = 'weather_{0}.fits'.format(args.seed)
 
-    if args.resume:
+    if args.night is not None:
+        args.start = desisurvey.utils.get_date(args.night)
+        args.stop = args.start + datetime.timedelta(days=1)
+        # Load the previously generated random weather.
+        weather = surveysim.weather.Weather(restore=weather_name)
+        # Load the progress record for the start of this night.
+        progress = desisurvey.progress.Progress(
+            restore='progress_{0}.fits'.format(args.start))
+        # We will not update stats in this mode.
+        stats = None
+    elif args.resume:
         # Load the previously generated random weather.
         weather = surveysim.weather.Weather(restore=weather_name)
         # Load the progress record to resume writing.
@@ -136,7 +151,10 @@ def main(args):
         # Resume from the last simulated date.
         with open(config.get_path('last_date.txt'), 'r') as f:
             args.start = desisurvey.utils.get_date(f.read().rstrip())
-        args.stop = config.last_day()
+        if args.start >= args.stop:
+            log.info('Reached stop date.')
+            # Return a shell exit code so scripts can detect this condition.
+            sys.exit(9)
     else:
         # Generate and save random weather.
         weather = surveysim.weather.Weather(gen=gen)
@@ -155,25 +173,35 @@ def main(args):
     # Create the simulator.
     simulator = surveysim.simulator.Simulator(
         args.start, args.stop, progress, weather, stats,
-        args.strategy, args.plan, gen, args.computeHA)
+        args.strategy, args.plan, gen)
 
-    # Simulate each night until the survey is complete or the last
-    # day is reached.
-    while simulator.next_day():
-        pass
+    if args.scores:
+        scores = []
+        scores_name = config.get_path('scores_{0}.fits'.format(simulator.date))
+    else:
+        scores = None
+
+    # Simulate one night of observing.
+    simulator.next_day(scores=scores)
+
+    if args.scores:
+        # Save scores as a FITS image.
+        hdu = astropy.io.fits.PrimaryHDU(scores)
+        hdu.writeto(scores_name, overwrite=True)
 
     # Save the current date.
     with open(config.get_path('last_date.txt'), 'w') as f:
         print(str(simulator.date), file=f)
 
     # Save the per-night efficiency stats.
-    stats.write(config.get_path('stats.fits'), overwrite=True)
+    if stats is not None:
+        stats.write(config.get_path('stats.fits'), overwrite=True)
 
     # Save the survey progress after the simulation.
     progress.save('progress.fits')
 
     # Save the corresponding exposure sequence.
-    exposures = progress.get_exposures()
-    exposures.write(config.get_path('exposures.fits'), overwrite=True)
+    ##exposures = progress.get_exposures()
+    ##exposures.write(config.get_path('exposures.fits'), overwrite=True)
 
     return 0
