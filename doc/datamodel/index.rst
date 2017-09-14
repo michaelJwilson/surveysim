@@ -16,4 +16,4 @@ Contents
     obslist_all
     obslistYYYYMMDD
     obsplanYYYYMMDD
-    tiles_observerd
+    tiles_observed

@@ -67,7 +67,7 @@ env:
         - CONDA_DEPENDENCIES=""
         # These packages will only be installed if we really need them.
         # - CONDA_ALL_DEPENDENCIES="scipy matplotlib healpy pyephem"
-        - CONDA_ALL_DEPENDENCIES="scipy pyyaml"
+        - CONDA_ALL_DEPENDENCIES="scipy pyyaml pytz"
         # These packages will always be installed.
         - PIP_DEPENDENCIES=""
         # These packages will only be installed if we really need them.
@@ -95,8 +95,8 @@ matrix:
 
         # Check for sphinx doc build warnings - we do this first because it
         # runs for a long time
-        # - os: linux
-        #   env: PYTHON_VERSION=3.5 SETUP_CMD='build_sphinx --warning-is-error'
+        - os: linux
+          env: PYTHON_VERSION=3.5 SETUP_CMD='build_sphinx --warning-is-error'
         #         CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
         #         PIP_DEPENDENCIES=$PIP_ALL_DEPENDENCIES
 

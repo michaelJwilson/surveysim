@@ -32,7 +32,7 @@ class Weather(object):
     stop_date : datetime.date or None
         Survey stops on the morning of this date. Use the ``last_day``
         config parameter if None (the default).
-    time_step : astropy.units.Quantity
+    time_step : :class:`astropy.units.Quantity`, optional
         Time step for calculating updates. Must evenly divide 24 hours.
     gen : numpy.random.RandomState or None
         Random number generator to use for reproducible samples. Will be
@@ -43,8 +43,10 @@ class Weather(object):
         name refers to the :meth:`configuration output path
         <desisurvey.config.Configuration.get_path>`.
     """
-    def __init__(self, start_date=None, stop_date=None, time_step=5 * u.min,
+    def __init__(self, start_date=None, stop_date=None, time_step=5,
                  gen=None, restore=None):
+        if not isinstance(time_step, u.Quantity):
+            time_step = time_step * u.min
         self.log = desiutil.log.get_logger()
         config = desisurvey.config.Configuration()
 
