@@ -55,7 +55,7 @@ env:
         - SPHINX_VERSION=1.5
         - DESIUTIL_VERSION=1.9.6
         # - SPECLITE_VERSION=0.5
-        # - SPECSIM_VERSION=v0.9
+        - SPECSIM_VERSION=v0.9
         # - SPECTER_VERSION=0.6.0
         - DESIMODEL_VERSION=master
         - DESIMODEL_DATA=trunk
@@ -76,7 +76,7 @@ env:
         # These pip packages need to be installed in a certain order, so we
         # do that separately from the astropy/ci-helpers scripts.
         # - DESIHUB_PIP_DEPENDENCIES="desiutil=${DESIUTIL_VERSION} specsim=${SPECSIM_VERSION} desimodel=${DESIMODEL_VERSION}"
-        - DESIHUB_PIP_DEPENDENCIES="desiutil=${DESIUTIL_VERSION} desimodel=${DESIMODEL_VERSION} desisurvey=${DESISURVEY_VERSION}"
+        - DESIHUB_PIP_DEPENDENCIES="desiutil=${DESIUTIL_VERSION} specsim=${SPECSIM_VERSION} desimodel=${DESIMODEL_VERSION} desisurvey=${DESISURVEY_VERSION}"
         # Debug the Travis install process.
         - DEBUG=False
     matrix:
