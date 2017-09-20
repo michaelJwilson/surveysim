@@ -78,6 +78,9 @@ def parse(options=None):
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='Output path where output files should be written')
+    parser.add_argument(
+        '--config-file', default='config.yaml', metavar='CONFIG',
+        help='input configuration file')
 
     if options is None:
         args = parser.parse_args()
@@ -86,7 +89,7 @@ def parse(options=None):
 
     # Validate start/stop date args and covert to datetime objects.
     # Unspecified values are taken from our config.
-    config = desisurvey.config.Configuration()
+    config = desisurvey.config.Configuration(file_name=args.config_file)
     if args.start is None:
         args.start = config.first_day()
     else:
