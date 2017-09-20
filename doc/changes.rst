@@ -2,10 +2,17 @@
 surveysim change log
 ====================
 
-0.8.1 (unreleased)
+0.8.2 (unreleased)
 ------------------
 
-* Adds surveysim --config-file option
+* No changes yet
+
+0.8.1 (2017-09-20)
+------------------
+
+* Adds surveysim --config-file option (PR `#49`_); requires desisurvey/0.9.1.
+
+.. _`#49`: https://github.com/desihub/surveysim/pull/49
 
 0.8.0 (2017-09-11)
 ------------------
