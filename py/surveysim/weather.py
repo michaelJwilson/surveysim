@@ -32,8 +32,9 @@ class Weather(object):
     stop_date : datetime.date or None
         Survey stops on the morning of this date. Use the ``last_day``
         config parameter if None (the default).
-    time_step : :class:`astropy.units.Quantity`, optional
-        Time step for calculating updates. Must evenly divide 24 hours.
+    time_step : float or :class:`astropy.units.Quantity`, optional
+        Time step calculating updates. Must evenly divide 24 hours.
+        If unitless float, will be interpreted as minutes.
     gen : numpy.random.RandomState or None
         Random number generator to use for reproducible samples. Will be
         initialized (un-reproducibly) if None.
