@@ -5,7 +5,7 @@ surveysim change log
 0.8.1 (unreleased)
 ------------------
 
-* No changes yet.
+* Adds surveysim --config-file option
 
 0.8.0 (2017-09-11)
 ------------------

@@ -129,7 +129,7 @@ NERSC Environment
 Save the output to the ``$SCRATCH`` volume::
 
     mkdir -p $SCRATCH/desi/output
-    export DESISURVEY=$SCRATCH/desi/output
+    export DESISURVEY_OUTPUT=$SCRATCH/desi/output
 
 Laptop Environment
 ~~~~~~~~~~~~~~~~~~
@@ -137,7 +137,7 @@ Laptop Environment
 Enter the parent directory where you will save outputs, then::
 
     mkdir output
-    export DESISURVEY=$PWD/output
+    export DESISURVEY_OUTPUT=$PWD/output
 
 If you followed the installation recipe above then make sure you have activated your ``desi`` environment with::
 
@@ -215,7 +215,7 @@ moon brightness, etc). It is organized as a per-tile table, but can be
 converted to a per-exposure table (which is more convenient for simulation) using::
 
     from desisurvey.progress import Progress
-    Progress().get_exposures().write('exposures.fits')
+    Progress(restore='progress.fits').get_exposures().write('exposures.fits')
 
 Refer to the ``get_exposures`` documentation to customize the per-exposure
 data that is saved.
@@ -292,22 +292,22 @@ Directory Organization
 
 If you run simulations with different weather (random seed) or
 scheduling strategies, it is a good idea to keep the outputs separate by
-redefining the :envvar:`DESISURVEY` environment variable. To save some time,
+redefining the :envvar:`DESISURVEY_OUTPUT` environment variable. To save some time,
 you can reuse the ephemerides and scheduler files generated when ``surveyinit``
 is run for the first time in a new output directory, since these do depend on
 the random seed or survey strategy. For example::
 
     mkdir output2
     cd output2
-    ln $DESISURVEY/ephem_2019-12-01_2024-11-30.fits .
-    ln $DESISURVEY/scheduler.fits .
-    ln $DESISURVEY/surveyinit.fits .
+    ln $DESISURVEY_OUTPUT/ephem_2019-12-01_2024-11-30.fits .
+    ln $DESISURVEY_OUTPUT/scheduler.fits .
+    ln $DESISURVEY_OUTPUT/surveyinit.fits .
     cd ..
-    export DESISURVEY=$PWD/output2
+    export DESISURVEY_OUTPUT=$PWD/output2
 
 Replace the soft links (``ln``) with copies (``cp``) above unless you will be
-keeping the original :envvar:`DESISURVEY` directory around.
+keeping the original :envvar:`DESISURVEY_OUTPUT` directory around.
 
 To clean up an output directory before re-running a simulation use::
 
-    rm -f $DESISURVEY/plan*.fits $DESISURVEY/scores*.fits $DESISURVEY/progress.fits $DESISURVEY/stats.fits $DESISURVEY/last_date.txt $DESISURVEY/weather_*.fits
+    rm -f $DESISURVEY_OUTPUT/plan*.fits $DESISURVEY_OUTPUT/scores*.fits $DESISURVEY_OUTPUT/progress.fits $DESISURVEY_OUTPUT/stats.fits $DESISURVEY_OUTPUT/last_date.txt $DESISURVEY_OUTPUT/weather_*.fits
