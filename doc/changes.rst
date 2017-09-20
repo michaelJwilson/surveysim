@@ -2,7 +2,12 @@
 surveysim change log
 ====================
 
-0.8.0 (unreleased)
+0.8.1 (unreleased)
+------------------
+
+* Adds surveysim --config-file option
+
+0.8.0 (2017-09-11)
 ------------------
 
 * Track API changes in desisurvey 0.9.0.
@@ -10,7 +15,6 @@ surveysim change log
   surveyplan script that lives in the desisurvey package.
 * See https://www.youtube.com/watch?v=vO1QZD_aCIo for a visualization of the
   full 5-year survey simulation that matches DESI-doc-1767-v3.
-* Adds surveysim --config-file option
 
 0.7.1 (2017-08-07)
 ------------------
