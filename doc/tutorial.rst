@@ -310,4 +310,4 @@ keeping the original :envvar:`DESISURVEY_OUTPUT` directory around.
 
 To clean up an output directory before re-running a simulation use::
 
-    rm -f $DESISURVEY_OUTPUT/plan*.fits $DESISURVEY_OUTPUT/scores*.fits $DESISURVEY_OUTPUT/progress.fits $DESISURVEY_OUTPUT/stats.fits $DESISURVEY_OUTPUT/last_date.txt $DESISURVEY_OUTPUT/weather_*.fits
+    rm -f $DESISURVEY_OUTPUT/plan*.fits $DESISURVEY_OUTPUT/scores*.fits $DESISURVEY_OUTPUT/progress*.fits $DESISURVEY_OUTPUT/stats.fits $DESISURVEY_OUTPUT/last_date.txt $DESISURVEY_OUTPUT/weather_*.fits
