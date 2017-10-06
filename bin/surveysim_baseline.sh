@@ -8,8 +8,8 @@
 # https://www.youtube.com/watch?v=vO1QZD_aCIo
 #############################################################################
 
-PLAN_ARGS='--verbose'
-SIM_ARGS='--verbose --scores --seed 123 --stop 2024-11-30 --strategy HA+fallback'
+PLAN_ARGS='--verbose --fa-delay 1m'
+SIM_ARGS='--verbose --scores --seed 123 --strategy HA+fallback'
 
 surveyinit --verbose
 surveyplan --create ${PLAN_ARGS}

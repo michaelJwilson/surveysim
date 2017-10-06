@@ -186,8 +186,7 @@ track of which tiles would have been assigned and are available for scheduling.
 This step runs quickly and writes the following files into output/:
 
 - progress.fits (empty initial progress record)
-- plan.fits (~3 mins)
-- plan_2019-12-01.fits (backup of plan.fits)
+- plan.fits
 
 The plan is based on the initial hour-angle assignments computed by ``surveyinit``
 and the observing priority rules specified in ``data/rules.yaml`` of the
@@ -229,16 +228,16 @@ Iterate Planning and Observing
     surveysim --resume --verbose
 
 
-Each pass of `surveyplan` takes ?? minutes and will write the following files
+Each pass of `surveyplan` runs quickly and will write the following files
 into output/ where YYYY-MM-DD is the next planned night of observing:
 
 - plan.fits
-- plan_YYYY-MM-DD.fits (backup of plan.fits)
 
 Whenever the priorities change due to a change in the rules state machine,
-the corresponding plan is also bookmarked with a symbolic link:
+the corresponding plan and progress are saved with a date stamp:
 
-- plan_YYYY-MM-DD_bookmark.fits (symbolic link to plan_YYYY-MM-DD.fits)
+- plan_YYYY-MM-DD.fits
+- progress_YYYY-MM-DD.fits
 
 Each pass of ``surveysim`` simulates one night's observing.  Jobs will
 write the following files to output/, updating and overwriting the existing files:
@@ -270,6 +269,8 @@ simulation has either run of out time or observed all tiles.  For example::
 
 Look for complete examples of automation scripts in the ``surveysim/bin/`` directory.
 
+Adding the option ``--scores`` to ``${SIM_ARGS}`` saves the per-tile scheduler scores calculated for each exposure, which generates an additional 1.5 Gb of output and allows the scheduler logic to be analyzed and debugged.
+
 Visualization
 -------------
 
@@ -277,6 +278,8 @@ The `surveymovie` script reads simulation outputs and generates a movie with one
 frame per exposure to visualize the scheduler algorithm and survey progress::
 
     surveymovie --verbose
+
+Add the ``--scores`` option to display the scheduler scores (which requires that ``surveysim`` was run with the ``--scores`` option).
 
 `An example is available <https://www.youtube.com/watch?v=vO1QZD_aCIo>`_.
 A key describing the information displayed in each frame is
@@ -286,6 +289,8 @@ To generate a PNG of a single frame, use::
     surveymovie --expid 123 --save exposure123
 
 to create ``exposure123.png``.
+
+To generate a smaller summary movie with one frame per night, use the `--nightly` option.
 
 Directory Organization
 ----------------------
