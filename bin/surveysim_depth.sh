@@ -3,7 +3,8 @@
 # Simulate an alternate survey strategy that proceeds depth first.
 # Note that this is one random realization of the observing conditions.
 # Change the random seed for a different realization.
-# This will take ~4 hours to run and writes ~5.1G to $DESISURVEY_OUTPUT.
+# This will take ~4 hours to run and writes ~1.7G to $DESISURVEY_OUTPUT.
+# Remove the --scores option to reduce the output size to ~50M.
 #############################################################################
 
 PLAN_ARGS='--verbose --fa-delay 0m --rules rules-depth.yaml'
