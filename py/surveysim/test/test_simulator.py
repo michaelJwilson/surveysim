@@ -52,8 +52,8 @@ class TestSimulator(unittest.TestCase):
         config = desisurvey.config.Configuration()
         start = datetime.date(2019,12,1)
         stop = datetime.date(2019,12,8)
-        config.first_day._value = start
-        config.last_day._value = stop
+        config.first_day.set_value(start)
+        config.last_day.set_value(stop)
         # Calculate ephemerides.
         ephem = desisurvey.ephemerides.Ephemerides()
         # Precompute scheduler data.
