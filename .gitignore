@@ -5,6 +5,7 @@ __pycache__
 
 build
 dist
+doc/_build
 
 # Ignore nightstats.dat written by nightops.nightOps
 nightstats.dat

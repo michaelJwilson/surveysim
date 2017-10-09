@@ -134,21 +134,22 @@ def main(args):
     gen = np.random.RandomState(args.seed)
     weather_name = 'weather_{0}.fits'.format(args.seed)
 
+    # Load the progress record to resume writing.
+    progress = desisurvey.progress.Progress(restore='progress.fits')
+
     if args.night is not None:
         args.start = desisurvey.utils.get_date(args.night)
         args.stop = args.start + datetime.timedelta(days=1)
         # Load the previously generated random weather.
         weather = surveysim.weather.Weather(restore=weather_name)
-        # Load the progress record for the start of this night.
-        progress = desisurvey.progress.Progress(
-            restore='progress_{0}.fits'.format(args.start))
+        # Rewind the progress to the specified night.
+        noon = desisurvey.utils.local_noon_on_date(args.start)
+        progress = progress.copy_range(mjd_max=noon.mjd)
         # We will not update stats in this mode.
         stats = None
     elif args.resume:
         # Load the previously generated random weather.
         weather = surveysim.weather.Weather(restore=weather_name)
-        # Load the progress record to resume writing.
-        progress = desisurvey.progress.Progress(restore='progress.fits')
         # Read the stats table that we will update.
         stats = astropy.table.Table.read(config.get_path('stats.fits'))
         # Resume from the last simulated date.
@@ -162,8 +163,6 @@ def main(args):
         # Generate and save random weather.
         weather = surveysim.weather.Weather(gen=gen)
         weather.save(weather_name)
-        # Create a new (empty) progress record.
-        progress = desisurvey.progress.Progress()
         # Initialize a table for efficiency stats tracking.
         stats = astropy.table.Table()
         num_nights = (config.last_day() - config.first_day()).days
@@ -201,7 +200,10 @@ def main(args):
         stats.write(config.get_path('stats.fits'), overwrite=True)
 
     # Save the survey progress after the simulation.
-    progress.save('progress.fits')
+    if args.night is None:
+        progress.save('progress.fits')
+    else:
+        progress.save('progress_{}.fits'.format(args.night))
 
     # Save the corresponding exposure sequence.
     ##exposures = progress.get_exposures()

@@ -5,7 +5,8 @@ surveysim change log
 0.8.2 (unreleased)
 ------------------
 
-* No changes yet
+* Add support for optional depth-first survey strategy.
+* Docs now auto-generated at http://surveysim.readthedocs.io/en/latest/
 
 0.8.1 (2017-09-20)
 ------------------
