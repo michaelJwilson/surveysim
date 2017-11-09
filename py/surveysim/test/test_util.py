@@ -50,6 +50,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(output['RA'].unit, 'deg')
         self.assertTrue(np.all(np.diff(output['MJD']) >= 0))
         self.assertTrue(np.all(np.diff(output['EXPID']) == 1))
+        bad_exposures = Table()
+        bad_exposures['MJD'] = Column(np.array([58851.0, 58850.0], dtype=np.float64))
+        with self.assertRaises(ValueError):
+            output = add_calibration_exposures(bad_exposures)
 
 
 def test_suite():

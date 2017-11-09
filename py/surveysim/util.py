@@ -16,6 +16,7 @@ def add_calibration_exposures(exposures, flats_per_night=3, arcs_per_night=3,
     exposures : :class:`astropy.table.Table`
         A table of science exposures, produced by *e.g.*
         ``desisurvey.progress.Progress.get_exposures()``.
+        The exposures must be sorted by increasing MJD/timestamp.
     flats_per_night : :class:`int`, optional
         Add this many arc exposures per night (default 3).
     arcs_per_night : :class:`int`, optional
@@ -34,7 +35,14 @@ def add_calibration_exposures(exposures, flats_per_night=3, arcs_per_night=3,
     -------
     :class:`astropy.table.Table`
         A table augmented with calibration exposures.
+
+    Raises
+    ------
+    ValueError
+        If the input is not sorted by increasing MJD/timestamp.
     """
+    if not np.all(np.diff(exposures['MJD']) >= 0):
+        raise ValueError("Input is not sorted by increasing MJD!")
     if exptime is None:
         exptime = {'flat': 10.0, 'arc': 10.0, 'dark': 1000.0, 'zero': 0.0}
     output = exposures[:0].copy()
