@@ -48,7 +48,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual('EXPID', output.colnames[0])
         self.assertTrue(np.all(output['EXPID'] == np.arange(14, dtype=np.int32)))
         self.assertEqual(output['RA'].unit, 'deg')
-        print(output['MJD'])
+        self.assertTrue(np.all(np.diff(output['MJD']) >= 0))
+        self.assertTrue(np.all(np.diff(output['EXPID']) == 1))
+
 
 def test_suite():
     """Allows testing of only this module with the command::
