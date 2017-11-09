@@ -34,7 +34,7 @@ def add_calibration_exposures(exposures, flats_per_night=3, arcs_per_night=3,
     :class:`astropy.table.Table`
         A table augmented with calibration exposures.
     """
-    if 'EXPID' not in exposures:
+    if 'EXPID' not in exposures.colnames:
         expidc = Column(np.arange(len(exposures), dtype=np.int32),
                         name='EXPID', description='Exposure ID')
         exposures.add_column(expidc, index=0)
