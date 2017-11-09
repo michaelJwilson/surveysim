@@ -5,7 +5,8 @@ surveysim change log
 0.8.3 (unreleased)
 ------------------
 
-* No changes yet.
+* Add ``surveysim.util.add_calibration_exposures()``, to add simulated
+  calibration exposures to a set of science exposures.
 
 0.8.2 (2017-10-09)
 ------------------
