@@ -257,7 +257,7 @@ def main(args):
         row['moonv'] = moonv.value if moonv else -np.inf
         row['sunalt'] = sunalt
         row['sundaz'] = sundaz
-        row['sunr'] =  sunr if sunr else -np.inf
+        row['sunr'] =  sunr.value if sunr else -np.inf
         row['tratio'] = np.percentile(tratio, (5, 50, 95))
 
         if i % args.interval == 0:
