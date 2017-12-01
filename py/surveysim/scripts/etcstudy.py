@@ -1,4 +1,24 @@
 """Script to run simulations for exposure-time studies.
+
+Use the BGS_ETC_Study notebook to generate the input files we need.
+
+This should eventually be combined with the corresponding ELG study.
+
+Instructions for running at NERSC are messy because several package must
+be run out of dev branches for now::
+
+    module unload desimodel
+    module load desimodel/master
+    module unload specsim
+    export PYTHONPATH=$SCRATCH/desi/code/surveysim/py:$PYTHONPATH
+    export PATH=$SCRATCH/desi/code/surveysim/bin:$PATH
+    module unload surveysim
+    export PYTHONPATH=$SCRATCH/desi/code/specsim:$PYTHONPATH
+    module unload desisurvey
+    export PYTHONPATH=$SCRATCH/desi/code/desisurvey/py:$PYTHONPATH
+    export DESISURVEY_OUTPUT=/global/projecta/projectdirs/desi/datachallenge/surveysim2017/depth_0m
+    cd ~/jupyter
+    etcstudy --verbose --seed 1 --texp 300 --simpar bgs_simargs.fits --nominal bgs_nominal --progress progress.fits --ncond 10 --output bgs_1.fits
 """
 from __future__ import print_function, division, absolute_import
 
@@ -57,6 +77,12 @@ def parse(options=None):
     parser.add_argument(
         '--interval', type=int, default=50, metavar='NP',
         help='log progress messages with this interval')
+    parser.add_argument(
+        '--nomoon', action='store_true',
+        help='only simulate conditions with no scattered moon')
+    parser.add_argument(
+        '--nosun', action='store_true',
+        help='only simulate conditions with no scattered twilight sun')
 
     if options is None:
         args = parser.parse_args()
@@ -175,22 +201,31 @@ def main(args):
         length=args.ncond, shape=(3,), format='%.3f',
         description='(5, 50, 95) percentile exposure time ratios')
 
-    # Use fixed twilight conditions for now.
-    sunalt = -25.
-    sundaz = 180.
+    # Default fixed moon conditions.
+    airmass, moonfrac, moonalt, moonsep = 1., 0., -30., 90.
+
+    # Default fixed twilight conditions for now.
+    sunalt, sundaz = -25., 180.
 
     # Loop over simulated observing conditions.
     for i in range(args.ncond):
 
-        # Use the next observing conditions.
-        cond = moon_conditions[i % nmoon]
-        airmass, moonfrac, moonalt, moonsep = (
-            cond['AIRMASS'], cond['MOONFRAC'],
-            cond['MOONALT'], cond['MOONSEP'])
+        # Generate observing conditions for this simulation.
+        if not args.nomoon:
+            cond = moon_conditions[i % nmoon]
+            airmass, moonfrac, moonalt, moonsep = (
+                cond['AIRMASS'], cond['MOONFRAC'],
+                cond['MOONALT'], cond['MOONSEP'])
+
         desi.observation.airmass = airmass
         moon.moon_phase = np.arccos(2 * moonfrac - 1) / np.pi
         moon.moon_zenith = (90 - moonalt) * u.deg
         moon.separation_angle = moonsep * u.deg
+
+        # Generate uniform twilight conditions.
+        if not args.nosun:
+            sunalt = gen.uniform(-12., -18.)
+            sundaz = gen.uniform(-180., 180.)
 
         twilight.sun_altitude = sunalt * u.deg
         twilight.sun_relative_azimuth = sundaz * u.deg
@@ -209,16 +244,20 @@ def main(args):
         # Calculate the exposure-time ratio for each simulated spectrum.
         tratio = np.sqrt(snr0[idx] / snr)
 
+        # Look up scattered magnitudes.
+        moonv = moon.scattered_V
+        sunr = twilight.scattered_r
+
         # Save the results.
         row = results[i]
         row['airmass'] = airmass
         row['moonfrac'] = moonfrac
         row['moonsep'] = moonsep
         row['moonalt'] = moonalt
-        row['moonv'] = moon.scattered_V.value or -np.inf
+        row['moonv'] = moonv.value if moonv else -np.inf
         row['sunalt'] = sunalt
         row['sundaz'] = sundaz
-        row['sunr'] = twilight.scattered_r or -np.inf
+        row['sunr'] =  sunr if sunr else -np.inf
         row['tratio'] = np.percentile(tratio, (5, 50, 95))
 
         if i % args.interval == 0:
