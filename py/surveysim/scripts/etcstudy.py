@@ -96,6 +96,8 @@ def BGS_SNR(cameras):
     # Calculate the median SNR / 0.5A pixel in the red camera (5621.7-7744.3A).
     num_source_electrons = cameras[1]['num_source_electrons']
     variance_electrons = cameras[1]['variance_electrons']
+    # Ignore dark current so that variance is proportional to exposure time.
+    variance_electrons -= cameras[1]['read_noise_electrons'] ** 2
     return np.median(num_source_electrons / np.sqrt(variance_electrons), axis=0)
 
 
@@ -202,7 +204,7 @@ def main(args):
         description='(5, 50, 95) percentile exposure time ratios')
 
     # Default fixed moon conditions.
-    airmass, moonfrac, moonalt, moonsep = 1., 0., -30., 90.
+    moonfrac, moonalt, moonsep = 0., -30., 90.
 
     # Default fixed twilight conditions for now.
     sunalt, sundaz = -25., 180.
@@ -210,20 +212,23 @@ def main(args):
     # Loop over simulated observing conditions.
     for i in range(args.ncond):
 
-        # Generate observing conditions for this simulation.
-        if not args.nomoon:
-            cond = moon_conditions[i % nmoon]
-            airmass, moonfrac, moonalt, moonsep = (
-                cond['AIRMASS'], cond['MOONFRAC'],
-                cond['MOONALT'], cond['MOONSEP'])
+        # Always set airmass from the moon-up conditions.
+        cond = moon_conditions[i % nmoon]
+        airmass = cond['AIRMASS']
+        desi.atmosphere.airmass = airmass
 
-        desi.observation.airmass = airmass
+        # Set moon observing conditions.
+        if not args.nomoon:
+            moonfrac, moonalt, moonsep = (
+                cond['MOONFRAC'], cond['MOONALT'], cond['MOONSEP'])
+
         moon.moon_phase = np.arccos(2 * moonfrac - 1) / np.pi
         moon.moon_zenith = (90 - moonalt) * u.deg
         moon.separation_angle = moonsep * u.deg
 
-        # Generate uniform twilight conditions.
+        # Set twilight observing conditions.
         if not args.nosun:
+            # Generate uniform twilight conditions.
             sunalt = gen.uniform(-12., -18.)
             sundaz = gen.uniform(-180., 180.)
 
@@ -242,7 +247,9 @@ def main(args):
         snr = BGS_SNR(desi.camera_output)
 
         # Calculate the exposure-time ratio for each simulated spectrum.
-        tratio = np.sqrt(snr0[idx] / snr)
+        # We ignore the small violation of snr ~ sqrt(t) scaling due to
+        # to readout noise for now.
+        tratio = (snr0[idx] / snr) ** 2
 
         # Look up scattered magnitudes.
         moonv = moon.scattered_V
