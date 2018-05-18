@@ -5,7 +5,9 @@ surveysim change log
 0.9.1 (unreleased)
 ------------------
 
-* No changes yet.
+* Do arc exposures before flat exposures (PR `#57`_).
+
+.. _`#57`: https://github.com/desihub/surveysim/pull/57
 
 0.9.0 (2017-11-09)
 ------------------
