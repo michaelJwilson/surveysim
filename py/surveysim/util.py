@@ -53,7 +53,7 @@ def add_calibration_exposures(exposures, flats_per_night=3, arcs_per_night=3,
     current_night = '19730703'
     expid = 0
     calib_time = lambda x: exptime[x] + readout
-    calib_sequence = (['flat']*flats_per_night + ['arc']*arcs_per_night +
+    calib_sequence = (['arc']*arcs_per_night + ['flat']*flats_per_night +
                       ['dark']*darks_per_night + ['zero']*zeroes_per_night)
     calib_times = np.cumsum(np.array([calib_time(c)
                                       for c in calib_sequence]))[::-1]
