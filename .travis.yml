@@ -51,9 +51,9 @@ env:
         # to repeat them for all configurations.
         # - NUMPY_VERSION=1.10
         # - SCIPY_VERSION=0.16
-        - ASTROPY_VERSION=1.3.3
+        - ASTROPY_VERSION=2.0.4
         - SPHINX_VERSION=1.5
-        - DESIUTIL_VERSION=1.9.6
+        - DESIUTIL_VERSION=1.9.9
         # - SPECLITE_VERSION=0.5
         - SPECSIM_VERSION=v0.9
         # - SPECTER_VERSION=0.6.0
@@ -80,7 +80,7 @@ env:
         # Debug the Travis install process.
         - DEBUG=False
     matrix:
-        - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
+        # - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
 
 matrix:
@@ -112,10 +112,10 @@ matrix:
                PIP_DEPENDENCIES=$PIP_ALL_DEPENDENCIES
 
         # Default versions
-        - os: linux
-          env: PYTHON_VERSION=2.7 SETUP_CMD='test'
-               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
-               PIP_DEPENDENCIES=$PIP_ALL_DEPENDENCIES
+        # - os: linux
+        #   env: PYTHON_VERSION=2.7 SETUP_CMD='test'
+        #        CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
+        #        PIP_DEPENDENCIES=$PIP_ALL_DEPENDENCIES
 
         # More recent versions
         # We're already on the "more recent" versions.
