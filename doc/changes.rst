@@ -2,7 +2,7 @@
 surveysim change log
 ====================
 
-0.9.1 (unreleased)
+0.9.1 (2018-06-27)
 ------------------
 
 * Do arc exposures before flat exposures (PR `#57`_).
