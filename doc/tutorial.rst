@@ -151,10 +151,10 @@ Before starting the survey, we precompute some tabulated planning data using::
     surveyinit --verbose
 
 
-This step takes ~35 minutes and writes the following files into output/:
+This step takes ~35 minutes (on cori) and writes the following files into output/:
 
-- ephem_2019-12-01_2024-11-30.fits  (~1 min)
-- scheduler.fits (~10 mins, ~1.3Gb)
+- ephem_2019-12-01_2024-11-30.fits
+- scheduler.fits (~1.3Gb)
 - surveyinit.fits
 
 The first file tabulates ephemerides of the sun, moon and planets.
