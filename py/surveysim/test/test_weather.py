@@ -9,6 +9,7 @@ import numpy as np
 import astropy.time
 
 import desisurvey.config
+import desisurvey.ephemerides
 
 from surveysim.weather import Weather
 
@@ -22,6 +23,11 @@ class TestWeather(unittest.TestCase):
         # Write output files to this temporary directory.
         config = desisurvey.config.Configuration()
         config.set_output_path(cls.tmpdir)
+        start = datetime.date(2020, 1, 1)
+        stop = datetime.date(2020, 3, 1)
+        config.first_day.set_value(start)
+        config.last_day.set_value(stop)
+        ephem = desisurvey.ephemerides.Ephemerides(use_cache=False)
 
     @classmethod
     def tearDownClass(cls):
@@ -29,33 +35,30 @@ class TestWeather(unittest.TestCase):
         shutil.rmtree(cls.tmpdir)
         # Reset our configuration.
         desisurvey.config.Configuration.reset()
+        desisurvey.utils._dome_closed_fractions = None
 
     def setUp(self):
-        start = datetime.date(2020, 1, 1)
-        stop = datetime.date(2020, 3, 1)
         gen = np.random.RandomState(123)
-        self.w = Weather(start, stop, gen=gen)
+        self.w = Weather(gen=gen)
 
     def test_dome_open_prob(self):
-        """Dome should be open 50-70% of the time in Jan-Feb"""
+        """Dome should be (partially) open 50 nights in Jan-Feb when replaying Y2015"""
         n_nights = self.w.num_nights
         self.assertEqual(n_nights, 31 + 29) # 2020 is a leap year!
-        open_nights = np.count_nonzero(
-            self.w._table['open'][::self.w.steps_per_day])
-        open_frac = open_nights / float(n_nights)
-        self.assertTrue(0.5 < open_frac < 0.7)
+        open_nights = np.any(self.w._table['open'].reshape(n_nights, -1), axis=1).sum()
+        self.assertEqual(open_nights, 50)
 
     def test_same_seed(self):
         """Weather should be identical with same seed"""
         gen = np.random.RandomState(123)
-        w = Weather(self.w.start_date, self.w.stop_date, gen=gen)
+        w = Weather(gen=gen)
         for name in w._table.colnames:
             self.assertTrue(np.all(self.w._table[name] == w._table[name]))
 
     def test_different_seed(self):
         """Weather should be different with different seed"""
         gen = np.random.RandomState(1234)
-        w = Weather(self.w.start_date, self.w.stop_date, gen=gen)
+        w = Weather(gen=gen)
         for name in w._table.colnames:
             self.assertTrue(name == 'mjd' or
                             np.any(self.w._table[name] != w._table[name]))
