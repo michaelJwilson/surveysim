@@ -52,11 +52,11 @@ when running on your laptop or if you need to use non-default versions.
 NESRC Installation
 ~~~~~~~~~~~~~~~~~~
 
-The instructions below were tested on cori in Sep 2017::
+The instructions below were tested on cori in Sep 2018::
 
     source /project/projectdirs/desi/software/desi_environment.sh
-    mkdir -p $SCRATCH/desi/lib/python3.5/site-packages $SCRATCH/desi/bin $SCRATCH/desi/code
-    export PYTHONPATH=$SCRATCH/desi/lib/python3.5/site-packages:$PYTHONPATH
+    mkdir -p $SCRATCH/desi/lib/python3.6/site-packages $SCRATCH/desi/bin $SCRATCH/desi/code
+    export PYTHONPATH=$SCRATCH/desi/lib/python3.6/site-packages:$PYTHONPATH
     export PATH=$SCRATCH/desi/bin:$PATH
     cd $SCRATCH/desi/code
     for package in desimodel desisurvey surveysim; do

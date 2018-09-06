@@ -5,7 +5,7 @@ surveysim change log
 0.9.2 (unreleased)
 ------------------
 
-* No changes yet.
+* Replay historical Mayall daily weather.
 
 0.9.1 (2018-06-27)
 ------------------
