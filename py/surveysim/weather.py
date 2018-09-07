@@ -110,33 +110,30 @@ class Weather(object):
         r = gen.uniform(size=num_nights)
         self._table['open'] = np.ones(num_rows, bool)
         for i in range(num_nights):
+            sl = slice(i * steps_per_day, (i + 1) * steps_per_day)
+            night_mjd = self._table['mjd'][sl]
+            # Dome is always closed before dusk and after dawn.
+            closed = (night_mjd < bright_dusk[i]) | (night_mjd > bright_dawn[i])
             if dome_closed_frac[i] == 0:
                 # Dome open all night.
-                continue
-            sl = slice(i * steps_per_day, (i + 1) * steps_per_day)
-            if dome_closed_frac[i] == 1:
-                # Dome closed all night.
-                self._table['open'][sl] = False
-                continue
-            night_mjd = self._table['mjd'][sl]
-            if r[i] < 0.5 * dome_closed_frac[i]:
+                pass
+            elif dome_closed_frac[i] == 1:
+                # Dome closed all night. This occurs with probability frac / 2.
+                closed[:] = True
+            elif r[i] < 0.5 * dome_closed_frac[i]:
                 # Dome closed during first part of the night.
-                closed = (
-                    (night_mjd < bright_dusk[i] + dome_closed_time[i]) |
-                    (night_mjd > bright_dawn[i]))
+                # This occurs with probability frac / 2.
+                closed |= (night_mjd < bright_dusk[i] + dome_closed_time[i])
             elif r[i] < dome_closed_frac[i]:
                 # Dome closed during last part of the night.
-                closed = (
-                    (night_mjd < bright_dusk[i]) |
-                    (night_mjd > bright_dawn[i] - dome_closed_time[i]))
+                closed |= (night_mjd > bright_dawn[i] - dome_closed_time[i])
             else:
                 # Dome closed during the middle of the night.
+                # This occurs with probability 1 - frac.  Use the value of r[i]
+                # as the fractional time during the night when the dome reopens.
                 dome_open_at = bright_dusk[i] + r[i] * (bright_dawn[i] - bright_dusk[i])
                 dome_closed_at = dome_open_at - dome_closed_time[i]
-                closed = (
-                    (night_mjd < bright_dusk[i]) |
-                    ((night_mjd >= dome_closed_at) & (night_mjd < dome_open_at)) |
-                    (night_mjd > bright_dawn[i]))
+                closed |= (night_mjd >= dome_closed_at) & (night_mjd < dome_open_at)
             self._table['open'][sl][closed] = False
 
         # Generate a random atmospheric seeing time series.
