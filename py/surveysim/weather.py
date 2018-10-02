@@ -113,7 +113,7 @@ class Weather(object):
             sl = slice(i * steps_per_day, (i + 1) * steps_per_day)
             night_mjd = self._table['mjd'][sl]
             # Dome is always closed before dusk and after dawn.
-            closed = (night_mjd < bright_dusk[i]) | (night_mjd > bright_dawn[i])
+            closed = (night_mjd < bright_dusk[i]) | (night_mjd >= bright_dawn[i])
             if dome_closed_frac[i] == 0:
                 # Dome open all night.
                 pass
@@ -126,6 +126,7 @@ class Weather(object):
                 closed |= (night_mjd < bright_dusk[i] + dome_closed_time[i])
             elif r[i] < dome_closed_frac[i]:
                 # Dome closed during last part of the night.
+                # This occurs with probability frac / 2.
                 closed |= (night_mjd > bright_dawn[i] - dome_closed_time[i])
             else:
                 # Dome closed during the middle of the night.
