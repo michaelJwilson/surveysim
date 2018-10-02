@@ -38,6 +38,7 @@ class TestSimulator(unittest.TestCase):
         shutil.rmtree(cls.tmpdir)
         # Reset our configuration.
         desisurvey.config.Configuration.reset()
+        desisurvey.utils._dome_closed_fractions = None
 
     def setUp(self):
         pass
@@ -55,13 +56,13 @@ class TestSimulator(unittest.TestCase):
         config.first_day.set_value(start)
         config.last_day.set_value(stop)
         # Calculate ephemerides.
-        ephem = desisurvey.ephemerides.Ephemerides()
+        ephem = desisurvey.ephemerides.Ephemerides(use_cache=False)
         # Precompute scheduler data.
         desisurvey.schedule.initialize(ephem)
         # Initialize an empty progress record.
         progress = desisurvey.progress.Progress()
         # Simulate weather.
-        weather = surveysim.weather.Weather(start, stop, gen=gen)
+        weather = surveysim.weather.Weather(gen=gen)
         # Initialize a table for efficiency stats tracking.
         stats = astropy.table.Table()
         num_nights = (config.last_day() - config.first_day()).days

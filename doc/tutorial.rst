@@ -52,11 +52,11 @@ when running on your laptop or if you need to use non-default versions.
 NESRC Installation
 ~~~~~~~~~~~~~~~~~~
 
-The instructions below were tested on cori in Sep 2017::
+The instructions below were tested on cori in Sep 2018::
 
     source /project/projectdirs/desi/software/desi_environment.sh
-    mkdir -p $SCRATCH/desi/lib/python3.5/site-packages $SCRATCH/desi/bin $SCRATCH/desi/code
-    export PYTHONPATH=$SCRATCH/desi/lib/python3.5/site-packages:$PYTHONPATH
+    mkdir -p $SCRATCH/desi/lib/python3.6/site-packages $SCRATCH/desi/bin $SCRATCH/desi/code
+    export PYTHONPATH=$SCRATCH/desi/lib/python3.6/site-packages:$PYTHONPATH
     export PATH=$SCRATCH/desi/bin:$PATH
     cd $SCRATCH/desi/code
     for package in desimodel desisurvey surveysim; do
@@ -151,10 +151,10 @@ Before starting the survey, we precompute some tabulated planning data using::
     surveyinit --verbose
 
 
-This step takes ~35 minutes and writes the following files into output/:
+This step takes ~35 minutes (on cori) and writes the following files into output/:
 
-- ephem_2019-12-01_2024-11-30.fits  (~1 min)
-- scheduler.fits (~10 mins, ~1.3Gb)
+- ephem_2019-12-01_2024-11-30.fits
+- scheduler.fits (~1.3Gb)
 - surveyinit.fits
 
 The first file tabulates ephemerides of the sun, moon and planets.

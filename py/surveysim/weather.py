@@ -15,23 +15,20 @@ import desiutil.log
 import desimodel.weather
 
 import desisurvey.config
+import desisurvey.ephemerides
 import desisurvey.utils
 
 
 class Weather(object):
     """Simulate weather conditions affecting observations.
 
+    The start/stop date range is taken from the survey config.
+
     Seeing and transparency values are stored with 32-bit floats to save
     some memory.
 
     Parameters
     ----------
-    start_date : datetime.date or None
-        Survey starts on the evening of this date. Use the ``first_day``
-        config parameter if None (the default).
-    stop_date : datetime.date or None
-        Survey stops on the morning of this date. Use the ``last_day``
-        config parameter if None (the default).
     time_step : float or :class:`astropy.units.Quantity`, optional
         Time step calculating updates. Must evenly divide 24 hours.
         If unitless float, will be interpreted as minutes.
@@ -44,8 +41,7 @@ class Weather(object):
         name refers to the :meth:`configuration output path
         <desisurvey.config.Configuration.get_path>`.
     """
-    def __init__(self, start_date=None, stop_date=None, time_step=5,
-                 gen=None, restore=None):
+    def __init__(self, time_step=5, gen=None, restore=None):
         if not isinstance(time_step, u.Quantity):
             time_step = time_step * u.min
         self.log = desiutil.log.get_logger()
@@ -66,10 +62,8 @@ class Weather(object):
             gen = np.random.RandomState()
 
         # Use our config to set any unspecified dates.
-        if start_date is None:
-            start_date = config.first_day()
-        if stop_date is None:
-            stop_date = config.last_day()
+        start_date = config.first_day()
+        stop_date = config.last_day()
         num_nights = (stop_date - start_date).days
         if num_nights <= 0:
             raise ValueError('Expected start_date < stop_date.')
@@ -92,17 +86,56 @@ class Weather(object):
         times = t0 + (np.arange(num_rows) / float(steps_per_day)) * u.day
         self._table['mjd'] = times.mjd
 
-        # Decide whether the dome is opened on each night.
-        # We currently assume this is fixed for a whole night, but
-        # tabulate the status at each time so that this could be
-        # updated in future to simulate partial-night weather outages.
-        dome_closed_prob = desisurvey.utils.dome_closed_probabilities()
+        # Lookup the dome closed fractions for each night of the survey.
+        # This step is deterministic and only depends on the config weather
+        # parameter, which specifies which year(s) of historical daily
+        # weather to replay during the simulation.
+        dome_closed_frac = desisurvey.utils.dome_closed_fractions()
+
+        # Convert fractions of scheduled time to hours per night.
+        ephem = desisurvey.ephemerides.Ephemerides()
+        assert ephem.start == desisurvey.utils.local_noon_on_date(start_date)
+        assert ephem.stop == desisurvey.utils.local_noon_on_date(stop_date)
+        bright_dusk = ephem._table['brightdusk'].data
+        bright_dawn = ephem._table['brightdawn'].data
+        dome_closed_time = dome_closed_frac * (bright_dawn - bright_dusk)
+
+        # Randomly pick between three scenarios for partially closed nights:
+        # 1. closed from dusk, then open the rest of the night.
+        # 2. open at dusk, then closed for the rest of the night.
+        # 3. open and dusk and dawn, with a closed period during the night.
+        # Pick scenarios 1+2 with probability equal to the closed fraction.
+        # Use a fixed number of random numbers to decouple from the seeing
+        # and transparency sampling below.
+        r = gen.uniform(size=num_nights)
         self._table['open'] = np.ones(num_rows, bool)
         for i in range(num_nights):
-            ij = i * steps_per_day
-            month = times[ij].datetime.month
-            if gen.uniform() < dome_closed_prob[month - 1]:
-                self._table['open'][ij:ij + steps_per_day] = False
+            sl = slice(i * steps_per_day, (i + 1) * steps_per_day)
+            night_mjd = self._table['mjd'][sl]
+            # Dome is always closed before dusk and after dawn.
+            closed = (night_mjd < bright_dusk[i]) | (night_mjd >= bright_dawn[i])
+            if dome_closed_frac[i] == 0:
+                # Dome open all night.
+                pass
+            elif dome_closed_frac[i] == 1:
+                # Dome closed all night. This occurs with probability frac / 2.
+                closed[:] = True
+            elif r[i] < 0.5 * dome_closed_frac[i]:
+                # Dome closed during first part of the night.
+                # This occurs with probability frac / 2.
+                closed |= (night_mjd < bright_dusk[i] + dome_closed_time[i])
+            elif r[i] < dome_closed_frac[i]:
+                # Dome closed during last part of the night.
+                # This occurs with probability frac / 2.
+                closed |= (night_mjd > bright_dawn[i] - dome_closed_time[i])
+            else:
+                # Dome closed during the middle of the night.
+                # This occurs with probability 1 - frac.  Use the value of r[i]
+                # as the fractional time during the night when the dome reopens.
+                dome_open_at = bright_dusk[i] + r[i] * (bright_dawn[i] - bright_dusk[i])
+                dome_closed_at = dome_open_at - dome_closed_time[i]
+                closed |= (night_mjd >= dome_closed_at) & (night_mjd < dome_open_at)
+            self._table['open'][sl][closed] = False
 
         # Generate a random atmospheric seeing time series.
         dt_sec = 24 * 3600. / steps_per_day
