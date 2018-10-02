@@ -7,6 +7,7 @@ surveysim change log
 
 * Replay historical Mayall daily weather.
 * Implement partial-night dome closure.
+* Requires desimodel >= 0.9.8.
 
 0.9.1 (2018-06-27)
 ------------------
