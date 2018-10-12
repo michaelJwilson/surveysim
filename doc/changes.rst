@@ -5,7 +5,8 @@ surveysim change log
 0.10.0 (unreleased)
 -------------------
 
-* No changes yet.
+* Add new modules: exposures, stats.
+* Requires desisurvey 0.11.0.
 
 0.9.2 (2018-10-02)
 ------------------

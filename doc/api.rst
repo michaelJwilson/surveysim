@@ -15,3 +15,9 @@ Full surveysim API Reference
 
 .. automodule:: surveysim.weather
     :members:
+
+.. automodule:: surveysim.stats
+    :members:
+
+.. automodule:: surveysim.exposures
+    :members:
