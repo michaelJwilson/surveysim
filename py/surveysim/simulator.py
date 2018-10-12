@@ -117,7 +117,7 @@ class Simulator(object):
         else:
 
             # Simulate tonight's observing.
-            totals = surveysim.nightops.nightOps(
+            totals = surveysim.nightops.nightOpsDeprecated(
                 self.date, self.ephem, self.sp, self.weather, self.progress,
                 self.strategy, self.plan, scores, self.gen)
 

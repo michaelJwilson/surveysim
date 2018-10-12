@@ -13,7 +13,7 @@ import desisurvey.etc
 import desisurvey.config
 
 
-def nightOps(date, ephem, scheduler, weather, progress, strategy, plan, scores,
+def nightOpsDeprecated(date, ephem, scheduler, weather, progress, strategy, plan, scores,
              gen):
     """Simulate one night of observing.
 
