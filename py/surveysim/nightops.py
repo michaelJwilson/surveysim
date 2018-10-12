@@ -26,7 +26,7 @@ def nightOps(date, ephem, scheduler, weather, progress, strategy, plan, scores,
         Date when this night starts.
     ephem : desisurvey.ephemerides.Ephemerides
         Tabulated ephemerides data to use for simulating this night.
-    scheduler : desisurvey.schedule.Scheduler
+    scheduler : desisurvey.old.schedule.Scheduler
         Scheduler object to use for selecting next tiles.
     weather : surveysim.weather.Weather
         Simulated weather conditions to use.

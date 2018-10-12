@@ -13,7 +13,7 @@ import astropy.units as u
 import desiutil.log
 
 import desisurvey.ephemerides
-import desisurvey.schedule
+import desisurvey.old.schedule
 import desisurvey.utils
 import desisurvey.config
 
@@ -63,7 +63,7 @@ class Simulator(object):
         self.ephem = desisurvey.ephemerides.Ephemerides(use_cache=True)
 
         # Load the survey scheduler to use.
-        self.sp = desisurvey.schedule.Scheduler()
+        self.sp = desisurvey.old.schedule.Scheduler()
 
         self.strategy = strategy
         self.gen = gen
