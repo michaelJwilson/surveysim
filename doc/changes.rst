@@ -5,6 +5,7 @@ surveysim change log
 0.10.0 (unreleased)
 -------------------
 
+* Refactor desisurvey.schedule -> desisurvey.old.schedule
 * Add new modules: exposures, stats.
 * Requires desisurvey 0.11.0.
 
