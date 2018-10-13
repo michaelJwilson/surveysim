@@ -55,12 +55,33 @@ class ExposureList(object):
         hdus = astropy.io.fits.HDUList()
         header = astropy.io.fits.Header()
         header['TILES'] = self.tiles.tiles_file
+        header['NEXP'] = self.nexp
         header['COMMENT'] = comment
         hdus.append(astropy.io.fits.PrimaryHDU(header=header))
-        hdus.append(astropy.io.fits.BinTableHDU(self._exposures, name='EXPOSURES'))
+        hdus.append(astropy.io.fits.BinTableHDU(self._exposures[:self.nexp], name='EXPOSURES'))
         hdus.append(astropy.io.fits.BinTableHDU(self._tiledata, name='TILEDATA'))
         config = desisurvey.config.Configuration()
         name = config.get_path(name)
         hdus.writeto(name, overwrite=overwrite)
         log = desiutil.log.get_logger()
-        log.info('Saved exposure list to {}'.format(name))
+        log.info('Saved {} exposures to {}'.format(self.nexp, name))
+        if comment:
+            log.info('Saved with comment "{}".'.format(header['COMMENT']))
+
+
+def load(name, extra_nexp=0):
+    config = desisurvey.config.Configuration()
+    name = config.get_path(name)
+    with astropy.io.fits.open(name) as hdus:
+        header = hdus[0].header
+        comment = header['COMMENT']
+        nexp = header['NEXP']
+        max_nexp = nexp + extra_nexp
+        explist = ExposureList(tiles_file=header['TILES'], max_nexp=max_nexp)
+        explist._exposures[:nexp] = hdus['EXPOSURES'].data
+        explist._tiledata[:] = hdus['TILEDATA'].data
+    log = desiutil.log.get_logger()
+    log.info('Loaded {} exposures from {}'.format(nexp, name))
+    if comment:
+        log.info('Loaded with comment "{}".'.format(comment))
+    return explist
