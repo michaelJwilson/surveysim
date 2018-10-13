@@ -6,12 +6,15 @@ import numpy as np
 
 import desisurvey.config
 import desisurvey.utils
+import desisurvey.tiles
+import desisurvey.plots
+
 
 class SurveyStatistics(object):
     """Collect nightly statistics by pass.
     """
-    def __init__(self, scheduler):
-        self.scheduler = scheduler
+    def __init__(self, tiles_file=None):
+        self.tiles = desisurvey.tiles.Tiles(tiles_file)
         config = desisurvey.config.Configuration()
         self.start_date = config.first_day()
         self.stop_date = config.last_day()
@@ -20,14 +23,13 @@ class SurveyStatistics(object):
         dtype = []
         for name in 'MJD', 'tsched',:
             dtype.append((name, np.float))
-        nprograms = len(scheduler.program_passes)
+        nprograms = len(self.tiles.program_passes)
         for name in 'topen', 'tdead',:
             dtype.append((name, np.float, (nprograms,)))
-        npasses = len(scheduler.pass_program)
         for name in 'tscience', 'tsetup', 'tsplit',:
-            dtype.append((name, np.float, (npasses,)))
+            dtype.append((name, np.float, (self.tiles.npasses,)))
         for name in 'completed', 'nexp', 'nsetup', 'nsplit', 'nsetup_abort', 'nsplit_abort',:
-            dtype.append((name, np.int32, (npasses,)))
+            dtype.append((name, np.int32, (self.tiles.npasses,)))
         self._data = np.empty(self.num_nights, dtype)
         self.reset()
 
@@ -40,13 +42,13 @@ class SurveyStatistics(object):
     @property
     def nexp(self):
         return self._data['nexp'].sum()
-        
+
     def get_night(self, night):
         night = desisurvey.utils.get_date(night)
         assert night < self.stop_date
         idx = (night - self.start_date).days
         return self._data[idx]
-    
+
     def validate(self):
         D = self._data
         # Every exposure must be preceded by a setup or split.
@@ -65,23 +67,23 @@ class SurveyStatistics(object):
         topen = 24 * D['topen'].sum()
         tscience = 24 * D['tscience'].sum()
         print('Scheduled {:.3f} hr Open {:.3f}% Live {:.3f}%'.format(
-            tsched, 100 * topen / tsched, 100 * tscience / topen))
+            tsched, 100 * topen / max(1e-6, tsched), 100 * tscience / max(1e-6, topen)))
         print('=' * 82)
         print('PROG PASS    TILES  NEXP SETUP ABT SPLIT ABT    TEXP TSETUP TSPLIT   TOPEN  TDEAD')
         print('=' * 82)
         # Summarize by pass.
-        for pidx, program in enumerate(self.scheduler.programs):
+        for pidx, program in enumerate(self.tiles.programs):
             ntiles_p, ndone_p, nexp_p, nsetup_p, nsplit_p, nsetup_abort_p, nsplit_abort_p = [0] * 7
             tscience_p, tsetup_p, tsplit_p = [0.] * 3
             passes = []
             ntiles_all = 0
-            for passnum in list(self.scheduler.program_passes[program]) + [' ']:
+            for passnum in list(self.tiles.program_passes[program]) + [' ']:
                 if passnum == ' ':
                     sel = passes
                     ntiles = ntiles_all
                 else:
                     sel = passnum
-                    ntiles = np.count_nonzero(self.scheduler.passnum == passnum)
+                    ntiles = self.tiles.pass_ntiles[passnum]
                     ntiles_all += ntiles
                     passes.append(passnum)
                 ndone = D['completed'][:, sel].sum()
@@ -90,15 +92,15 @@ class SurveyStatistics(object):
                 nsplit = D['nsplit'][:, sel].sum()
                 nsetup_abort = D['nsetup_abort'][:, sel].sum()
                 nsplit_abort = D['nsplit_abort'][:, sel].sum()
-                tscience = 86400 * D['tscience'][:, sel].sum() / ndone
-                tsetup = 86400 * D['tsetup'][:, sel].sum() / ndone
-                tsplit = 86400 * D['tsplit'][:, sel].sum() / ndone
+                tscience = 86400 * D['tscience'][:, sel].sum() / max(1, ndone)
+                tsetup = 86400 * D['tsetup'][:, sel].sum() / max(1, ndone)
+                tsplit = 86400 * D['tsplit'][:, sel].sum() / max(1, ndone)
                 line = '{:6s} {} {:4d}/{:4d} {:5d} {:5d} {:3d} {:5d} {:3d} {:6.1f}s {:5.1f}s {:5.1f}s'.format(
                     program, passnum, ndone, ntiles, nexp, nsetup, nsetup_abort, nsplit, nsplit_abort, tscience, tsetup, tsplit)
                 if passnum == ' ':
                     # Open and deadtime are accumulated by program, not pass.
-                    topen = 86400 * D['topen'][:, pidx].sum() / ndone
-                    tdead = 86400 * D['tdead'][:, pidx].sum() / ndone
+                    topen = 86400 * D['topen'][:, pidx].sum() / max(1, ndone)
+                    tdead = 86400 * D['tdead'][:, pidx].sum() / max(1, ndone)
                     line += ' {:6.1f}s {:5.1f}s\n{}'.format(topen, tdead, '-' * 82)
                 print(line)
 
@@ -108,12 +110,10 @@ class SurveyStatistics(object):
         Requires that matplotlib is installed.
         """
         import matplotlib.pyplot as plt
-        import desisurvey.plots
         assert self.validate()
         D = self._data
-        S = self.scheduler
-        nprograms = len(S.programs)
-        npasses = len(S.pass_program)
+        nprograms = len(self.tiles.programs)
+        npasses = len(self.tiles.pass_program)
         # Find the last day of the survey.
         last = np.argmax(np.cumsum(D['completed'].sum(axis=1))) + 1
         # Combine passes into programs.
@@ -121,10 +121,10 @@ class SurveyStatistics(object):
         tsplit = np.zeros((last, nprograms))
         ntiles = np.zeros(nprograms, int)
         for passnum in range(npasses):
-            pidx = S.program_index[S.pass_program[passnum]]
+            pidx = self.tiles.program_index[self.tiles.pass_program[passnum]]
             tsetup[:, pidx] += D['tsetup'][:last, passnum]
             tsplit[:, pidx] += D['tsplit'][:last, passnum]
-            ntiles[pidx] += np.count_nonzero(S.passnum == passnum)
+            ntiles[pidx] += np.count_nonzero(self.tiles.passnum == passnum)
         actual = np.cumsum(D['completed'], axis=0)
 
         dt = 1 + np.arange(len(D))
@@ -132,10 +132,10 @@ class SurveyStatistics(object):
 
         ax = axes[0]
         npasses = D['completed'].shape[-1]
-        for pidx, program in enumerate(self.scheduler.programs):
+        for pidx, program in enumerate(self.tiles.programs):
             color = desisurvey.plots.program_color[program]
-            for i, passnum in enumerate(S.program_passes[program]):
-                npass = np.count_nonzero(S.passnum == passnum)
+            for i, passnum in enumerate(self.tiles.program_passes[program]):
+                npass = np.count_nonzero(self.tiles.passnum == passnum)
                 if forecast:
                     ax.plot(dt, 100 * forecast.pass_progress[passnum] / npass, ':', c=color, lw=1)
                 ax.plot(dt[:last], 100 * actual[:last, passnum] / npass,
@@ -151,10 +151,10 @@ class SurveyStatistics(object):
         yaxis = ax.yaxis
         yaxis.tick_right()
         yaxis.set_label_position('right')
-        
+
         ax = axes[1]
         # Plot overheads by program.
-        for pidx, program in enumerate(S.programs):
+        for pidx, program in enumerate(self.tiles.programs):
             c = desisurvey.plots.program_color[program]
             scale = 86400 / ntiles[pidx] # secs / tile
             ax.plot(dt[:last], scale * np.cumsum(tsetup[:, pidx]), '-', c=c)
@@ -169,7 +169,7 @@ class SurveyStatistics(object):
         ax.plot([], [], 'b-', label='setup')
         ax.plot([], [], 'b--', label='split')
         ax.plot([], [], 'b:', label='dead')
-        for pidx, program in enumerate(S.programs):
+        for pidx, program in enumerate(self.tiles.programs):
             ax.plot([], [], '-', c=desisurvey.plots.program_color[program], label=program)
         ax.legend(ncol=2)
         ax.axvline(dt[last], ls='-', c='r')
