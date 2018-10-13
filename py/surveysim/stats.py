@@ -72,7 +72,7 @@ class SurveyStatistics(object):
         print('PROG PASS    TILES  NEXP SETUP ABT SPLIT ABT    TEXP TSETUP TSPLIT   TOPEN  TDEAD')
         print('=' * 82)
         # Summarize by pass.
-        for pidx, program in enumerate(self.tiles.programs):
+        for progidx, program in enumerate(self.tiles.programs):
             ntiles_p, ndone_p, nexp_p, nsetup_p, nsplit_p, nsetup_abort_p, nsplit_abort_p = [0] * 7
             tscience_p, tsetup_p, tsplit_p = [0.] * 3
             passes = []
@@ -82,10 +82,11 @@ class SurveyStatistics(object):
                     sel = passes
                     ntiles = ntiles_all
                 else:
-                    sel = passnum
                     ntiles = self.tiles.pass_ntiles[passnum]
                     ntiles_all += ntiles
-                    passes.append(passnum)
+                    passidx = self.tiles.pass_index[passnum]
+                    sel = passidx
+                    passes.append(passidx)
                 ndone = D['completed'][:, sel].sum()
                 nexp = D['nexp'][:, sel].sum()
                 nsetup = D['nsetup'][:, sel].sum()
@@ -99,8 +100,8 @@ class SurveyStatistics(object):
                     program, passnum, ndone, ntiles, nexp, nsetup, nsetup_abort, nsplit, nsplit_abort, tscience, tsetup, tsplit)
                 if passnum == ' ':
                     # Open and deadtime are accumulated by program, not pass.
-                    topen = 86400 * D['topen'][:, pidx].sum() / max(1, ndone)
-                    tdead = 86400 * D['tdead'][:, pidx].sum() / max(1, ndone)
+                    topen = 86400 * D['topen'][:, progidx].sum() / max(1, ndone)
+                    tdead = 86400 * D['tdead'][:, progidx].sum() / max(1, ndone)
                     line += ' {:6.1f}s {:5.1f}s\n{}'.format(topen, tdead, '-' * 82)
                 print(line)
 
@@ -113,7 +114,7 @@ class SurveyStatistics(object):
         assert self.validate()
         D = self._data
         nprograms = len(self.tiles.programs)
-        npasses = len(self.tiles.pass_program)
+        npasses = self.tiles.npasses
         # Find the last day of the survey.
         last = np.argmax(np.cumsum(D['completed'].sum(axis=1))) + 1
         # Combine passes into programs.
@@ -121,10 +122,11 @@ class SurveyStatistics(object):
         tsplit = np.zeros((last, nprograms))
         ntiles = np.zeros(nprograms, int)
         for passnum in range(npasses):
-            pidx = self.tiles.program_index[self.tiles.pass_program[passnum]]
-            tsetup[:, pidx] += D['tsetup'][:last, passnum]
-            tsplit[:, pidx] += D['tsplit'][:last, passnum]
-            ntiles[pidx] += np.count_nonzero(self.tiles.passnum == passnum)
+            progidx = self.tiles.program_index[self.tiles.pass_program[passnum]]
+            passidx = self.tiles.pass_index[passnum]
+            tsetup[:, progidx] += D['tsetup'][:last, passidx]
+            tsplit[:, progidx] += D['tsplit'][:last, passidx]
+            ntiles[progidx] += self.tiles.pass_ntiles[passnum]
         actual = np.cumsum(D['completed'], axis=0)
 
         dt = 1 + np.arange(len(D))
@@ -132,13 +134,14 @@ class SurveyStatistics(object):
 
         ax = axes[0]
         npasses = D['completed'].shape[-1]
-        for pidx, program in enumerate(self.tiles.programs):
+        for program in self.tiles.programs:
             color = desisurvey.plots.program_color[program]
             for i, passnum in enumerate(self.tiles.program_passes[program]):
-                npass = np.count_nonzero(self.tiles.passnum == passnum)
+                npass = self.tiles.pass_ntiles[passnum]
+                passidx = self.tiles.pass_index[passnum]
                 if forecast:
-                    ax.plot(dt, 100 * forecast.pass_progress[passnum] / npass, ':', c=color, lw=1)
-                ax.plot(dt[:last], 100 * actual[:last, passnum] / npass,
+                    ax.plot(dt, 100 * forecast.pass_progress[passidx] / npass, ':', c=color, lw=1)
+                ax.plot(dt[:last], 100 * actual[:last, passidx] / npass,
                         lw=3, alpha=0.5, c=color, label=program if i == 0 else None)
         if forecast:
             ax.plot([], [], 'b:', lw=1, label='forecast')
@@ -154,14 +157,14 @@ class SurveyStatistics(object):
 
         ax = axes[1]
         # Plot overheads by program.
-        for pidx, program in enumerate(self.tiles.programs):
+        for progidx, program in enumerate(self.tiles.programs):
             c = desisurvey.plots.program_color[program]
-            scale = 86400 / ntiles[pidx] # secs / tile
-            ax.plot(dt[:last], scale * np.cumsum(tsetup[:, pidx]), '-', c=c)
-            ax.plot(dt[:last], scale * np.cumsum(tsplit[:, pidx]), '--', c=c)
-            ax.plot(dt[:last], scale * np.cumsum(D['tdead'][:last, pidx]), ':', c=c)
+            scale = 86400 / ntiles[progidx] # secs / tile
+            ax.plot(dt[:last], scale * np.cumsum(tsetup[:, progidx]), '-', c=c)
+            ax.plot(dt[:last], scale * np.cumsum(tsplit[:, progidx]), '--', c=c)
+            ax.plot(dt[:last], scale * np.cumsum(D['tdead'][:last, progidx]), ':', c=c)
             if forecast:
-                row = forecast.df.iloc[forecast.programs.index(program)]
+                row = forecast.df.iloc[self.tiles.programs.index(program)]
                 ax.scatter([dt[-1], dt[-1], dt[-1]], [
                     row['Setup overhead / tile (s)'],
                     row['Cosmic split overhead / tile (s)'],
@@ -169,7 +172,7 @@ class SurveyStatistics(object):
         ax.plot([], [], 'b-', label='setup')
         ax.plot([], [], 'b--', label='split')
         ax.plot([], [], 'b:', label='dead')
-        for pidx, program in enumerate(self.tiles.programs):
+        for program in self.tiles.programs:
             ax.plot([], [], '-', c=desisurvey.plots.program_color[program], label=program)
         ax.legend(ncol=2)
         ax.axvline(dt[last], ls='-', c='r')
