@@ -20,6 +20,7 @@ class ExposureList(object):
             ('snr2frac_stop', np.float32),
             ('seeing', np.float32),
             ('transp', np.float32),
+            ('sky', np.float32),
         ])
         self._tiledata = np.empty(self.tiles.ntiles, dtype=[
             ('exptime', np.float32),
@@ -33,13 +34,13 @@ class ExposureList(object):
         self._tiledata[:] = 0
 
     def add(self, mjd, exptime, tileid, passnum, snr2frac_start, snr2frac_stop,
-            seeing, transp):
+            seeing, transp, sky):
         if self.nexp >= len(self._exposures):
             raise RuntimeError(
                 'Need to increase max_nexp={}'.format(len(self._exposures)))
         self._exposures[self.nexp] = (
             mjd, exptime, tileid, passnum, snr2frac_start, snr2frac_stop,
-            seeing, transp)
+            seeing, transp, sky)
         self.nexp += 1
         tileinfo = self._tiledata[self.tiles.index(tileid)]
         tileinfo['exptime'] += exptime
