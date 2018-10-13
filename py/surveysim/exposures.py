@@ -4,6 +4,10 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
+import astropy.io.fits
+
+import desiutil.log
+
 import desisurvey.tiles
 
 
@@ -46,3 +50,17 @@ class ExposureList(object):
         tileinfo['exptime'] += exptime
         tileinfo['snr2frac'] = snr2frac_stop
         tileinfo['nexp'] += 1
+
+    def save(self, name='exposures.fits', comment='', overwrite=True):
+        hdus = astropy.io.fits.HDUList()
+        header = astropy.io.fits.Header()
+        header['TILES'] = self.tiles.tiles_file
+        header['COMMENT'] = comment
+        hdus.append(astropy.io.fits.PrimaryHDU(header=header))
+        hdus.append(astropy.io.fits.BinTableHDU(self._exposures, name='EXPOSURES'))
+        hdus.append(astropy.io.fits.BinTableHDU(self._tiledata, name='TILEDATA'))
+        config = desisurvey.config.Configuration()
+        name = config.get_path(name)
+        hdus.writeto(name, overwrite=overwrite)
+        log = desiutil.log.get_logger()
+        log.info('Saved exposure list to {}'.format(name))
