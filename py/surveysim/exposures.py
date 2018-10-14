@@ -13,23 +13,22 @@ import desisurvey.tiles
 
 class ExposureList(object):
 
-    def __init__(self, tiles_file=None, max_nexp=50000):
+    def __init__(self, tiles_file=None, max_nexp=60000):
         self.tiles = desisurvey.tiles.get_tiles(tiles_file)
         self._exposures = np.empty(max_nexp, dtype=[
-            ('mjd', np.float64),
-            ('exptime', np.float32),
-            ('tileid', np.int32),
-            ('passnum', np.int32),
-            ('snr2frac_start', np.float32),
-            ('snr2frac_stop', np.float32),
-            ('seeing', np.float32),
-            ('transp', np.float32),
-            ('sky', np.float32),
+            ('MJD', np.float64),
+            ('EXPTIME', np.float32),
+            ('TILEID', np.int32),
+            ('SNR2FRAC', np.float32),
+            ('AIRMASS', np.float32),
+            ('SEEING', np.float32),
+            ('TRANSP', np.float32),
+            ('SKY', np.float32),
         ])
         self._tiledata = np.empty(self.tiles.ntiles, dtype=[
-            ('exptime', np.float32),
-            ('snr2frac', np.float32),
-            ('nexp', np.int32)
+            ('EXPTIME', np.float32),
+            ('SNR2FRAC', np.float32),
+            ('NEXP', np.int32)
         ])
         self.reset()
 
@@ -37,19 +36,17 @@ class ExposureList(object):
         self.nexp = 0
         self._tiledata[:] = 0
 
-    def add(self, mjd, exptime, tileid, passnum, snr2frac_start, snr2frac_stop,
-            seeing, transp, sky):
+    def add(self, mjd, exptime, tileID, snr2frac, airmass, seeing, transp, sky):
         if self.nexp >= len(self._exposures):
             raise RuntimeError(
                 'Need to increase max_nexp={}'.format(len(self._exposures)))
         self._exposures[self.nexp] = (
-            mjd, exptime, tileid, passnum, snr2frac_start, snr2frac_stop,
-            seeing, transp, sky)
+            mjd, exptime, tileID, snr2frac, airmass, seeing, transp, sky)
         self.nexp += 1
-        tileinfo = self._tiledata[self.tiles.index(tileid)]
-        tileinfo['exptime'] += exptime
-        tileinfo['snr2frac'] = snr2frac_stop
-        tileinfo['nexp'] += 1
+        tileinfo = self._tiledata[self.tiles.index(tileID)]
+        tileinfo['EXPTIME'] += exptime
+        tileinfo['SNR2FRAC'] = snr2frac
+        tileinfo['NEXP'] += 1
 
     def save(self, name='exposures.fits', comment='', overwrite=True):
         hdus = astropy.io.fits.HDUList()

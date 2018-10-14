@@ -102,8 +102,8 @@ def simulate_night(night, scheduler, stats, explist, weather,
         # Get the current observing conditions.
         seeing_now, transp_now = get_weather(mjd_now)
         # Get the next tile to observe from the scheduler.
-        tileid, passnum, snr2frac_start, exposure_factor, program, mjd_program_end = scheduler.next_tile(
-            mjd_now, ETC, seeing_now, transp_now)
+        tileid, passnum, snr2frac_start, exposure_factor, airmass, program, mjd_program_end = \
+            scheduler.next_tile(mjd_now, ETC, seeing_now, transp_now)
         if tileid is None:
             # Deadtime while we delay and try again.
             mjd_now += NO_TILE_AVAIL_DELAY
@@ -129,7 +129,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
 
             if dome_is_open:            
                 # Lookup the program name for this pass.
-                program = scheduler.pass_program[passnum]
+                program = scheduler.tiles.pass_program[passnum]
                 # Loop over repeated exposures of the same tile.
                 continue_this_tile = True
                 while continue_this_tile:
@@ -172,9 +172,8 @@ def simulate_night(night, scheduler, stats, explist, weather,
                     nightstats['tscience'][passnum] += ETC.exptime
                     nightstats['nexp'][passnum] += 1
                     explist.add(
-                        mjd_now - ETC.exptime, 86400 * ETC.exptime,
-                        tileid, passnum,
-                        snr2frac_start, ETC.snr2frac, seeing_now, transp_now, sky_now)
+                        mjd_now - ETC.exptime, 86400 * ETC.exptime, tileid, ETC.snr2frac,
+                        airmass, seeing_now, transp_now, sky_now)
                     scheduler.update_tile(tileid, ETC.snr2frac)
 
                     if continue_this_tile:
@@ -197,7 +196,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
                     # --------------------------------------------------------------------
 
         # Update statistics for this program.
-        pidx = scheduler.program_index[program]
+        pidx = scheduler.tiles.program_index[program]
         nightstats['tdead'][pidx] += tdead
         nightstats['topen'][pidx] += mjd_now - mjd_last
 
