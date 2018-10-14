@@ -196,7 +196,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
                     # --------------------------------------------------------------------
 
         # Update statistics for this program.
-        pidx = scheduler.tiles.program_index[program]
+        pidx = scheduler.tiles.PROGRAM_INDEX[program]
         nightstats['tdead'][pidx] += tdead
         nightstats['topen'][pidx] += mjd_now - mjd_last
 
