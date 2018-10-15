@@ -201,7 +201,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
         nightstats['topen'][pidx] += mjd_now - mjd_last
 
         # All done if we have observed all tiles.
-        if scheduler.complete():
+        if scheduler.survey_completed():
             break
         # ========================================================================
 
