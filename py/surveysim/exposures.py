@@ -26,6 +26,8 @@ class ExposureList(object):
             ('SKY', np.float32),
         ])
         self._tiledata = np.empty(self.tiles.ntiles, dtype=[
+            ('AVAIL', np.int32),
+            ('PLANNED', np.int32),
             ('EXPTIME', np.float32),
             ('SNR2FRAC', np.float32),
             ('NEXP', np.int32)
