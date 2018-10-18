@@ -226,10 +226,11 @@ def simulate_night(night, scheduler, stats, explist, weather,
         mjd_history = np.array(ETC.history['mjd'])
         snr2frac_history = np.array(ETC.history['snr2frac'])
         for expinfo in explist._exposures[nexp_last: explist.nexp]:
-            color = desisurvey.plots.program_color[scheduler.pass_program[expinfo['passnum']]]
-            t1 = expinfo['mjd']
-            t2 = t1 + expinfo['exptime'] / 86400
-            y1, y2 = expinfo['snr2frac_start'], expinfo['snr2frac_stop']
+            passnum = scheduler.tiles.passnum[scheduler.tiles.index(expinfo['TILEID'])]
+            program = scheduler.tiles.pass_program[passnum]
+            color = desisurvey.plots.program_color[program]
+            t1 = expinfo['MJD']
+            t2 = t1 + expinfo['EXPTIME'] / 86400
             sel = (mjd_history >= t1) & (mjd_history <= t2)
             ax.fill_between(mjd_history[sel], snr2frac_history[sel], color=color, alpha=0.5, lw=0)
         for t in scheduler.night_changes:
