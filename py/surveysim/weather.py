@@ -32,6 +32,12 @@ class Weather(object):
     time_step : float or :class:`astropy.units.Quantity`, optional
         Time step calculating updates. Must evenly divide 24 hours.
         If unitless float, will be interpreted as minutes.
+    replay : str
+        Either 'random' or a comma-separated list of years whose
+        historical weather should be replayed, e.g. 'Y2010,Y2012'.
+        Replayed weather will be used cyclically if necessary.
+        Random weather will be a boostrap sampling of all available
+        years with historical weather data.
     gen : numpy.random.RandomState or None
         Random number generator to use for reproducible samples. Will be
         initialized (un-reproducibly) if None.
@@ -41,7 +47,7 @@ class Weather(object):
         name refers to the :meth:`configuration output path
         <desisurvey.config.Configuration.get_path>`.
     """
-    def __init__(self, time_step=5, gen=None, restore=None):
+    def __init__(self, time_step=5, replay='random', gen=None, restore=None):
         if not isinstance(time_step, u.Quantity):
             time_step = time_step * u.min
         self.log = desiutil.log.get_logger()
@@ -55,6 +61,7 @@ class Weather(object):
                 self._table.meta['STOP'])
             self.num_nights = self._table.meta['NIGHTS']
             self.steps_per_day = self._table.meta['STEPS']
+            self.replay = self._table.meta['REPLAY']
             return
 
         if gen is None:
@@ -75,10 +82,16 @@ class Weather(object):
                 'Requested time_step does not evenly divide 24 hours: {0}.'
                 .format(time_step))
 
+        if replay == 'random':
+            # Generate a bootstrap sampling of the historical weather years.
+            years_to_simulate = config.last_day().year - config.first_day().year + 1
+            history = ['Y{}'.format(year) for year in range(2007, 2018)]
+            replay = ','.join(gen.choice(history, years_to_simulate, replace=True))
+
         # Calculate the number of times where we will tabulate the weather.
         num_rows = num_nights * steps_per_day
         meta = dict(START=str(start_date), STOP=str(stop_date),
-                    NIGHTS=num_nights, STEPS=steps_per_day)
+                    NIGHTS=num_nights, STEPS=steps_per_day, REPLAY=replay)
         self._table = astropy.table.Table(meta=meta)
 
         # Initialize column of MJD timestamps.
@@ -90,7 +103,8 @@ class Weather(object):
         # This step is deterministic and only depends on the config weather
         # parameter, which specifies which year(s) of historical daily
         # weather to replay during the simulation.
-        dome_closed_frac = desisurvey.utils.dome_closed_fractions()
+        dome_closed_frac = desimodel.weather.dome_closed_fractions(
+            config.first_day(), config.last_day(), replay=replay)
 
         # Convert fractions of scheduled time to hours per night.
         ephem = desisurvey.ephemerides.Ephemerides()
@@ -150,6 +164,7 @@ class Weather(object):
         self.stop_date = stop_date
         self.num_nights = num_nights
         self.steps_per_day = steps_per_day
+        self.replay = replay
 
     def save(self, filename, overwrite=True):
         """Save the generated weather to a file.
