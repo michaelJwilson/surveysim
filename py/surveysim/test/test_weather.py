@@ -39,7 +39,7 @@ class TestWeather(unittest.TestCase):
 
     def setUp(self):
         gen = np.random.RandomState(123)
-        self.w = Weather(gen=gen)
+        self.w = Weather(gen=gen, replay='Y2015')
 
     def test_dome_open_prob(self):
         """Dome should be (partially) open 50 nights in Jan-Feb when replaying Y2015"""
@@ -51,14 +51,14 @@ class TestWeather(unittest.TestCase):
     def test_same_seed(self):
         """Weather should be identical with same seed"""
         gen = np.random.RandomState(123)
-        w = Weather(gen=gen)
+        w = Weather(gen=gen, replay='Y2015')
         for name in w._table.colnames:
             self.assertTrue(np.all(self.w._table[name] == w._table[name]))
 
     def test_different_seed(self):
         """Weather should be different with different seed"""
         gen = np.random.RandomState(1234)
-        w = Weather(gen=gen)
+        w = Weather(gen=gen, replay='Y2015')
         for name in w._table.colnames:
             self.assertTrue(name == 'mjd' or
                             np.any(self.w._table[name] != w._table[name]))
