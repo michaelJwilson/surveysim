@@ -25,6 +25,7 @@ class ExposureList(object):
             ('TRANSP', np.float32),
             ('SKY', np.float32),
         ])
+        self.nexp = 0
         self._tiledata = np.empty(self.tiles.ntiles, dtype=[
             ('AVAIL', np.int32),
             ('PLANNED', np.int32),
@@ -32,11 +33,34 @@ class ExposureList(object):
             ('SNR2FRAC', np.float32),
             ('NEXP', np.int32)
         ])
-        self.reset()
+        self._tiledata['AVAIL'] = -1
+        self._tiledata['PLANNED'] = -1
+        self._tiledata['EXPTIME'] = 0.
+        self._tiledata['SNR2FRAC'] = 0.
+        self._tiledata['NEXP'] = 0
+        self.initial_night = None
 
-    def reset(self):
-        self.nexp = 0
-        self._tiledata[:] = 0
+    def update_tiles(self, night, available, planned):
+        """Update tile availability and planning status.
+
+        Parameters
+        ----------
+        night : datetime.date
+            Night of initial observing.
+        available : array
+            Array of tile indices that are currently available.
+        planned : array
+            Array of tile indices that are currently planned (priority > 0).
+        """
+        if self.initial_night is None:
+            self.initial_night = night
+            night_index = 0
+        else:
+            night_index = (night - self.initial_night).days
+            if night_index < 0:
+                raise ValueError('night must be advancing.')
+        self._tiledata['AVAIL'][available] = night_index
+        self._tiledata['PLANNED'][planned] = night_index
 
     def add(self, mjd, exptime, tileID, snr2frac, airmass, seeing, transp, sky):
         if self.nexp >= len(self._exposures):
