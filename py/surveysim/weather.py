@@ -104,14 +104,13 @@ class Weather(object):
         # parameter, which specifies which year(s) of historical daily
         # weather to replay during the simulation.
         dome_closed_frac = desimodel.weather.dome_closed_fractions(
-            config.first_day(), config.last_day(), replay=replay)
+            start_date, stop_date, replay=replay)
 
         # Convert fractions of scheduled time to hours per night.
         ephem = desisurvey.ephem.get_ephem()
-        assert ephem.start == desisurvey.utils.local_noon_on_date(start_date)
-        assert ephem.stop == desisurvey.utils.local_noon_on_date(stop_date)
-        bright_dusk = ephem._table['brightdusk'].data
-        bright_dawn = ephem._table['brightdawn'].data
+        ilo, ihi = (start_date - ephem.start_date).days, (stop_date - ephem.start_date).days
+        bright_dusk = ephem._table['brightdusk'].data[ilo:ihi]
+        bright_dawn = ephem._table['brightdawn'].data[ilo:ihi]
         dome_closed_time = dome_closed_frac * (bright_dawn - bright_dusk)
 
         # Randomly pick between three scenarios for partially closed nights:
