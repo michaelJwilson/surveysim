@@ -10,6 +10,7 @@ surveysim change log
 * Add new modules: exposures, stats.
 * Add new simulate_night that supercedes nightOpsDeprecated.
 * Requires desisurvey 0.11.0.
+* Refactor desisurvey.ephemerides -> desisurvey.ephem and use get_ephem()
 
 0.9.2 (2018-10-02)
 ------------------

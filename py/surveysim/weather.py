@@ -15,7 +15,7 @@ import desiutil.log
 import desimodel.weather
 
 import desisurvey.config
-import desisurvey.ephemerides
+import desisurvey.ephem
 import desisurvey.utils
 
 
@@ -107,7 +107,7 @@ class Weather(object):
             config.first_day(), config.last_day(), replay=replay)
 
         # Convert fractions of scheduled time to hours per night.
-        ephem = desisurvey.ephemerides.Ephemerides()
+        ephem = desisurvey.ephem.get_ephem()
         assert ephem.start == desisurvey.utils.local_noon_on_date(start_date)
         assert ephem.stop == desisurvey.utils.local_noon_on_date(stop_date)
         bright_dusk = ephem._table['brightdusk'].data

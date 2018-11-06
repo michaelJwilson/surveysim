@@ -12,7 +12,7 @@ import astropy.units as u
 
 import desiutil.log
 
-import desisurvey.ephemerides
+import desisurvey.ephem
 import desisurvey.old.schedule
 import desisurvey.utils
 import desisurvey.config
@@ -60,7 +60,7 @@ class Simulator(object):
         self.last_index = (self.stop_date - self.config.first_day()).days
 
         # Load the cached empherides to use.
-        self.ephem = desisurvey.ephemerides.Ephemerides(use_cache=True)
+        self.ephem = desisurvey.ephem.get_ephem(use_cache=True)
 
         # Load the survey scheduler to use.
         self.sp = desisurvey.old.schedule.Scheduler()

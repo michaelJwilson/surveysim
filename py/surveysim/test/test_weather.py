@@ -9,7 +9,7 @@ import numpy as np
 import astropy.time
 
 import desisurvey.config
-import desisurvey.ephemerides
+import desisurvey.ephem
 
 from surveysim.weather import Weather
 
@@ -27,7 +27,7 @@ class TestWeather(unittest.TestCase):
         stop = datetime.date(2020, 3, 1)
         config.first_day.set_value(start)
         config.last_day.set_value(stop)
-        ephem = desisurvey.ephemerides.Ephemerides(use_cache=False)
+        ephem = desisurvey.ephem.get_ephem(use_cache=False)
 
     @classmethod
     def tearDownClass(cls):

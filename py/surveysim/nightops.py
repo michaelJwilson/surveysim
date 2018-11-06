@@ -260,7 +260,7 @@ def nightOpsDeprecated(date, ephem, scheduler, weather, progress, strategy, plan
     ----------
     date : datetime.date
         Date when this night starts.
-    ephem : desisurvey.ephemerides.Ephemerides
+    ephem : desisurvey.ephem.Ephemerides
         Tabulated ephemerides data to use for simulating this night.
     scheduler : desisurvey.old.schedule.Scheduler
         Scheduler object to use for selecting next tiles.

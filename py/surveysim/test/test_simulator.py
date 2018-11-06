@@ -16,7 +16,7 @@ import desisurvey.config
 import desisurvey.progress
 import desisurvey.rules
 import desisurvey.plan
-import desisurvey.ephemerides
+import desisurvey.ephem
 import desisurvey.old.schedule
 
 import surveysim.weather
@@ -56,7 +56,7 @@ class TestSimulator(unittest.TestCase):
         config.first_day.set_value(start)
         config.last_day.set_value(stop)
         # Calculate ephemerides.
-        ephem = desisurvey.ephemerides.Ephemerides(use_cache=False)
+        ephem = desisurvey.ephem.get_ephem(use_cache=False)
         # Precompute scheduler data.
         desisurvey.old.schedule.initialize(ephem)
         # Initialize an empty progress record.
