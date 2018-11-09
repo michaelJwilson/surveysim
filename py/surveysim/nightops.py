@@ -174,7 +174,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
                     explist.add(
                         mjd_now - ETC.exptime, 86400 * ETC.exptime, tileid, ETC.snr2frac,
                         airmass, seeing_now, transp_now, sky_now)
-                    scheduler.update_tile(tileid, ETC.snr2frac)
+                    scheduler.update_snr(tileid, ETC.snr2frac)
 
                     if continue_this_tile:
                         # Prepare for the next exposure of the same tile.
