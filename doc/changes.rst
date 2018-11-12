@@ -5,10 +5,9 @@ surveysim change log
 0.10.0 (unreleased)
 -------------------
 
-* Refactor desisurvey.schedule -> desisurvey.old.schedule
-* Refactor nightops.nightOps -> nightops.nightOpsDeprecated
 * Add new modules: exposures, stats.
-* Add new simulate_night that supercedes nightOpsDeprecated.
+* Add new simulate_night that supercedes the original nightOps.
+* Use new Scheduler and ExposureTimeCalculator from desisurvey.
 * Requires desisurvey 0.11.0.
 * Refactor desisurvey.ephemerides -> desisurvey.ephem and use get_ephem()
 
