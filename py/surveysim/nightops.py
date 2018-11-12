@@ -10,9 +10,36 @@ import desisurvey.plots
 
 
 def simulate_night(night, scheduler, stats, explist, weather,
-                   use_twilight=False, plot=False, verbose=False):
-    """Replaces nightOpsDeprecated().
+                   use_twilight=False, update_interval=10.,
+                   plot=False, verbose=False):
+    """Simulate one night of observing.
+
+    Uses the online tile scheduler and exposure time calculator.
+
+    Replaces nightOpsDeprecated().
+
+    Parameters
+    ----------
+    night : datetime.date
+        Date that the simulated night starts.
+    scheduler : :class:`desisurvey.scheduler.Scheduler`
+        Next tile scheduler to use.
+    stats : :class:`surveysim.stats.SurveyStatistics`
+        Object for accumulating simulated survey statistics.
+    explist : :class:`surveysim.exposures.ExposureList`
+        Object for recording simulated exposures.
+    weather : :class:`surveysim.weather.Weather`
+        Simulated weather conditions to use.
+    use_twlight : bool
+        Observe during twilight when True.
+    update_interval : float
+        Interval in seconds for simulated ETC updates.
+    plot : bool
+        Generate a plot summarizing the simulated night when True.
+    verbose : bool
+        Produce verbose output on simulation progress when True.
     """
+    update_interval_days = update_interval / 86400.
     night = desisurvey.utils.get_date(night)
     nightstats = stats.get_night(night)
     label = str(night)
@@ -143,7 +170,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
                               seeing_now, transp_now, sky_now)
                     integrating = True
                     while integrating:
-                        mjd_now += ETC.UPDATE_INTERVAL
+                        mjd_now += update_interval_days
                         if mjd_now >= next_dome_closing:
                             # Current exposure is interrupted by dome closing.
                             mjd_now = next_dome_closing
