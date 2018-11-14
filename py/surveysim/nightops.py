@@ -70,7 +70,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
         if verbose: print('Dome closed all night.')
         return
 
-    scheduler.init_night(night, use_twilight=use_twilight, verbose=verbose)
+    scheduler.init_night(night, use_twilight=use_twilight)
     ETC = desisurvey.etc.ExposureTimeCalculator(save_history=plot)
     nexp_last = explist.nexp
 
@@ -127,7 +127,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
         # Get the current observing conditions.
         seeing_now, transp_now = get_weather(mjd_now)
         # Get the next tile to observe from the scheduler.
-        tileid, passnum, snr2frac_start, exposure_factor, airmass, program, mjd_program_end = \
+        tileid, passnum, snr2frac_start, exposure_factor, airmass, sched_program, mjd_program_end = \
             scheduler.next_tile(mjd_now, ETC, seeing_now, transp_now)
         if tileid is None:
             # Deadtime while we delay and try again.
@@ -153,8 +153,9 @@ def simulate_night(night, scheduler, stats, explist, weather,
             nightstats['tsetup'][passnum] += mjd_now - mjd_last
 
             if dome_is_open:            
-                # Lookup the program name for this pass.
-                program = scheduler.tiles.pass_program[passnum]
+                # Lookup the program of the next tile, which might be
+                # different from the scheduled program in ``sched_program``.
+                tile_program = scheduler.tiles.pass_program[passnum]
                 # Loop over repeated exposures of the same tile.
                 continue_this_tile = True
                 while continue_this_tile:
@@ -164,7 +165,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
                     sky_now = 1.
                     # Use the ETC to control the shutter.
                     mjd_open_shutter = mjd_now
-                    ETC.start(mjd_now, tileid, program, snr2frac_start, exposure_factor,
+                    ETC.start(mjd_now, tileid, tile_program, snr2frac_start, exposure_factor,
                               seeing_now, transp_now, sky_now)
                     integrating = True
                     while integrating:
@@ -220,8 +221,9 @@ def simulate_night(night, scheduler, stats, explist, weather,
                         nightstats['tsplit'][passnum] += mjd_now - mjd_split_start
                     # --------------------------------------------------------------------
 
-        # Update statistics for this program.
-        pidx = scheduler.tiles.PROGRAM_INDEX[program]
+        # Update statistics for the shedulued program (which might be different from
+        # the program of the tile we just observed).
+        pidx = scheduler.tiles.PROGRAM_INDEX[sched_program]
         nightstats['tdead'][pidx] += tdead
         nightstats['topen'][pidx] += mjd_now - mjd_last
 
