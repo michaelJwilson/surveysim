@@ -221,7 +221,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
                         nightstats['tsplit'][passnum] += mjd_now - mjd_split_start
                     # --------------------------------------------------------------------
 
-        # Update statistics for the shedulued program (which might be different from
+        # Update statistics for the scheduled program (which might be different from
         # the program of the tile we just observed).
         pidx = scheduler.tiles.PROGRAM_INDEX[sched_program]
         nightstats['tdead'][pidx] += tdead
