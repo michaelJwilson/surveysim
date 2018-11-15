@@ -46,6 +46,20 @@ class SurveyStatistics(object):
         self.num_nights = (self.stop_date - self.start_date).days
         if self.num_nights <= 0:
             raise ValueError('Expected start_date < stop_date.')
+        if restore is not None:
+            fullname = config.get_path(restore)
+            with astropy.io.fits.open(fullname, memmap=None) as hdus:
+                header = hdus[0].header
+                if header['TILES'] != self.tiles.tiles_file:
+                    raise ValueError('Header mismatch for TILES.')
+                if header['START'] != self.start_date.isoformat():
+                    raise ValueError('Header mismatch for START.')
+                if header['STOP'] != self.stop_date.isoformat():
+                    raise ValueError('Header mismatch for STOP.')
+                self._data = hdus['STATS'].data.copy()
+            log = desiutil.log.get_logger()
+            log.info('Restored stats from {}'.format(fullname))
+            return
         # Build our internal array.
         dtype = []
         for name in 'MJD', 'tsched',:
@@ -75,7 +89,7 @@ class SurveyStatistics(object):
             name to the constructor's ``restore`` argument to restore
             this snapshot.
         comment : str
-            Cmment to include in the saved header, for documentation
+            Comment to include in the saved header, for documentation
             purposes.
         overwrite : bool
             Silently overwrite any existing file when True.

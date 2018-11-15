@@ -26,7 +26,7 @@ class TestSimulator(Tester):
         config = desisurvey.config.Configuration()
         self.assertTrue(os.path.exists(config.get_path('stats_test.fits')))
         self.assertTrue(os.path.exists(config.get_path('exposures_test.fits')))
-        #stats = surveysim.stats.SurveyStatistics(restore='stats_test.fits')
+        stats = surveysim.stats.SurveyStatistics(restore='stats_test.fits')
         #exposures = surveysim.exposures.ExposureList(restore='exposures_test.fits')
 
 
