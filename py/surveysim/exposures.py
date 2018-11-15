@@ -13,8 +13,8 @@ import desisurvey.tiles
 
 class ExposureList(object):
 
-    def __init__(self, tiles_file=None, max_nexp=60000):
-        self.tiles = desisurvey.tiles.get_tiles(tiles_file)
+    def __init__(self, max_nexp=60000):
+        self.tiles = desisurvey.tiles.get_tiles()
         self._exposures = np.empty(max_nexp, dtype=[
             ('MJD', np.float64),
             ('EXPTIME', np.float32),
@@ -75,6 +75,22 @@ class ExposureList(object):
         tileinfo['NEXP'] += 1
 
     def save(self, name='exposures.fits', comment='', overwrite=True):
+        """Save exposures to a FITS file with two binary tables.
+
+        The saved file size scales linearly with the number of exposures.
+        A saved file can be restored using :func:`load`.
+
+        Parameters
+        ----------
+        name : str
+            File name to write. Will be located in the configuration
+            output path unless it is an absolute path.
+        comment : str
+            Cmment to include in the saved header, for documentation
+            purposes.
+        overwrite : bool
+            Silently overwrite any existing file when True.
+        """
         hdus = astropy.io.fits.HDUList()
         header = astropy.io.fits.Header()
         header['TILES'] = self.tiles.tiles_file
@@ -100,7 +116,7 @@ def load(name, extra_nexp=0):
         comment = header['COMMENT']
         nexp = header['NEXP']
         max_nexp = nexp + extra_nexp
-        explist = ExposureList(tiles_file=header['TILES'], max_nexp=max_nexp)
+        explist = ExposureList(max_nexp=max_nexp)
         explist._exposures[:nexp] = hdus['EXPOSURES'].data
         explist._tiledata[:] = hdus['TILEDATA'].data
     log = desiutil.log.get_logger()

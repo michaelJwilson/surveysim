@@ -31,12 +31,9 @@ class SurveyStatistics(object):
         save a snapshot to be restored later. Filename is relative to
         the configured output path unless an absolute path is
         provided.
-    tiles_file : str or None
-        Use this file containing the tile definitions, or the default
-        specified in the configuration when None.
     """
-    def __init__(self, start_date=None, stop_date=None, restore=None, tiles_file=None):
-        self.tiles = desisurvey.tiles.Tiles(tiles_file)
+    def __init__(self, start_date=None, stop_date=None, restore=None):
+        self.tiles = desisurvey.tiles.Tiles()
         config = desisurvey.config.Configuration()
         if start_date is None:
             self.start_date = config.first_day()

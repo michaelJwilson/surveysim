@@ -70,7 +70,10 @@ def parse(options=None):
         help='Print progress at this interval in nights')
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
-        help='Output path where output files should be written')
+        help='output path to use instead of config.output_path')
+    parser.add_argument(
+        '--tiles-file', default=None, metavar='TILES',
+        help='name of tiles file to use instead of config.tiles_file')
     parser.add_argument(
         '--config-file', default='config.yaml', metavar='CONFIG',
         help='input configuration file')
@@ -80,7 +83,7 @@ def parse(options=None):
     else:
         args = parser.parse_args(options)
 
-    # Validate start/stop date args and covert to datetime objects.
+    # Validate start/stop date args and convert to datetime objects.
     # Unspecified values are taken from our config.
     config = desisurvey.config.Configuration(file_name=args.config_file)
     if args.start is None:
@@ -119,19 +122,21 @@ def main(args):
     config = desisurvey.config.Configuration()
     if args.output_path is not None:
         config.set_output_path(args.output_path)
+    if args.tiles_file is not None:
+        config.tiles_file.set_value(args.tiles_file)
 
     # Initialize simulation progress tracking.
-    stats = surveysim.stats.SurveyStatistics()
-    explist = surveysim.exposures.ExposureList()
+    stats = surveysim.stats.SurveyStatistics(args.start, args.stop, tiles_file=args.tiles_file)
+    explist = surveysim.exposures.ExposureList(tiles_file=args.tiles_file)
 
     # Initialize the survey strategy rules.
     rules = desisurvey.rules.Rules(args.rules)
     
     # Initialize afternoon planning.
-    planner = desisurvey.plan.Planner(rules)
+    planner = desisurvey.plan.Planner(rules, tiles_file=args.tiles_file)
 
     # Initialize next tile selection.
-    scheduler = desisurvey.scheduler.Scheduler()
+    scheduler = desisurvey.scheduler.Scheduler(tiles_file=args.tiles_file)
 
     # Generate random weather conditions.
     weather = surveysim.weather.Weather(
@@ -171,4 +176,5 @@ def main(args):
                 num_simulated + 1, num_nights))
 
     explist.save('exposures_{}.fits'.format(args.name), comment=args.comment)
+    stats.save('stats_{}.fits'.format(args.name), comment=args.comment)
     stats.summarize()
