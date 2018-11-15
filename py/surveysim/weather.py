@@ -1,4 +1,6 @@
-"""Simulate weather conditions affecting observations.
+"""Simulate stochastic observing weather conditions.
+
+The simulated conditions include seeing, transparency and the dome-open fraction.
 """
 from __future__ import print_function, division, absolute_import
 
@@ -29,29 +31,32 @@ class Weather(object):
 
     Parameters
     ----------
-    time_step : float or :class:`astropy.units.Quantity`, optional
-        Time step calculating updates. Must evenly divide 24 hours.
-        If unitless float, will be interpreted as minutes.
+    seed : int
+        Random number seed to use to generate stochastic conditions.
+        The seed determines the same seeing and transparency realization
+        independent of the value of ``replay``.
     replay : str
         Either 'random' or a comma-separated list of years whose
         historical weather should be replayed, e.g. 'Y2010,Y2012'.
         Replayed weather will be used cyclically if necessary.
         Random weather will be a boostrap sampling of all available
-        years with historical weather data.
-    gen : numpy.random.RandomState or None
-        Random number generator to use for reproducible samples. Will be
-        initialized (un-reproducibly) if None.
+        years with historical weather data.  Use 'Y2015' for the
+        worst-case weather scenario.
+    time_step : float or :class:`astropy.units.Quantity`, optional
+        Time step calculating updates. Must evenly divide 24 hours.
+        If unitless float, will be interpreted as minutes.
     restore : filename or None
         Restore an existing weather simulation from the specified file name.
         All other parameters are ignored when this is provided. A relative path
         name refers to the :meth:`configuration output path
         <desisurvey.config.Configuration.get_path>`.
     """
-    def __init__(self, time_step=5, replay='random', gen=None, restore=None):
+    def __init__(self, seed=1, replay='random', time_step=5, restore=None):
         if not isinstance(time_step, u.Quantity):
             time_step = time_step * u.min
         self.log = desiutil.log.get_logger()
         config = desisurvey.config.Configuration()
+        ephem = desisurvey.ephem.get_ephem()
 
         if restore is not None:
             fullname = config.get_path(restore)
@@ -66,11 +71,10 @@ class Weather(object):
             self.log.info('Restored weather from {}.'.format(fullname))
             return
         else:
-            self.log.info('Generating random weather.')
+            self.log.info('Generating random weather with seed={} replay="{}".'
+                          .format(seed, replay))
 
-        if gen is None:
-            self.log.warn('Will generate unreproducible random numbers.')
-            gen = np.random.RandomState()
+        gen = np.random.RandomState(seed)
 
         # Use our config to set any unspecified dates.
         start_date = config.first_day()
@@ -86,12 +90,6 @@ class Weather(object):
                 'Requested time_step does not evenly divide 24 hours: {0}.'
                 .format(time_step))
 
-        if replay == 'random':
-            # Generate a bootstrap sampling of the historical weather years.
-            years_to_simulate = config.last_day().year - config.first_day().year + 1
-            history = ['Y{}'.format(year) for year in range(2007, 2018)]
-            replay = ','.join(gen.choice(history, years_to_simulate, replace=True))
-
         # Calculate the number of times where we will tabulate the weather.
         num_rows = num_nights * steps_per_day
         meta = dict(START=str(start_date), STOP=str(stop_date),
@@ -103,6 +101,21 @@ class Weather(object):
         times = t0 + (np.arange(num_rows) / float(steps_per_day)) * u.day
         self._table['mjd'] = times.mjd
 
+        # Generate a random atmospheric seeing time series.
+        dt_sec = 24 * 3600. / steps_per_day
+        self._table['seeing'] = desimodel.weather.sample_seeing(
+            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
+
+        # Generate a random atmospheric transparency time series.
+        self._table['transparency'] = desimodel.weather.sample_transp(
+            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
+
+        if replay == 'random':
+            # Generate a bootstrap sampling of the historical weather years.
+            years_to_simulate = config.last_day().year - config.first_day().year + 1
+            history = ['Y{}'.format(year) for year in range(2007, 2018)]
+            replay = ','.join(gen.choice(history, years_to_simulate, replace=True))
+
         # Lookup the dome closed fractions for each night of the survey.
         # This step is deterministic and only depends on the config weather
         # parameter, which specifies which year(s) of historical daily
@@ -111,7 +124,6 @@ class Weather(object):
             start_date, stop_date, replay=replay)
 
         # Convert fractions of scheduled time to hours per night.
-        ephem = desisurvey.ephem.get_ephem()
         ilo, ihi = (start_date - ephem.start_date).days, (stop_date - ephem.start_date).days
         bright_dusk = ephem._table['brightdusk'].data[ilo:ihi]
         bright_dawn = ephem._table['brightdawn'].data[ilo:ihi]
@@ -153,15 +165,6 @@ class Weather(object):
                 dome_closed_at = dome_open_at - dome_closed_time[i]
                 closed |= (night_mjd >= dome_closed_at) & (night_mjd < dome_open_at)
             self._table['open'][sl][closed] = False
-
-        # Generate a random atmospheric seeing time series.
-        dt_sec = 24 * 3600. / steps_per_day
-        self._table['seeing'] = desimodel.weather.sample_seeing(
-            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
-
-        # Generate a random atmospheric transparency time series.
-        self._table['transparency'] = desimodel.weather.sample_transp(
-            num_rows, dt_sec=dt_sec, gen=gen).astype(np.float32)
 
         self.start_date = start_date
         self.stop_date = stop_date

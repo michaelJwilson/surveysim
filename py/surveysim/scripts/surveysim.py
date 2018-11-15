@@ -139,8 +139,7 @@ def main(args):
     scheduler = desisurvey.scheduler.Scheduler(tiles_file=args.tiles_file)
 
     # Generate random weather conditions.
-    weather = surveysim.weather.Weather(
-        gen=np.random.RandomState(args.seed), replay=args.replay)
+    weather = surveysim.weather.Weather(seed=args.seed, replay=args.replay)
 
     # Loop over nights.
     num_simulated = 0
