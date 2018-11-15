@@ -126,17 +126,17 @@ def main(args):
         config.tiles_file.set_value(args.tiles_file)
 
     # Initialize simulation progress tracking.
-    stats = surveysim.stats.SurveyStatistics(args.start, args.stop, tiles_file=args.tiles_file)
-    explist = surveysim.exposures.ExposureList(tiles_file=args.tiles_file)
+    stats = surveysim.stats.SurveyStatistics(args.start, args.stop)
+    explist = surveysim.exposures.ExposureList()
 
     # Initialize the survey strategy rules.
     rules = desisurvey.rules.Rules(args.rules)
     
     # Initialize afternoon planning.
-    planner = desisurvey.plan.Planner(rules, tiles_file=args.tiles_file)
+    planner = desisurvey.plan.Planner(rules)
 
     # Initialize next tile selection.
-    scheduler = desisurvey.scheduler.Scheduler(tiles_file=args.tiles_file)
+    scheduler = desisurvey.scheduler.Scheduler()
 
     # Generate random weather conditions.
     weather = surveysim.weather.Weather(seed=args.seed, replay=args.replay)
