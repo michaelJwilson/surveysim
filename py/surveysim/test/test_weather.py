@@ -11,42 +11,22 @@ import astropy.time
 import desisurvey.config
 import desisurvey.ephem
 
+from desisurvey.test.base import Tester
 from surveysim.weather import Weather
 
 
-class TestWeather(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        # Create a temporary directory.
-        cls.tmpdir = tempfile.mkdtemp()
-        # Write output files to this temporary directory.
-        config = desisurvey.config.Configuration()
-        config.set_output_path(cls.tmpdir)
-        start = datetime.date(2020, 1, 1)
-        stop = datetime.date(2020, 3, 1)
-        config.first_day.set_value(start)
-        config.last_day.set_value(stop)
-        ephem = desisurvey.ephem.get_ephem(use_cache=False)
-
-    @classmethod
-    def tearDownClass(cls):
-        # Remove the directory after the test.
-        shutil.rmtree(cls.tmpdir)
-        # Reset our configuration.
-        desisurvey.config.Configuration.reset()
-        desisurvey.utils._dome_closed_fractions = None
+class TestWeather(Tester):
 
     def setUp(self):
         gen = np.random.RandomState(123)
         self.w = Weather(gen=gen, replay='Y2015')
 
     def test_dome_open_prob(self):
-        """Dome should be (partially) open 50 nights in Jan-Feb when replaying Y2015"""
+        """Dome should be (partially) open 26 nights in Dec 2019 when replaying Y2015"""
         n_nights = self.w.num_nights
-        self.assertEqual(n_nights, 31 + 29) # 2020 is a leap year!
+        self.assertEqual(n_nights, 31)
         open_nights = np.any(self.w._table['open'].reshape(n_nights, -1), axis=1).sum()
-        self.assertEqual(open_nights, 50)
+        self.assertEqual(open_nights, 26)
 
     def test_same_seed(self):
         """Weather should be identical with same seed"""

@@ -54,7 +54,8 @@ class Weather(object):
         config = desisurvey.config.Configuration()
 
         if restore is not None:
-            self._table = astropy.table.Table.read(config.get_path(restore))
+            fullname = config.get_path(restore)
+            self._table = astropy.table.Table.read(fullname)
             self.start_date = desisurvey.utils.get_date(
                 self._table.meta['START'])
             self.stop_date = desisurvey.utils.get_date(
@@ -62,7 +63,10 @@ class Weather(object):
             self.num_nights = self._table.meta['NIGHTS']
             self.steps_per_day = self._table.meta['STEPS']
             self.replay = self._table.meta['REPLAY']
+            self.log.info('Restored weather from {}.'.format(fullname))
             return
+        else:
+            self.log.info('Generating random weather.')
 
         if gen is None:
             self.log.warn('Will generate unreproducible random numbers.')
