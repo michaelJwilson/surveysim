@@ -4,6 +4,10 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
+import astropy.io.fits
+
+import desiutil.log
+
 import desisurvey.config
 import desisurvey.utils
 import desisurvey.tiles
@@ -12,13 +16,39 @@ import desisurvey.plots
 
 class SurveyStatistics(object):
     """Collect nightly statistics by pass.
+
+    Parameters
+    ----------
+    start_date : datetime.date or None
+        Record statistics for a survey that starts on the evening of this date.
+        Uses the configured nominal start date when None.
+    stop_date : datetime.date
+        Record statistics for a survey that stops on the morning of this date.
+        Uses the configured nominal stop date when None.
+    restore : str or None
+        Restore internal state from the snapshot saved to this filename,
+        or initialize a new object when None. Use :meth:`save` to
+        save a snapshot to be restored later. Filename is relative to
+        the configured output path unless an absolute path is
+        provided.
+    tiles_file : str or None
+        Use this file containing the tile definitions, or the default
+        specified in the configuration when None.
     """
-    def __init__(self, tiles_file=None):
+    def __init__(self, start_date=None, stop_date=None, restore=None, tiles_file=None):
         self.tiles = desisurvey.tiles.Tiles(tiles_file)
         config = desisurvey.config.Configuration()
-        self.start_date = config.first_day()
-        self.stop_date = config.last_day()
+        if start_date is None:
+            self.start_date = config.first_day()
+        else:
+            self.start_date = desisurvey.utils.get_date(start_date)
+        if stop_date is None:
+            self.stop_date = config.last_day()
+        else:
+            self.stop_date = desisurvey.utils.get_date(stop_date)
         self.num_nights = (self.stop_date - self.start_date).days
+        if self.num_nights <= 0:
+            raise ValueError('Expected start_date < stop_date.')
         # Build our internal array.
         dtype = []
         for name in 'MJD', 'tsched',:
@@ -30,15 +60,45 @@ class SurveyStatistics(object):
             dtype.append((name, np.float, (self.tiles.npasses,)))
         for name in 'completed', 'nexp', 'nsetup', 'nsplit', 'nsetup_abort', 'nsplit_abort',:
             dtype.append((name, np.int32, (self.tiles.npasses,)))
-        self._data = np.empty(self.num_nights, dtype)
-        self.reset()
-
-    def reset(self):
-        self._data[:] = 0
+        self._data = np.zeros(self.num_nights, dtype)
         # Initialize local-noon MJD timestamp for each night.
         first_noon = desisurvey.utils.local_noon_on_date(self.start_date).mjd
         self._data['MJD'] = first_noon + np.arange(self.num_nights)
-        
+
+    def save(self, name='stats.fits', comment='', overwrite=True):
+        """Save a snapshot of these statistics as a binary FITS table.
+
+        The saved file size is ~800 Kb.
+
+        Parameters
+        ----------
+        name : str
+            File name to write. Will be located in the configuration
+            output path unless it is an absolute path. Pass the same
+            name to the constructor's ``restore`` argument to restore
+            this snapshot.
+        comment : str
+            Cmment to include in the saved header, for documentation
+            purposes.
+        overwrite : bool
+            Silently overwrite any existing file when True.
+        """
+        hdus = astropy.io.fits.HDUList()
+        header = astropy.io.fits.Header()
+        header['TILES'] = self.tiles.tiles_file
+        header['START'] = self.start_date.isoformat()
+        header['STOP'] = self.stop_date.isoformat()
+        header['COMMENT'] = comment
+        hdus.append(astropy.io.fits.PrimaryHDU(header=header))
+        hdus.append(astropy.io.fits.BinTableHDU(self._data, header=header, name='STATS'))
+        config = desisurvey.config.Configuration()
+        fullname = config.get_path(name)
+        hdus.writeto(fullname, overwrite=overwrite)
+        log = desiutil.log.get_logger()
+        log.info('Saved stats to {}'.format(fullname))
+        if comment:
+            log.info('Saved with comment "{}".'.format(header['COMMENT']))
+
     @property
     def nexp(self):
         return self._data['nexp'].sum()
