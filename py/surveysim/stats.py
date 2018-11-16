@@ -136,6 +136,8 @@ class SurveyStatistics(object):
         return np.allclose(tlive, ttotal)
 
     def summarize(self):
+        """Print a tabular summary of the accumulated statistics to stdout.
+        """
         assert self.validate()
         D = self._data
         tsched = 24 * D['tsched'].sum()

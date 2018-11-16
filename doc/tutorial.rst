@@ -346,7 +346,11 @@ To generate a PNG of a single frame, use::
 
 to create ``exposure123.png``.
 
-To generate a smaller summary movie with one frame per night, use the `--nightly` option.
+To generate a smaller summary movie with one frame per night, use the `--nightly` option, e.g.::
+
+    surveymovie --nightly --save summary
 
 The ``surveymovie`` script uses the external ``ffmpeg`` program to generate movies, so
-this must be `installed <https://www.ffmpeg.org/download.html>`__. At NERSC, use ``module add ffmpeg``.
+this must be `installed <https://www.ffmpeg.org/download.html>`__. At NERSC, use::
+
+    module add ffmpeg

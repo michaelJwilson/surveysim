@@ -40,6 +40,8 @@ def parse(options=None):
         help='display log messages with severity >= info')
     parser.add_argument('--debug', action='store_true',
         help='display log messages with severity >= debug (implies verbose)')
+    parser.add_argument('--log-interval', type=int, default=100, metavar='N',
+        help='nightly interval for logging periodic info messages')
     parser.add_argument(
         '--start', type=str, default=None, metavar='DATE',
         help='survey starts on the evening of this day, formatted as YYYY-MM-DD')
@@ -65,9 +67,6 @@ def parse(options=None):
     parser.add_argument(
         '--replay', type=str, default='random', metavar='REPLAY',
         help='Replay specific weather years, e.g., "Y2015,Y2011" or "random"')
-    parser.add_argument(
-        '--print-interval', type=int, default=100, metavar='N',
-        help='Print progress at this interval in nights')
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
         help='output path to use instead of config.output_path')
@@ -111,12 +110,13 @@ def main(args):
     """
     # Set up the logger
     if args.debug:
-        log = desiutil.log.get_logger(desiutil.log.DEBUG)
+        os.environ['DESI_LOGLEVEL'] = 'DEBUG'
         args.verbose = True
     elif args.verbose:
-        log = desiutil.log.get_logger(desiutil.log.INFO)
+        os.environ['DESI_LOGLEVEL'] = 'VERBOSE'
     else:
-        log = desiutil.log.get_logger(desiutil.log.WARNING)
+        os.environ['DESI_LOGLEVEL'] = 'WARNING'
+    log = desiutil.log.get_logger()
 
     # Set the output path if requested.
     config = desisurvey.config.Configuration()
@@ -161,7 +161,7 @@ def main(args):
             surveysim.nightops.simulate_night(
                 night, scheduler, stats, explist, weather=weather, use_twilight=args.twilight)
             if scheduler.survey_completed():
-                print('Survey complete on {}.'.format(night))
+                log.info('Survey complete on {}.'.format(night))
                 break
 
         if args.save_restore:
@@ -169,11 +169,12 @@ def main(args):
             planner.save('planner_{}.fits'.format(last_night))
             scheduler.save('scheduler_{}.fits'.format(last_night))
 
-        if num_simulated % args.print_interval == args.print_interval - 1:
-            print('Completed {} / {} tiles after {} / {} nights.'.format(
+        if num_simulated % args.log_interval == args.log_interval - 1:
+            log.info('Completed {} / {} tiles after {} / {} nights.'.format(
                 scheduler.completed_by_pass.sum(), scheduler.tiles.ntiles,
                 num_simulated + 1, num_nights))
 
     explist.save('exposures_{}.fits'.format(args.name), comment=args.comment)
     stats.save('stats_{}.fits'.format(args.name), comment=args.comment)
-    stats.summarize()
+    if args.verbose:
+        stats.summarize()

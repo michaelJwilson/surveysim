@@ -4,6 +4,8 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
+import desiutil.log
+
 import desisurvey.utils
 import desisurvey.etc
 import desisurvey.plots
@@ -37,11 +39,11 @@ def simulate_night(night, scheduler, stats, explist, weather,
     verbose : bool
         Produce verbose output on simulation progress when True.
     """
+    log = desiutil.log.get_logger()
     update_interval_days = update_interval / 86400.
     night = desisurvey.utils.get_date(night)
     nightstats = stats.get_night(night)
     label = str(night)
-    if verbose: print('Simulating {}.'.format(night))
     # Lookup this night's sunset and sunrise MJD values.
     night_ephem = scheduler.ephem.get_night(night)
     if use_twilight:
@@ -51,8 +53,8 @@ def simulate_night(night, scheduler, stats, explist, weather,
         begin = night_ephem['dusk']
         end = night_ephem['dawn']
     nightstats['tsched'] = end - begin
-    if verbose:
-        print('begin: {}, end: {}'.format(begin, end))
+    log.debug('Simulating observing on {} from MJD {:.5f} - {:.5f}.'
+              .format(night, begin, end))
 
     # Find weather time steps that cover this night.
     weather_mjd = weather._table['mjd'].data
@@ -67,7 +69,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
     dome = weather._table['open'].data[ilo:ihi]
 
     if not np.any(dome):
-        if verbose: print('Dome closed all night.')
+        log.debug('Dome closed all night.')
         return
 
     scheduler.init_night(night, use_twilight=use_twilight)
