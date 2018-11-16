@@ -15,7 +15,7 @@ from desisurvey.test.base import Tester
 
 class TestSimulator(Tester):
 
-    def test_simulator(self):
+    def test_end_to_end(self):
         cmd = 'surveyinit --max-cycles 5 --init zero'
         args = desisurvey.scripts.surveyinit.parse(cmd.split()[1:])
         desisurvey.scripts.surveyinit.main(args)
@@ -27,7 +27,7 @@ class TestSimulator(Tester):
         self.assertTrue(os.path.exists(config.get_path('stats_test.fits')))
         self.assertTrue(os.path.exists(config.get_path('exposures_test.fits')))
         stats = surveysim.stats.SurveyStatistics(restore='stats_test.fits')
-        #exposures = surveysim.exposures.ExposureList(restore='exposures_test.fits')
+        exposures = surveysim.exposures.ExposureList(restore='exposures_test.fits')
 
 
 def test_suite():
