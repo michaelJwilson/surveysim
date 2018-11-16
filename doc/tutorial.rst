@@ -28,8 +28,8 @@ Login to cori, then::
     surveysim
 
 The results are then saved as ``stats_surveysim.fits``
-and ``exposures_surveysim.fits``
-in ``$DESISURVEY_OUTPUT``.  For a tutorial on interpreting
+and ``exposures_surveysim.fits`` in ``$DESISURVEY_OUTPUT``.
+For a tutorial on interpreting
 these outputs `start here
 <https://github.com/desihub/tutorials/blob/master/survey-simulations.ipynb>`__.
 
