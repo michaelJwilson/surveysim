@@ -216,6 +216,18 @@ This should complete in about 2 minutes (on cori) and writes two FITS files to
 For a tutorial on interpreting these outputs `start here
 <https://github.com/desihub/tutorials/blob/master/survey-simulations.ipynb>`__.
 
+By default, simulations are run entirely in memory for speed. However, during
+operations the internal states of the afternoon planner and tile scheduler are
+written to disk daily and then restored the next day. Use the ``--save-restore``
+option to ``surveysim`` to run in this mode, and write daily files:
+
+ - ``planner_YYYY-MM-DD.fits``: internal state of the planner after afternoon planning for YYYY-MM-DD.
+ - ``scheduler_YYYY-MM-DD.fits``: internal state of the tile scheduler after observing on the night of YYYY-MM-DD.
+
+This mode gives identical results but is slower (about 3 minutes) and writes many files (about 3.6K files
+totalling amost 1Gb), so is mainly intended as a technical check of this mode and for developing tools
+that read these intermediate files.
+
 Variations
 ~~~~~~~~~~
 
