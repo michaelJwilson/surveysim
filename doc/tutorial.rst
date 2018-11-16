@@ -83,6 +83,15 @@ not yet included in a numbered DESI conda environment, swap them in using::
     module swap desisurvey/master
     module swap surveysim/master
 
+For even more bleeding-edge features that are only available on a development
+branch, use, for example::
+
+    module unload desisurvey
+    pip install --user git+https://github.com/desihub/desisurvey@refactor
+    export PATH=$HOME/.local/bin:$PATH
+
+where ``refactor`` is the branch name in this example.
+
 Laptop Installation
 ~~~~~~~~~~~~~~~~~~~
 
@@ -198,7 +207,7 @@ To simulate the nomimal 5-year survey, use::
 
     surveysim
 
-This should complete in under 2 minutes (on cori) and writes two FITS files to
+This should complete in about 2 minutes (on cori) and writes two FITS files to
 ``$DESISURVEY_OUTPUT``:
 
  - ``stats.fits``: tables of per-tile and per-night summary statistics.
@@ -229,7 +238,7 @@ For different runs with the same ``surveyinit`` outputs, use the ``--name``
 and ``--comment`` options to ``surveysim`` to distinguish each run.
 For example::
 
-    surveysim --name twilight --comment 'Include twilight in schedule' --use-twilight
+    surveysim --name twilight --comment 'Include twilight in schedule' --twilight
 
 Will run with twilight included in the schedule and save
 `stats_twilight.fits` and `exposures_twilight.fits` to ``$DESISURVEY_OUTPUT``.
