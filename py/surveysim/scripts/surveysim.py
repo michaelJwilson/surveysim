@@ -113,7 +113,7 @@ def main(args):
         os.environ['DESI_LOGLEVEL'] = 'DEBUG'
         args.verbose = True
     elif args.verbose:
-        os.environ['DESI_LOGLEVEL'] = 'VERBOSE'
+        os.environ['DESI_LOGLEVEL'] = 'INFO'
     else:
         os.environ['DESI_LOGLEVEL'] = 'WARNING'
     log = desiutil.log.get_logger()
