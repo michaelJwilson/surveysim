@@ -46,20 +46,6 @@ class SurveyStatistics(object):
         self.num_nights = (self.stop_date - self.start_date).days
         if self.num_nights <= 0:
             raise ValueError('Expected start_date < stop_date.')
-        if restore is not None:
-            fullname = config.get_path(restore)
-            with astropy.io.fits.open(fullname, memmap=None) as hdus:
-                header = hdus[0].header
-                if header['TILES'] != self.tiles.tiles_file:
-                    raise ValueError('Header mismatch for TILES.')
-                if header['START'] != self.start_date.isoformat():
-                    raise ValueError('Header mismatch for START.')
-                if header['STOP'] != self.stop_date.isoformat():
-                    raise ValueError('Header mismatch for STOP.')
-                self._data = hdus['STATS'].data.copy()
-            log = desiutil.log.get_logger()
-            log.info('Restored stats from {}'.format(fullname))
-            return
         # Build our internal array.
         dtype = []
         for name in 'MJD', 'tsched',:
@@ -72,9 +58,24 @@ class SurveyStatistics(object):
         for name in 'completed', 'nexp', 'nsetup', 'nsplit', 'nsetup_abort', 'nsplit_abort',:
             dtype.append((name, np.int32, (self.tiles.npasses,)))
         self._data = np.zeros(self.num_nights, dtype)
-        # Initialize local-noon MJD timestamp for each night.
-        first_noon = desisurvey.utils.local_noon_on_date(self.start_date).mjd
-        self._data['MJD'] = first_noon + np.arange(self.num_nights)
+        if restore is not None:
+            # Restore array contents from a FITS file.
+            fullname = config.get_path(restore)
+            with astropy.io.fits.open(fullname, memmap=None) as hdus:
+                header = hdus[0].header
+                if header['TILES'] != self.tiles.tiles_file:
+                    raise ValueError('Header mismatch for TILES.')
+                if header['START'] != self.start_date.isoformat():
+                    raise ValueError('Header mismatch for START.')
+                if header['STOP'] != self.stop_date.isoformat():
+                    raise ValueError('Header mismatch for STOP.')
+                self._data[:] = hdus['STATS'].data
+            log = desiutil.log.get_logger()
+            log.info('Restored stats from {}'.format(fullname))
+        else:
+            # Initialize local-noon MJD timestamp for each night.
+            first_noon = desisurvey.utils.local_noon_on_date(self.start_date).mjd
+            self._data['MJD'] = first_noon + np.arange(self.num_nights)
 
     def save(self, name='stats.fits', comment='', overwrite=True):
         """Save a snapshot of these statistics as a binary FITS table.
@@ -218,8 +219,6 @@ class SurveyStatistics(object):
             ax.plot([], [], 'b:', lw=1, label='forecast')
         ax.legend(ncol=1)
         ax.axvline(dt[last], ls='-', c='r')
-        #ax.set_xlabel('Elapsed Days')
-        #ax.set_xlim(0, dt[-1] + 1)
         ax.set_ylim(0, 100)
         ax.set_ylabel('Completed [%]')
         yaxis = ax.yaxis
