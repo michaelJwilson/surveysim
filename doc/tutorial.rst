@@ -27,7 +27,8 @@ Login to cori, then::
     surveyinit
     surveysim
 
-The results are then saved as ``stats.fits`` and ``exposures.fits``
+The results are then saved as ``stats_surveysim.fits``
+and ``exposures_surveysim.fits``
 in ``$DESISURVEY_OUTPUT``.  For a tutorial on interpreting
 these outputs `start here
 <https://github.com/desihub/tutorials/blob/master/survey-simulations.ipynb>`__.
@@ -67,7 +68,7 @@ Note that these packages are already included in the custom DESI
 anaconda distribution installed at NERSC, so only need to be installed
 when running on your laptop or if you need to use non-default versions.
 
-NESRC Installation
+NERSC Installation
 ~~~~~~~~~~~~~~~~~~
 
 Setup the standard DESI conda environment using, for example::
