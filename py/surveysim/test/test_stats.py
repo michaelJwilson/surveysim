@@ -31,7 +31,7 @@ class TestStats(Tester):
                 nightstats['tscience'][passnum] = gen.uniform()
                 nightstats['nexp'][passnum] = passnum
         # Save and restore
-        stats.save('stats_test.fits')
+        stats.save('stats_test.fits', comment='unit test')
         stats2 = SurveyStatistics(restore='stats_test.fits')
         # Check for consistency
         self.assertEqual(stats._data.dtype, stats2._data.dtype)

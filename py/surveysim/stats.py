@@ -63,6 +63,7 @@ class SurveyStatistics(object):
             fullname = config.get_path(restore)
             with astropy.io.fits.open(fullname, memmap=None) as hdus:
                 header = hdus[0].header
+                comment = header['COMMENT']
                 if header['TILES'] != self.tiles.tiles_file:
                     raise ValueError('Header mismatch for TILES.')
                 if header['START'] != self.start_date.isoformat():
@@ -72,6 +73,8 @@ class SurveyStatistics(object):
                 self._data[:] = hdus['STATS'].data
             log = desiutil.log.get_logger()
             log.info('Restored stats from {}'.format(fullname))
+            if comment:
+                log.info('  Comment: "{}".'.format(comment))
         else:
             # Initialize local-noon MJD timestamp for each night.
             first_noon = desisurvey.utils.local_noon_on_date(self.start_date).mjd
