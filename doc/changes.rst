@@ -5,11 +5,16 @@ surveysim change log
 0.10.0 (unreleased)
 -------------------
 
+This version is a major refactoring of the code to take advantage of the
+refactoring in desisurvey 0.11.0 and simplify the simulation classes
+used to track survey statistics and exposure metadata.
+
 * Add new modules: exposures, stats.
 * Add new simulate_night that supercedes the original nightOps.
 * Use new Scheduler and ExposureTimeCalculator from desisurvey.
 * Requires desisurvey 0.11.0.
-* Refactor desisurvey.ephemerides -> desisurvey.ephem and use get_ephem()
+* Refactor desisurvey.ephemerides -> desisurvey.ephem and use get_ephem().
+* Update the tutorial.
 
 0.9.2 (2018-10-02)
 ------------------
