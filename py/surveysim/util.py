@@ -1,22 +1,36 @@
 """Simulation utilities that may be used by other packages.
 """
 from __future__ import print_function, division, absolute_import
+
 import numpy as np
-from astropy.table import Column
+
+import astropy.table
+
+import desiutil.log
+
+import desisurvey.utils
+import desisurvey.tiles
+
+import surveysim.exposures
 
 
 def add_calibration_exposures(exposures, flats_per_night=3, arcs_per_night=3,
                               darks_per_night=0, zeroes_per_night=0,
                               exptime=None, readout=30.0):
-    """Adds calibration exposures to a set of science exposures and
-    assigns exposure IDs.
+    """Prepare a list of science exposures for desisim.wrap-newexp.
+
+    Insert calibration exposures at the start of each night, and add
+    the following columns for all exposures: EXPID, PROGRAM, NIGHT,
+    FLAVOR.
 
     Parameters
     ----------
-    exposures : :class:`astropy.table.Table`
-        A table of science exposures, produced by *e.g.*
-        ``desisurvey.progress.Progress.get_exposures()``.
-        The exposures must be sorted by increasing MJD/timestamp.
+    exposures : table like or :class:`surveysim.exposures.ExposureList`
+        A table of science exposures including, at a minimum,
+        MJD, EXPTIME and TILEID columns. The exposures must be sorted
+        by increasing MJD. Could be a numpy recarray, an astropy
+        table, or an ExposureList object. Columns other than
+        the required ones are copied to the output.
     flats_per_night : :class:`int`, optional
         Add this many arc exposures per night (default 3).
     arcs_per_night : :class:`int`, optional
@@ -34,67 +48,78 @@ def add_calibration_exposures(exposures, flats_per_night=3, arcs_per_night=3,
     Returns
     -------
     :class:`astropy.table.Table`
-        A table augmented with calibration exposures.
+        The output table augmented with calibration exposures and
+        additional columns.
 
     Raises
     ------
     ValueError
         If the input is not sorted by increasing MJD/timestamp.
     """
-    if not np.all(np.diff(exposures['MJD']) >= 0):
+    if isinstance(exposures, surveysim.exposures.ExposureList):
+        exposures = exposures._exposures[:exposures.nexp]
+    nexp = len(exposures)
+    MJD = exposures['MJD']
+    if not np.all(np.diff(MJD) > 0):
         raise ValueError("Input is not sorted by increasing MJD!")
     if exptime is None:
         exptime = {'flat': 10.0, 'arc': 10.0, 'dark': 1000.0, 'zero': 0.0}
-    output = exposures[:0].copy()
-    expid_in_exposures = 'EXPID' in exposures.colnames
-    for c in ('RA', 'DEC'):
-        if output[c].unit is None:
-            output[c].unit = 'deg'
-    current_night = '19730703'
-    expid = 0
+
+    # Define the start of night calibration sequence.
     calib_time = lambda x: exptime[x] + readout
     calib_sequence = (['arc']*arcs_per_night + ['flat']*flats_per_night +
                       ['dark']*darks_per_night + ['zero']*zeroes_per_night)
-    calib_times = np.cumsum(np.array([calib_time(c)
-                                      for c in calib_sequence]))[::-1]
-    # None fields get filled in for each calibration exposure.
-    calib_data = {'TILEID': -1,
-                  'PASS': -1,
-                  'RA': 0.0,
-                  'DEC': 0.0,
-                  'EBMV': 0.0,
-                  'NIGHT': None,
-                  'MJD': None,
-                  'EXPTIME': None,
-                  'SEEING': 0.0,
-                  'TRANSPARENCY': 0.0,
-                  'AIRMASS': 0.0,
-                  'MOONFRAC': 0.0,
-                  'MOONALT': 0.0,
-                  'MOONSEP': 0.0,
-                  'PROGRAM': 'CALIB',
-                  'FLAVOR': None
-                  }
-    if expid_in_exposures:
-        calib_data['EXPID'] = None
-    for i, night in enumerate(exposures['NIGHT']):
-        if night != current_night:
-            current_night = night
-            for j, c in enumerate(calib_sequence):
-                if expid_in_exposures:
-                    calib_data['EXPID'] = expid
-                calib_data['NIGHT'] = night
-                calib_data['MJD'] = exposures['MJD'][i] - calib_times[j]/86400.0
-                calib_data['EXPTIME'] = exptime[c]
-                calib_data['FLAVOR'] = c
-                output.add_row(calib_data)
-                expid += 1
-        output.add_row(exposures[i])
-        if expid_in_exposures:
-            output['EXPID'][expid] = expid
-        expid += 1
-    if not expid_in_exposures:
-        output.add_column(Column(np.arange(len(output), dtype=np.int32),
-                                 name='EXPID', description='Exposure ID'),
-                          index=0)
+    calib_times = np.cumsum(np.array([calib_time(c) for c in calib_sequence]))[::-1]
+
+    # Group exposures by night.
+    MJD0 = desisurvey.utils.local_noon_on_date(desisurvey.utils.get_date(MJD[0])).mjd
+    night_idx = np.floor(MJD - MJD0).astype(int)
+    nights = np.unique(night_idx)
+    ncalib = len(calib_sequence) * len(nights)
+
+    # Initialize the output table.
+    output = astropy.table.Table()
+    nout = nexp + ncalib
+    output['EXPID'] = np.arange(nout, dtype=np.int32)
+    template = astropy.table.Table(dtype=exposures.dtype)
+    for colname in template.colnames:
+        col = template[colname]
+        output[colname] = astropy.table.Column(dtype=col.dtype, length=nout)
+    output['PROGRAM'] = astropy.table.Column(dtype=(str, len('BRIGHT')), length=nout)
+    output['NIGHT'] = astropy.table.Column(dtype=(str, len('YYYYMMDD')), length=nout)
+    output['FLAVOR'] = astropy.table.Column(dtype=(str, len('science')), length=nout)
+    tiles = desisurvey.tiles.get_tiles()
+
+    # Loop over nights.
+    out_idx = 0
+    for n in nights:
+        sel = (night_idx == n)
+        nsel = np.count_nonzero(sel)
+        first = np.where(sel)[0][0]
+        MJD_first = MJD[first]
+        NIGHT = desisurvey.utils.get_date(MJD_first).isoformat().replace('-', '')
+        # Append the calibration sequence.
+        for j, c in enumerate(calib_sequence):
+            output['MJD'][out_idx] = MJD_first - calib_times[j]/86400.0
+            output['EXPTIME'][out_idx] = exptime[c]
+            output['TILEID'][out_idx] = -1
+            output['PROGRAM'][out_idx] = 'CALIB'
+            output['NIGHT'][out_idx] = NIGHT
+            output['FLAVOR'][out_idx] = c
+            out_idx += 1
+        # Append the night's science exposures.
+        outslice = slice(out_idx, out_idx + nsel)
+        for colname in template.colnames:
+            output[colname][outslice] = exposures[colname][sel]
+        TILEIDs = exposures['TILEID'][sel]
+        output['PROGRAM'][outslice] = [
+            tiles.pass_program[p] for p in tiles.passnum[tiles.index(TILEIDs)]]
+        output['NIGHT'][outslice] = NIGHT
+        output['FLAVOR'][outslice] = 'science'
+        out_idx += nsel
+    assert out_idx == nout
+
+    log = desiutil.log.get_logger()
+    log.info('Added {} nightly calibration sequences of {} exposures each to {} science exposures.'
+             .format(len(nights), len(calib_sequence), nexp))
     return output
