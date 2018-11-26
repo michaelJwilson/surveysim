@@ -1,57 +1,53 @@
 """Test surveysim.util.
 """
 import unittest
+
 import numpy as np
-from astropy.table import Table, Column
+
+import astropy.table
+
+import desisurvey.tiles
+
+import surveysim.exposures
+
+from desisurvey.test.base import Tester
 from ..util import add_calibration_exposures
 
-class TestUtil(unittest.TestCase):
+
+class TestUtil(Tester):
     """Test surveysim.util.
     """
-
-    @classmethod
-    def setUpClass(cls):
-        pass
-
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def test_add_calibration_exposures(self):
         """Test adding calibration exposures to science exposures.
         """
-        exposures = Table()
-        exposures['TILEID'] = Column(np.array([0, 1], dtype=np.int32))
-        exposures['PASS'] = Column(np.array([0, 0], dtype=np.int16))
-        exposures['RA'] = Column(np.array([0.0, 1.0], dtype=np.float64))
-        exposures['DEC'] = Column(np.array([0.0, 1.0], dtype=np.float64))
-        exposures['EBMV'] = Column(np.array([0.0, 1.0], dtype=np.float64))
-        exposures['NIGHT'] = Column(np.array(['20200101', '20200102'], dtype=(str, 8)))
-        exposures['MJD'] = Column(np.array([58849.0, 58850.0], dtype=np.float64))
-        exposures['EXPTIME'] = Column(np.array([0.0, 1.0], dtype=np.float64), unit='s')
-        exposures['SEEING'] = Column(np.array([0.0, 1.0], dtype=np.float64), unit='arcsec')
-        exposures['TRANSPARENCY'] = Column(np.array([0.0, 1.0], dtype=np.float64))
-        exposures['AIRMASS'] = Column(np.array([0.0, 1.0], dtype=np.float64))
-        exposures['MOONFRAC'] = Column(np.array([0.0, 1.0], dtype=np.float64))
-        exposures['MOONALT'] = Column(np.array([0.0, 1.0], dtype=np.float64), unit='deg')
-        exposures['MOONSEP'] = Column(np.array([0.0, 1.0], dtype=np.float64), unit='deg')
-        exposures['PROGRAM'] = Column(np.array(['DARK', 'DARK'], dtype=(str, 6)))
-        exposures['FLAVOR'] = Column(np.array(['science', 'science'], dtype=(str, 7)))
-        output = add_calibration_exposures(exposures)
-        self.assertEqual(len(output), 14)
-        self.assertEqual('EXPID', output.colnames[0])
-        self.assertTrue(np.all(output['EXPID'] == np.arange(14, dtype=np.int32)))
-        self.assertEqual(output['RA'].unit, 'deg')
-        self.assertTrue(np.all(np.diff(output['MJD']) >= 0))
-        self.assertTrue(np.all(np.diff(output['EXPID']) == 1))
-        bad_exposures = Table()
-        bad_exposures['MJD'] = Column(np.array([58851.0, 58850.0], dtype=np.float64))
+        config = desisurvey.config.Configuration()
+        tiles = desisurvey.tiles.get_tiles()
+        tileID = tiles.tileID[0]
+        # List some science exposures.
+        exposures = surveysim.exposures.ExposureList()
+        exposures.add(58849., 1., tileID, 1., 1., 1.1, 0.9, 1.0)
+        exposures.add(58850., 1., tileID, 1., 1., 1.1, 0.9, 1.0)
+        for mode in 'obj', 'recarray', 'table':
+            if mode == 'obj':
+                input = exposures
+            elif mode == 'recarray':
+                input = exposures._exposures[:exposures.nexp]
+            elif mode == 'table':
+                exposures.save('exposures.fits')
+                input = astropy.table.Table.read(
+                    config.get_path('exposures.fits'), hdu='EXPOSURES')
+            # Validate the output.
+            output = add_calibration_exposures(input)
+            self.assertEqual(len(output), 14)
+            self.assertEqual('EXPID', output.colnames[0])
+            self.assertTrue(np.all(output['EXPID'] == np.arange(14, dtype=np.int32)))
+            self.assertTrue(np.all(np.diff(output['MJD']) >= 0))
+            self.assertTrue(np.all(np.diff(output['EXPID']) == 1))
+
+        # List some out-of-order science exposures.
+        bad_exposures = surveysim.exposures.ExposureList()
+        bad_exposures.add(58851., 1., tileID, 1., 1., 1.1, 0.9, 1.0)
+        bad_exposures.add(58850., 1., tileID, 1., 1., 1.1, 0.9, 1.0)
         with self.assertRaises(ValueError):
             output = add_calibration_exposures(bad_exposures)
 

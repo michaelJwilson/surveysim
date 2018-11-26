@@ -7,7 +7,7 @@ build
 dist
 doc/_build
 
-# Ignore nightstats.dat written by nightops.nightOps
+# Ignore nightstats.dat written by nightops.nightOpsDeprecated
 nightstats.dat
 
 # Ignore all FITS files, except in py/surveysim/data/

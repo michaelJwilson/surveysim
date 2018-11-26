@@ -1,25 +1,12 @@
 """Script wrapper for running survey simulations.
 
-This script simulates a sequence of observations until either the nominal
-survey end date is reached, or else a predefined fiber-assignment trigger
-condition occurs.
-
-See doc/tutorial for an overview of running surveysim and surveyplan to
-simulate the full DESI survey.
+Simulate a sequence of observations until either the nominal
+survey end date is reached, or all tiles have been observed.
+See doc/tutorial.rst for details.
 
 To run this script from the command line, use the ``surveysim``
 entry point that is created when this package is installed, and
 should be in your shell command search path.
-
-To profile this script, use, for example::
-
-    import cProfile
-    import surveysim.scripts.surveysim as ssim
-    cProfile.run("ssim.main(ssim.parse(['--stop', '2019-08-30']))", filename='profile.out')
-
-    import pstats
-    p = pstats.Stats('profile.out')
-    p.sort_stats('time').print_stats(10)
 """
 from __future__ import print_function, division, absolute_import
 
@@ -31,15 +18,17 @@ import sys
 
 import numpy as np
 
-import astropy.table
-
 import desiutil.log
 
 import desisurvey.config
-import desisurvey.progress
+import desisurvey.rules
+import desisurvey.plan
+import desisurvey.scheduler
 
 import surveysim.weather
-import surveysim.simulator
+import surveysim.stats
+import surveysim.exposures
+import surveysim.nightops
 
 
 def parse(options=None):
@@ -51,6 +40,8 @@ def parse(options=None):
         help='display log messages with severity >= info')
     parser.add_argument('--debug', action='store_true',
         help='display log messages with severity >= debug (implies verbose)')
+    parser.add_argument('--log-interval', type=int, default=100, metavar='N',
+        help='nightly interval for logging periodic info messages')
     parser.add_argument(
         '--start', type=str, default=None, metavar='DATE',
         help='survey starts on the evening of this day, formatted as YYYY-MM-DD')
@@ -58,26 +49,30 @@ def parse(options=None):
         '--stop', type=str, default=None, metavar='DATE',
         help='survey stops on the morning of this day, formatted as YYYY-MM-DD')
     parser.add_argument(
-        '--seed', type=int, default=123, metavar='N',
-        help='random number seed for generating observing conditions')
+        '--name', type=str, default='surveysim', metavar='NAME',
+        help='name to use for saving simulated stats and exposures')
     parser.add_argument(
-        '--resume', action='store_true',
-        help='resuming a previous simulation from its saved progress')
+        '--comment', type=str, default='', metavar='COMMENT',
+        help='comment to save with simulated stats and exposures')
     parser.add_argument(
-        '--night', type=str, default=None, metavar='YYYY-MM-DD',
-        help='simulate the specified night')
+        '--rules', type=str, default='rules.yaml', metavar='YAML',
+        help='name of YAML file with survey strategy rules to use')
+    parser.add_argument('--twilight', action='store_true',
+        help='include twilight in the scheduled time')
+    parser.add_argument('--save-restore', action='store_true',
+        help='save/restore the planner and scheduler state after each night')
     parser.add_argument(
-        '--strategy', default='HA',
-        help='Next tile selector strategy to use')
+        '--seed', type=int, default=1, metavar='N',
+        help='random number seed for generating random observing conditions')
     parser.add_argument(
-        '--plan', default='plan.fits',
-        help='Name of plan file to use')
-    parser.add_argument(
-        '--scores', action='store_true',
-        help='Save scheduler scores for each exposure')
+        '--replay', type=str, default='random', metavar='REPLAY',
+        help='Replay specific weather years, e.g., "Y2015,Y2011" or "random"')
     parser.add_argument(
         '--output-path', default=None, metavar='PATH',
-        help='Output path where output files should be written')
+        help='output path to use instead of config.output_path')
+    parser.add_argument(
+        '--tiles-file', default=None, metavar='TILES',
+        help='name of tiles file to use instead of config.tiles_file')
     parser.add_argument(
         '--config-file', default='config.yaml', metavar='CONFIG',
         help='input configuration file')
@@ -87,7 +82,7 @@ def parse(options=None):
     else:
         args = parser.parse_args(options)
 
-    # Validate start/stop date args and covert to datetime objects.
+    # Validate start/stop date args and convert to datetime objects.
     # Unspecified values are taken from our config.
     config = desisurvey.config.Configuration(file_name=args.config_file)
     if args.start is None:
@@ -115,98 +110,71 @@ def main(args):
     """
     # Set up the logger
     if args.debug:
-        log = desiutil.log.get_logger(desiutil.log.DEBUG)
+        os.environ['DESI_LOGLEVEL'] = 'DEBUG'
         args.verbose = True
     elif args.verbose:
-        log = desiutil.log.get_logger(desiutil.log.INFO)
+        os.environ['DESI_LOGLEVEL'] = 'INFO'
     else:
-        log = desiutil.log.get_logger(desiutil.log.WARNING)
-
-    # Freeze IERS table for consistent results.
-    desisurvey.utils.freeze_iers()
+        os.environ['DESI_LOGLEVEL'] = 'WARNING'
+    log = desiutil.log.get_logger()
 
     # Set the output path if requested.
     config = desisurvey.config.Configuration()
     if args.output_path is not None:
         config.set_output_path(args.output_path)
+    if args.tiles_file is not None:
+        config.tiles_file.set_value(args.tiles_file)
 
-    # Initialize random numbers.
-    gen = np.random.RandomState(args.seed)
-    weather_name = 'weather_{0}.fits'.format(args.seed)
+    # Initialize simulation progress tracking.
+    stats = surveysim.stats.SurveyStatistics(args.start, args.stop)
+    explist = surveysim.exposures.ExposureList()
 
-    # Load the progress record to resume writing.
-    progress = desisurvey.progress.Progress(restore='progress.fits')
+    # Initialize the survey strategy rules.
+    rules = desisurvey.rules.Rules(args.rules)
+    
+    # Initialize afternoon planning.
+    planner = desisurvey.plan.Planner(rules)
 
-    if args.night is not None:
-        args.start = desisurvey.utils.get_date(args.night)
-        args.stop = args.start + datetime.timedelta(days=1)
-        # Load the previously generated random weather.
-        weather = surveysim.weather.Weather(restore=weather_name)
-        # Rewind the progress to the specified night.
-        noon = desisurvey.utils.local_noon_on_date(args.start)
-        progress = progress.copy_range(mjd_max=noon.mjd)
-        # We will not update stats in this mode.
-        stats = None
-    elif args.resume:
-        # Load the previously generated random weather.
-        weather = surveysim.weather.Weather(restore=weather_name)
-        # Read the stats table that we will update.
-        stats = astropy.table.Table.read(config.get_path('stats.fits'))
-        # Resume from the last simulated date.
-        with open(config.get_path('last_date.txt'), 'r') as f:
-            args.start = desisurvey.utils.get_date(f.read().rstrip())
-        if args.start >= args.stop:
-            log.info('Reached stop date.')
-            # Return a shell exit code so scripts can detect this condition.
-            sys.exit(9)
-    else:
-        # Generate and save random weather.
-        weather = surveysim.weather.Weather(gen=gen)
-        weather.save(weather_name)
-        # Initialize a table for efficiency stats tracking.
-        stats = astropy.table.Table()
-        num_nights = (config.last_day() - config.first_day()).days
-        stats['available'] = np.zeros(num_nights)
-        stats['overhead'] = np.zeros(num_nights)
-        stats['delay'] = np.zeros(num_nights)
-        stats['dawn'] = np.zeros(num_nights)
-        stats['live'] = np.zeros(num_nights)
+    # Initialize next tile selection.
+    scheduler = desisurvey.scheduler.Scheduler()
 
-    # Create the simulator.
-    simulator = surveysim.simulator.Simulator(
-        args.start, args.stop, progress, weather, stats,
-        args.strategy, args.plan, gen)
+    # Generate random weather conditions.
+    weather = surveysim.weather.Weather(seed=args.seed, replay=args.replay)
 
-    if args.scores:
-        scores = []
-        scores_name = config.get_path('scores_{0}.fits'.format(simulator.date))
-    else:
-        scores = None
+    # Loop over nights.
+    num_simulated = 0
+    num_nights = (args.stop - args.start).days
+    for num_simulated in range(num_nights):
+        night = args.start + datetime.timedelta(num_simulated)
 
-    # Simulate one night of observing.
-    simulator.next_day(scores=scores)
+        if args.save_restore and num_simulated > 0:
+            # Restore the planner and scheduler saved after the previous night.
+            planner = desisurvey.plan.Planner(rules, restore='planner_{}.fits'.format(last_night))
+            scheduler = desisurvey.scheduler.Scheduler(restore='scheduler_{}.fits'.format(last_night))
+            scheduler.update_tiles(planner.tile_available, planner.tile_priority)
 
-    if args.scores:
-        # Save scores as a FITS image.
-        hdu = astropy.io.fits.PrimaryHDU(scores)
-        hdu.writeto(scores_name, overwrite=True)
+        # Perform afternoon planning.
+        explist.update_tiles(night, *scheduler.update_tiles(*planner.afternoon_plan(night, scheduler.completed)))
 
-    # Save the current date.
-    with open(config.get_path('last_date.txt'), 'w') as f:
-        print(str(simulator.date), file=f)
+        if not desisurvey.utils.is_monsoon(night) and not scheduler.ephem.is_full_moon(night):
+            # Simulate one night of observing.
+            surveysim.nightops.simulate_night(
+                night, scheduler, stats, explist, weather=weather, use_twilight=args.twilight)
+            if scheduler.survey_completed():
+                log.info('Survey complete on {}.'.format(night))
+                break
 
-    # Save the per-night efficiency stats.
-    if stats is not None:
-        stats.write(config.get_path('stats.fits'), overwrite=True)
+        if args.save_restore:
+            last_night = night.isoformat()
+            planner.save('planner_{}.fits'.format(last_night))
+            scheduler.save('scheduler_{}.fits'.format(last_night))
 
-    # Save the survey progress after the simulation.
-    if args.night is None:
-        progress.save('progress.fits')
-    else:
-        progress.save('progress_{}.fits'.format(args.night))
+        if num_simulated % args.log_interval == args.log_interval - 1:
+            log.info('Completed {} / {} tiles after {} / {} nights.'.format(
+                scheduler.completed_by_pass.sum(), scheduler.tiles.ntiles,
+                num_simulated + 1, num_nights))
 
-    # Save the corresponding exposure sequence.
-    ##exposures = progress.get_exposures()
-    ##exposures.write(config.get_path('exposures.fits'), overwrite=True)
-
-    return 0
+    explist.save('exposures_{}.fits'.format(args.name), comment=args.comment)
+    stats.save('stats_{}.fits'.format(args.name), comment=args.comment)
+    if args.verbose:
+        stats.summarize()

@@ -12,8 +12,8 @@ import astropy.units as u
 
 import desiutil.log
 
-import desisurvey.ephemerides
-import desisurvey.schedule
+import desisurvey.ephem
+import desisurvey.old.schedule
 import desisurvey.utils
 import desisurvey.config
 
@@ -60,10 +60,10 @@ class Simulator(object):
         self.last_index = (self.stop_date - self.config.first_day()).days
 
         # Load the cached empherides to use.
-        self.ephem = desisurvey.ephemerides.Ephemerides(use_cache=True)
+        self.ephem = desisurvey.ephem.get_ephem(use_cache=True)
 
         # Load the survey scheduler to use.
-        self.sp = desisurvey.schedule.Scheduler()
+        self.sp = desisurvey.old.schedule.Scheduler()
 
         self.strategy = strategy
         self.gen = gen
@@ -117,7 +117,7 @@ class Simulator(object):
         else:
 
             # Simulate tonight's observing.
-            totals = surveysim.nightops.nightOps(
+            totals = surveysim.nightops.nightOpsDeprecated(
                 self.date, self.ephem, self.sp, self.weather, self.progress,
                 self.strategy, self.plan, scores, self.gen)
 
