@@ -90,6 +90,11 @@ def add_calibration_exposures(exposures, flats_per_night=3, arcs_per_night=3,
     output['FLAVOR'] = astropy.table.Column(dtype=(str, len('science')), length=nout)
     tiles = desisurvey.tiles.get_tiles()
 
+    # Moon parameters are hardcoded for now.
+    output['MOONFRAC'] = 0.5
+    output['MOONALT'] = -10.
+    output['MOONSEP'] = 90.
+
     # Loop over nights.
     out_idx = 0
     for n in nights:
