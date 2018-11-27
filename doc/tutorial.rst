@@ -274,6 +274,8 @@ Custom Simulation
 Instead of running ``surveysim``, you can incorporate and customize the following
 top-level simulation driver directly into your own script or jupyter notebook::
 
+    import datetime
+
     import desisurvey.config
     import desisurvey.rules
     import desisurvey.plan
