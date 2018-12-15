@@ -104,7 +104,8 @@ class SurveyStatistics(object):
         header['START'] = self.start_date.isoformat()
         header['STOP'] = self.stop_date.isoformat()
         header['COMMENT'] = comment
-        hdus.append(astropy.io.fits.PrimaryHDU(header=header))
+        header['EXTNAME'] = 'STATS'    
+        hdus.append(astropy.io.fits.PrimaryHDU())
         hdus.append(astropy.io.fits.BinTableHDU(self._data, header=header, name='STATS'))
         config = desisurvey.config.Configuration()
         fullname = config.get_path(name)

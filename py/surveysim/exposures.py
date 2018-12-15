@@ -77,9 +77,11 @@ class ExposureList(object):
         night : datetime.date
             Night of initial observing.
         available : array
-            Array of tile indices that are currently available.
+            Array of tile indices that are newly available since the last
+            call to this method.
         planned : array
-            Array of tile indices that are currently planned (priority > 0).
+            Array of tile indices that are newly planned (priority > 0) since
+            the last call to this method.
         """
         if self.initial_night is None:
             self.initial_night = night
@@ -148,6 +150,7 @@ class ExposureList(object):
         header['NEXP'] = self.nexp
         header['COMMENT'] = comment
         header['INITIAL'] = self.initial_night.isoformat() if self.initial_night else ''
+        header['EXTNAME'] = 'META'
         hdus.append(astropy.io.fits.PrimaryHDU(header=header))
         hdus.append(astropy.io.fits.BinTableHDU(self._exposures[:self.nexp], name='EXPOSURES'))
         hdus.append(astropy.io.fits.BinTableHDU(self._tiledata, name='TILEDATA'))
