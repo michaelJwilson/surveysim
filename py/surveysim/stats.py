@@ -62,7 +62,7 @@ class SurveyStatistics(object):
             # Restore array contents from a FITS file.
             fullname = config.get_path(restore)
             with astropy.io.fits.open(fullname, memmap=None) as hdus:
-                header = hdus[0].header
+                header = hdus[1].header
                 comment = header['COMMENT']
                 if header['TILES'] != self.tiles.tiles_file:
                     raise ValueError('Header mismatch for TILES.')
