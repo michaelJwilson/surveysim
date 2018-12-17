@@ -2,10 +2,17 @@
 surveysim change log
 ====================
 
-0.10.1 (unreleased)
+0.10.2 (unreleased)
 -------------------
 
 * No changes yet.
+
+0.10.1 (2018-12-16)
+-------------------
+
+* Include EXTNAME in output files (PR `#63`_).
+
+.. _`#63`: https://github.com/desihub/surveysim/pull/63
 
 0.10.0 (2018-11-26)
 -------------------
