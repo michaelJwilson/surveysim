@@ -97,6 +97,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
     dome_is_open = False
     mjd_now = weather_mjd[0]
     completed_last = scheduler.completed_by_pass.copy()
+    sky_now = 1.0  # placeholder
     while mjd_now < end:
         if not dome_is_open:
             # Advance to the next dome opening, if any.
@@ -130,7 +131,7 @@ def simulate_night(night, scheduler, stats, explist, weather,
         seeing_now, transp_now = get_weather(mjd_now)
         # Get the next tile to observe from the scheduler.
         tileid, passnum, snr2frac_start, exposure_factor, airmass, sched_program, mjd_program_end = \
-            scheduler.next_tile(mjd_now, ETC, seeing_now, transp_now)
+            scheduler.next_tile(mjd_now, ETC, seeing_now, transp_now, sky_now)
         if tileid is None:
             # Deadtime while we delay and try again.
             mjd_now += NO_TILE_AVAIL_DELAY

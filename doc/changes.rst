@@ -5,7 +5,8 @@ surveysim change log
 0.10.2 (unreleased)
 -------------------
 
-* No changes yet.
+* Pass dummy sky level to desisurvey scheduler.next_tile; needed to match
+  API change in desisurvey PR #99.
 
 0.10.1 (2018-12-16)
 -------------------
