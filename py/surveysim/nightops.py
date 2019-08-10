@@ -129,9 +129,16 @@ def simulate_night(night, scheduler, stats, explist, weather,
         tdead = 0.
         # Get the current observing conditions.
         seeing_now, transp_now = get_weather(mjd_now)
+
         # Get the next tile to observe from the scheduler.
         tileid, passnum, snr2frac_start, exposure_factor, airmass, sched_program, mjd_program_end = \
             scheduler.next_tile(mjd_now, ETC, seeing_now, transp_now, sky_now)
+
+        # Not enough time to start exposure on this tile before prorgam ends.                                                                                                                                                                                                                                                                                                                                      
+        # Wait on the next.                                                                                                                                                                                                                                                                                                                                                  
+        if (mjd_now + ETC.NEW_FIELD_SETUP) >= mjd_program_end:
+            tileid = None
+
         if tileid is None:
             # Deadtime while we delay and try again.
             mjd_now += NO_TILE_AVAIL_DELAY
@@ -155,10 +162,11 @@ def simulate_night(night, scheduler, stats, explist, weather,
             # Charge this as setup time whether or not it was aborted.
             nightstats['tsetup'][passnum] += mjd_now - mjd_last
 
-            if dome_is_open:            
-                # Lookup the program of the next tile, which might be
-                # different from the scheduled program in ``sched_program``.
+            if dome_is_open:
+                # Lookup the program of the next tile, which might be                                                                                                                                                                                                                                                                                                                                                               
+                # different from the scheduled program in ``sched_program``.                                                                                                                                                                                                                                                                                                                                                        
                 tile_program = scheduler.tiles.pass_program[passnum]
+
                 # Loop over repeated exposures of the same tile.
                 continue_this_tile = True
                 while continue_this_tile:
