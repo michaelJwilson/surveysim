@@ -130,16 +130,18 @@ def simulate_night(night, scheduler, stats, explist, weather,
         # Get the current observing conditions.
         seeing_now, transp_now = get_weather(mjd_now)
 
+        mjd_tile = mjd_now
+        
         # Get the next tile to observe from the scheduler.
         tileid, passnum, snr2frac_start, exposure_factor, airmass, sched_program, mjd_program_end = \
             scheduler.next_tile(mjd_now, ETC, seeing_now, transp_now, sky_now)
-
-        # Not enough time to start exposure on this tile before prorgam ends.                                                                                                                                                                                                                                                                                                                                      
-        # Wait on the next.                                                                                                                                                                                                                                                                                                                                                  
-        if (mjd_now + ETC.NEW_FIELD_SETUP) >= mjd_program_end:
+        
+        # Not enough time to start exposure on this tile before prorgam ends.
+        # Wait on the next.
+        if ((mjd_now + ETC.NEW_FIELD_SETUP) >= mjd_program_end):
             tileid = None
 
-        if tileid is None:
+        if tileid is None:    
             # Deadtime while we delay and try again.
             mjd_now += NO_TILE_AVAIL_DELAY
             if mjd_now >= next_dome_closing:
@@ -150,6 +152,9 @@ def simulate_night(night, scheduler, stats, explist, weather,
         else:
             # Setup for a new field.
             mjd_now += ETC.NEW_FIELD_SETUP
+
+            mjd_fsetup = mjd_now
+
             if mjd_now >= next_dome_closing:
                 # Setup interrupted by dome closing.
                 mjd_now = next_dome_closing
@@ -204,6 +209,8 @@ def simulate_night(night, scheduler, stats, explist, weather,
                     if ETC.stop(mjd_now):
                         continue_this_tile = False
 
+                    assert ETC.exptime > 0.0
+                        
                     # Record this exposure
                     assert np.allclose(ETC.exptime, mjd_now - mjd_open_shutter)
                     nightstats['tscience'][passnum] += ETC.exptime
@@ -212,12 +219,13 @@ def simulate_night(night, scheduler, stats, explist, weather,
                         mjd_now - ETC.exptime, 86400 * ETC.exptime, tileid, ETC.snr2frac,
                         airmass, seeing_now, transp_now, sky_now)
                     scheduler.update_snr(tileid, ETC.snr2frac)
-
-                    if continue_this_tile:
+                 
+                    if (continue_this_tile) & ((mjd_now + ETC.SAME_FIELD_SETUP) < mjd_program_end):
                         # Prepare for the next exposure of the same tile.
                         snr2frac_start = ETC.snr2frac
                         mjd_split_start = mjd_now
                         mjd_now += ETC.SAME_FIELD_SETUP
+
                         if mjd_now >= next_dome_closing:
                             # Setup for next exposure of same tile interrupted by dome closing.
                             mjd_now = next_dome_closing
