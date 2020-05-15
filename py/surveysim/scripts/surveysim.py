@@ -174,7 +174,11 @@ def main(args):
                 scheduler.completed_by_pass.sum(), scheduler.tiles.ntiles,
                 num_simulated + 1, num_nights))
 
+    planner.save_final('assign_dates_{}.fits'.format(args.name))            
+
     explist.save('exposures_{}.fits'.format(args.name), comment=args.comment)
+
     stats.save('stats_{}.fits'.format(args.name), comment=args.comment)
+
     if args.verbose:
         stats.summarize()
